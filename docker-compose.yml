@@ -4,6 +4,10 @@ services:
     build: .
     env_file: .env
     networks: [internal]
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
 
     # Sicherheit
     read_only: true
