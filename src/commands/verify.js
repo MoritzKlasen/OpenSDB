@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
+const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,6 +20,23 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
+    const guildOwnerId = interaction.guild.ownerId;
+    const userId = interaction.user.id;
+
+    const settings = await ServerSettings.findOne();
+    const teamRoleId = settings?.teamRoleId;
+
+
+    const isOwner = userId === guildOwnerId;
+    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+
+    if (!isOwner && !isTeam) {
+      return interaction.reply({
+        content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
+        ephemeral: true
+      });
+    }
+
     const user = interaction.options.getUser('user');
     const firstName = interaction.options.getString('vorname');
     const lastName = interaction.options.getString('nachname');
@@ -30,8 +48,8 @@ module.exports = {
     if (exists) {
       return interaction.reply({
         content: `⚠️ ${user.tag} ist bereits verifiziert als #${exists.verificationNumber}.`,
-        flags: 64
-    });
+        ephemeral: true
+      });
     }
 
     const newUser = new VerifiedUser({
@@ -46,7 +64,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ ${user.tag} wurde erfolgreich verifiziert als **#${newVerificationNumber} – ${firstName} ${lastName}**`,
-      flags: 64
+      ephemeral: true
     });
   }
 };

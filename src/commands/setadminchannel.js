@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const Config = require('../database/models/Config');
+const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,17 +11,26 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
-    if (!interaction.member.roles.cache.some(role => role.name === 'admin')) {
-      return interaction.reply({ content: '❌ Nur Admins dürfen das.', flags: 64 });
+    const guildOwnerId = interaction.guild.ownerId;
+
+    if (interaction.user.id !== guildOwnerId) {
+      return interaction.reply({
+        content: '❌ Nur der Server-Owner darf das ausführen.',
+        ephemeral: true
+      });
     }
 
     const channel = interaction.options.getChannel('channel');
-    await Config.findOneAndUpdate(
-      { key: 'adminChannelId' },
-      { value: channel.id },
+
+    await ServerSettings.findOneAndUpdate(
+      {},
+      { adminChannelId: channel.id },
       { upsert: true }
     );
 
-    await interaction.reply(`✅ Admin-Channel wurde gesetzt: ${channel.toString()}`);
+    await interaction.reply({
+      content: `✅ Admin-Channel wurde gesetzt: ${channel.toString()}`,
+      ephemeral: true
+    });
   }
 };

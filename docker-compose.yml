@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    env_file: .env
+    networks: [internal]
+
+    # Sicherheit
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+    # Ressourcengrenzen (Beispielwerte)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.50"
+
+    # Abhängigkeiten eintragen (z. B. MongoDB)
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - db:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: botdb
+    networks: [internal]
+
+  # OPTIONAL: Einmaliges Ausführen des Migrations-Scripts
+  # migrate:
+  #   image: python:3.12-slim
+  #   volumes:
+  #     - .:/work
+  #   working_dir: /work
+  #   command: ["python", "migrate_verified_users.py"]
+  #   networks: [internal]
+  #   depends_on: [mongo]
+  #   restart: "no"
+
+volumes:
+  db:
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
