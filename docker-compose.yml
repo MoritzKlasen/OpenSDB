@@ -54,4 +54,13 @@ volumes:
 networks:
   internal:
     driver: bridge
-    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: br-dnsfix
+    name: internal
+    internal: false
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
