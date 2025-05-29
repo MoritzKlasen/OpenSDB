@@ -16,7 +16,7 @@ module.exports = {
     if (interaction.user.id !== guildOwnerId) {
       return interaction.reply({
         content: '❌ Nur der Server-Owner darf das ausführen.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -30,7 +30,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ Admin-Channel wurde gesetzt: ${channel.toString()}`,
-      ephemeral: true
+      flags: 64
     });
   }
 };

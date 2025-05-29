@@ -18,7 +18,7 @@ module.exports = {
     if (!verified) {
       return interaction.reply({
         content: `❌ ${user.tag} ist nicht verifiziert.`,
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -39,16 +39,24 @@ module.exports = {
 
     // Verwarnungen anzeigen – nur wenn vorhanden
     if (Array.isArray(verified.warnings) && verified.warnings.length > 0) {
-      const lastWarnings = verified.warnings
-        .slice(-3)
-        .reverse()
-        .map((warn, i) => {
-          const date = new Date(warn.date).toLocaleDateString('de-DE');
-          return `**${i + 1}.** ${warn.reason} *(${date})*`;
-        })
-        .join('\n');
+      const lastWarnings = await Promise.all(
+        verified.warnings
+          .slice(-3)
+          .reverse()
+          .map(async (warn, i) => {
+            const date = new Date(warn.date).toLocaleDateString('de-DE');
+            let issuerTag = `Unbekannt`;
 
-      embed.addFields({ name: '⚠️ Letzte Verwarnungen', value: lastWarnings });
+            try {
+              const issuer = await interaction.client.users.fetch(warn.issuedBy);
+              issuerTag = issuer.tag;
+            } catch {}
+
+            return `**${i + 1}.** ${warn.reason} *(von ${issuerTag}, ${date})*`;
+          })
+      );
+
+      embed.addFields({ name: '⚠️ Letzte Verwarnungen', value: lastWarnings.join('\n') });
     }
 
     return interaction.reply({ embeds: [embed] });

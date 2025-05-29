@@ -40,7 +40,6 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ Verifizierung von ${user.tag} wurde gelöscht.`,
-      flags: 64
-    });
+      flags: 0    });
   }
 };

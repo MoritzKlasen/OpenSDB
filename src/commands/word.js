@@ -36,8 +36,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
-        ephemeral: true
-      });
+        flags: 64      });
     }
 
     const word = interaction.options.getString('wort').toLowerCase();
@@ -45,7 +44,7 @@ module.exports = {
 
     if (sub === 'add') {
       await BannedWord.updateOne({ word }, { word }, { upsert: true });
-      return interaction.reply(`🚫 Verbotenes Wort hinzugefügt: **${word}**`);
+      return interaction.reply(`✅ Verbotenes Wort hinzugefügt: **${word}**`);
     }
 
     if (sub === 'remove') {

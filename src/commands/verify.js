@@ -33,7 +33,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -47,8 +47,8 @@ module.exports = {
     const exists = await VerifiedUser.findOne({ discordId: user.id });
     if (exists) {
       return interaction.reply({
-        content: `⚠️ ${user.tag} ist bereits verifiziert als #${exists.verificationNumber}.`,
-        ephemeral: true
+        content: `⚠️ ${user.tag} ist bereits verifiziert!`,
+        flags: 64
       });
     }
 
@@ -64,7 +64,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ ${user.tag} wurde erfolgreich verifiziert als **#${newVerificationNumber} – ${firstName} ${lastName}**`,
-      ephemeral: true
+      flags: 0
     });
   }
 };

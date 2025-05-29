@@ -20,23 +20,57 @@ module.exports = async function handleInteractions(client, interaction) {
       console.error(err);
       await interaction.reply({
         content: '⚠️ Fehler bei der Ausführung!',
-        ephemeral: true
+        flags: 64
       });
     }
   }
 
   if (interaction.isButton()) {
-    const [action, userId] = interaction.customId.split('_');
+    const [action, userId, bannedWordRaw] = interaction.customId.split('_');
+    const bannedWord = bannedWordRaw?.replace(/-/g, ' ') || 'unbekanntes Wort';
 
     if (action === 'warn') {
       try {
         const target = await client.users.fetch(userId);
-        await target.send('⚠️ Du wurdest wegen der Verwendung eines verbotenen Wortes verwarnt.');
-        await interaction.reply({ content: '✅ Verwarnung gesendet.', ephemeral: true });
-      } catch {
-        await interaction.reply({ content: '❌ Konnte Verwarnung nicht senden.', ephemeral: true });
+        const verified = await VerifiedUser.findOne({ discordId: userId });
+
+        if (!verified) {
+          return interaction.reply({
+            content: '❌ Benutzer ist nicht verifiziert.',
+            flags: 64
+          });
+        }
+
+        // Verwarnung speichern
+        verified.warnings.push({
+          reason: `Verwarnung wegen verbotenem Wort: "${bannedWord}"`,
+          issuedBy: interaction.user.id,
+          date: new Date()
+        });
+
+
+        await verified.save();
+
+        // User benachrichtigen
+        try {
+          await target.send(`⚠️ Du wurdest wegen der Verwendung des verbotenen Wortes "${bannedWord}" verwarnt.`);
+        } catch (err) {
+          console.warn('⚠️ Konnte Benutzer nicht per DM warnen:', err);
+        }
+
+        await interaction.reply({
+          content: `✅ ${target.tag} wurde verwarnt und die Verwarnung wurde gespeichert.`,
+          flags: 0
+        });
+      } catch (err) {
+        console.error(err);
+        await interaction.reply({
+          content: '❌ Es gab einen Fehler beim Verwarnen.',
+          flags: 64
+        });
       }
     }
+
 
     if (action === 'comment') {
       const modal = new ModalBuilder()
@@ -70,11 +104,11 @@ module.exports = async function handleInteractions(client, interaction) {
     );
 
     if (result) {
-      await interaction.reply({ content: '✅ Kommentar gespeichert.', ephemeral: true });
+      await interaction.reply({ content: '✅ Kommentar gespeichert.', flags: 0 });
     } else {
       await interaction.reply({
         content: '⚠️ Kein verifizierter Benutzer mit dieser ID gefunden.',
-        ephemeral: true
+        flags: 64
       });
     }
   }

@@ -3,22 +3,22 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('warn')
-    .setDescription('Verwarnt einen verifizierten Benutzer.')
+    .setName('comment')
+    .setDescription('Fügt einem verifizierten Benutzer einen Kommentar hinzu oder ändert ihn.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('Der Benutzer, der verwarnt werden soll.')
+        .setDescription('Der Benutzer, dessen Kommentar gesetzt werden soll.')
         .setRequired(true)
     )
     .addStringOption(option =>
-      option.setName('grund')
-        .setDescription('Der Grund für die Verwarnung.')
+      option.setName('text')
+        .setDescription('Der neue Kommentar.')
         .setRequired(true)
     ),
 
   async execute(interaction) {
     const user = interaction.options.getUser('user');
-    const grund = interaction.options.getString('grund');
+    const text = interaction.options.getString('text');
 
     const verified = await VerifiedUser.findOne({ discordId: user.id });
 
@@ -29,16 +29,11 @@ module.exports = {
       });
     }
 
-    verified.warnings.push({
-      reason: grund,
-      issuedBy: interaction.user.id,
-      date: new Date()
-    });
-
+    verified.comment = text;
     await verified.save();
 
     return interaction.reply({
-      content: `✅ ${user.tag} wurde von ${interaction.user.tag} verwarnt.\nGrund: *${grund}*`,
+      content: `✅ Kommentar für ${user.tag} wurde gesetzt:\n> ${text}`,
       flags: 0
     });
   }

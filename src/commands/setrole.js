@@ -15,7 +15,7 @@ module.exports = {
     if (!isOwner) {
       return interaction.reply({
         content: '❌ Nur der Server-Owner darf das.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -29,7 +29,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ Team-Rolle wurde gesetzt auf: **${role.name}**`,
-      ephemeral: true
+      flags: 64
     });
   }
 };

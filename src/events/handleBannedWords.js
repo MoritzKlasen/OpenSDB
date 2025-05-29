@@ -38,7 +38,7 @@ module.exports = async function handleBannedWords(client, message) {
 
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
-            .setCustomId(`warn_${message.author.id}`)
+            .setCustomId(`warn_${message.author.id}_${banned}`)
             .setLabel('Verwarnen')
             .setStyle(ButtonStyle.Danger),
 
