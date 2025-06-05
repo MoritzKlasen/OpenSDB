@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
+const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -33,19 +34,26 @@ module.exports = {
       .setColor('Blurple')
       .setTimestamp();
 
-    if (verified.comment && verified.comment.trim() !== '') {
+    // ==== Rollencheck ====
+    const settings = await ServerSettings.findOne();
+    const isOwner = interaction.user.id === interaction.guild.ownerId;
+    const isTeam = settings?.teamRoleId && interaction.member.roles.cache.has(settings.teamRoleId);
+    const isPrivileged = isOwner || isTeam;
+
+    // Kommentar nur für Admin / Team
+    if (isPrivileged && verified.comment && verified.comment.trim() !== '') {
       embed.addFields({ name: '📝 Kommentar', value: verified.comment });
     }
 
-    // Verwarnungen anzeigen – nur wenn vorhanden
-    if (Array.isArray(verified.warnings) && verified.warnings.length > 0) {
+    // Verwarnungen nur für Admin / Team
+    if (isPrivileged && Array.isArray(verified.warnings) && verified.warnings.length > 0) {
       const lastWarnings = await Promise.all(
         verified.warnings
           .slice(-3)
           .reverse()
           .map(async (warn, i) => {
             const date = new Date(warn.date).toLocaleDateString('de-DE');
-            let issuerTag = `Unbekannt`;
+            let issuerTag = 'Unbekannt';
 
             try {
               const issuer = await interaction.client.users.fetch(warn.issuedBy);
