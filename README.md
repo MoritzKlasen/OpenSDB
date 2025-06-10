@@ -7,7 +7,7 @@
 ### 1. Repository klonen
 
 ```bash
-git clone https://github.com/dein-user/dein-bot.git HTL-Dornbirn
+git clone https://github.com/MoritzKlasen/HTL-Dornbirn.git
 cd HTL-Dornbirn
 ```
 
