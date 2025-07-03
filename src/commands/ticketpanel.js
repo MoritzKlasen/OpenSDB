@@ -4,7 +4,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  ChannelType              //  ← neu
+  ChannelType
 } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
 
@@ -13,49 +13,51 @@ module.exports = {
     .setName('ticketpanel')
     .setDescription('Erstellt ein Ticket-Panel (Support / Verify)')
     .addStringOption(o =>
-      o.setName('titel').setDescription('Embed-Titel').setRequired(true))
+      o.setName('titel')
+       .setDescription('Embed-Titel')
+       .setRequired(true))
     .addStringOption(o =>
-      o.setName('beschreibung').setDescription('Embed-Beschreibung').setRequired(true))
+      o.setName('beschreibung')
+       .setDescription('Embed-Beschreibung')
+       .setRequired(true))
     .addStringOption(o =>
-      o.setName('button').setDescription('Button-Text').setRequired(true))
+      o.setName('button')
+       .setDescription('Button-Text')
+       .setRequired(true))
     .addStringOption(o =>
       o.setName('typ')
-        .setDescription('Ticket-Typ')
-        .addChoices(
-          { name: 'Support', value: 'support' },
-          { name: 'Verify',  value: 'verify' }
-        )
-        .setRequired(true))
-    .addChannelOption(o =>                      //  ← neu
+       .setDescription('Ticket-Typ')
+       .addChoices(
+         { name: 'Support', value: 'support' },
+         { name: 'Verify',  value: 'verify' }
+       )
+       .setRequired(true))
+    .addChannelOption(o =>
       o.setName('kategorie')
-        .setDescription('Kategorie für neue Tickets')
-        .addChannelTypes(ChannelType.GuildCategory)
-        .setRequired(true)),
+       .setDescription('Kategorie für neue Tickets')
+       .addChannelTypes(ChannelType.GuildCategory)
+       .setRequired(true)),
 
   async execute(interaction) {
-    /* Berechtigung: Owner oder Team-Rolle */
-    const settings   = await ServerSettings.findOne();
-    const teamRoleId = settings?.teamRoleId;
+    const settings   = await ServerSettings.findOne() || {};
+    const teamRoleId = settings.teamRoleId;
     const isOwner    = interaction.user.id === interaction.guild.ownerId;
     const isTeam     = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
     if (!isOwner && !isTeam) {
       return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
     }
 
-    /* Optionen lesen */
     const title       = interaction.options.getString('titel');
     const description = interaction.options.getString('beschreibung');
     const buttonLabel = interaction.options.getString('button');
-    const type        = interaction.options.getString('typ');          // support | verify
-    const category    = interaction.options.getChannel('kategorie');   // GuildCategory
+    const type        = interaction.options.getString('typ');
+    const category    = interaction.options.getChannel('kategorie');
 
-    /* Embed + Button */
     const embed = new EmbedBuilder()
       .setTitle(title)
       .setDescription(description)
-      .setColor('Blurple');
+      .setColor(type === 'support' ? 'Blurple' : 'Green');
 
-    // customId: ticket_<type>_<catId>
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`ticket_${type}_${category.id}`)
@@ -63,6 +65,10 @@ module.exports = {
         .setStyle(type === 'support' ? ButtonStyle.Primary : ButtonStyle.Success)
     );
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.reply({
+      embeds: [embed],
+      components: [row],
+      flags: 0
+    });
   },
 };

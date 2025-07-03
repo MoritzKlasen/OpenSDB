@@ -34,18 +34,15 @@ module.exports = {
       .setColor('Blurple')
       .setTimestamp();
 
-    // ==== Rollencheck ====
     const settings = await ServerSettings.findOne();
     const isOwner = interaction.user.id === interaction.guild.ownerId;
     const isTeam = settings?.teamRoleId && interaction.member.roles.cache.has(settings.teamRoleId);
     const isPrivileged = isOwner || isTeam;
 
-    // Kommentar nur für Admin / Team
     if (isPrivileged && verified.comment && verified.comment.trim() !== '') {
       embed.addFields({ name: '📝 Kommentar', value: verified.comment });
     }
 
-    // Verwarnungen nur für Admin / Team
     if (isPrivileged && Array.isArray(verified.warnings) && verified.warnings.length > 0) {
       const lastWarnings = await Promise.all(
         verified.warnings
