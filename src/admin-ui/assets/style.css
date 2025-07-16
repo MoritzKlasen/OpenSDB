@@ -1,0 +1,127 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+body {
+  font-family: sans-serif;
+  margin: 20px;
+  background-color: #f0f0f0;
+  color: #111;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.dark body {
+  background-color: #121212;
+  color: #f0f0f0;
+}
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.top-bar #searchInput {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  transition: background 0.3s ease, color 0.3s ease, border 0.3s ease;
+  background-color: #fff;
+  color: #111;
+}
+.dark .top-bar #searchInput {
+  background-color: #2a2a2a;
+  border-color: #555;
+  color: #f0f0f0;
+}
+.top-bar button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+#toggleDarkmode {
+  background: #7f56d9;
+  color: #fff;
+}
+#logoutButton {
+  background: #d9534f;
+  color: #fff;
+}
+.top-bar button:hover {
+  opacity: 0.9;
+}
+.dark #toggleDarkmode {
+  background-color: #5ec2b7;
+  color: #000;
+}
+.dark #logoutButton {
+  background-color: #c9302c;
+  color: #fff;
+}
+#userContainer {
+  width: 100%;
+}
+.user-box {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  color: #111;
+  transition: background 0.3s ease, border 0.3s ease, color 0.3s ease;
+}
+.dark .user-box {
+  background-color: #1e1e1e;
+  border-color: #444;
+  color: #f0f0f0;
+}
+.user-box button {
+  display: inline-block;
+  padding: 6px 10px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.user-box button {
+  background-color: #7f56d9;
+  color: #fff;
+}
+.dark .user-box button {
+  background-color: #5ec2b7;
+  color: #000;
+}
+.user-box button[onclick*="deleteWarning"] {
+  background-color: #5ec2b7;
+  color: #000;
+}
+.dark .user-box button[onclick*="deleteWarning"] {
+  background-color: #7f56d9;
+  color: #fff;
+}
+.user-box ul {
+  margin: 8px 0 0 16px;
+}
+.user-box li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.dark li {
+  color: #ddd;
+}
+.dark strong {
+  color: #fff;
+}
+.dark em {
+  color: #bbb;
+}
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hidden {
+  display: none !important;
+}

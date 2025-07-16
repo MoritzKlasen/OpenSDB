@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #121212;
+      color: #f0f0f0;
+    }
+
+    .login-container {
+      width: 360px;
+      padding: 24px;
+      background: #1e1e1e;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+
+    .login-container h1 {
+      margin-bottom: 16px;
+    }
+
+    .login-container input,
+    .login-container button {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #333;
+      font-size: 16px;
+    }
+
+    .login-container input {
+      background: #2a2a2a;
+      color: #f0f0f0;
+    }
+
+    .login-container button {
+      background-color: #5ec2b7;
+      color: #000;
+      border: none;
+      cursor: pointer;
+    }
+
+    .login-container button:hover {
+      opacity: 0.9;
+    }
+
+    .error {
+      color: #d9534f;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Admin Login</h1>
+    <div id="errorMsg" class="error" style="display:none;"></div>
+    <form id="loginForm">
+      <input type="text" name="username" placeholder="Benutzername" required>
+      <input type="password" name="password" placeholder="Passwort" required>
+      <button type="submit">Anmelden</button>
+    </form>
+  </div>
+
+  <script>
+    if (localStorage.getItem('darkmode') === 'true') {
+      document.documentElement.classList.add('dark');
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          username: fd.get('username'),
+          password: fd.get('password')
+        })
+      });
+      const errEl = document.getElementById('errorMsg');
+      if (res.ok) {
+        window.location.href = '/dashboard';
+      } else {
+        errEl.textContent = '❌ Benutzername oder Passwort falsch.';
+        errEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

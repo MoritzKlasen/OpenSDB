@@ -1,0 +1,19 @@
+FROM node:20-slim AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --production && npm cache clean --force
+
+COPY . .
+
+FROM node:20-slim AS runtime
+RUN addgroup --system --gid 1001 bot \
+ && adduser  --system --uid 1001 --gid 1001 --home /app bot
+
+WORKDIR /app
+COPY --from=builder --chown=bot:bot /app /app
+
+USER bot
+ENV NODE_ENV=production
+
+CMD ["node", "src/index.js"]

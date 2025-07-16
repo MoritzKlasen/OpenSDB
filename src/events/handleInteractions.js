@@ -29,14 +29,12 @@ module.exports = async (client, interaction) => {
     const [action, userId, extra] = interaction.customId.split('_');
     const bannedWord = extra?.replace(/-/g, ' ') || '';
 
-    // ─── Ticket-Erstellung ───────────────────────────────────────────
     if (action === 'ticket') {
-      const ticketType = userId;   // "support" | "verify"
+      const ticketType = userId; 
       const catId      = extra;
 
       const settings = await ServerSettings.findOne() || {};
       const { teamRoleId, supportRoleId, verifyRoleId } = settings;
-      // Fallback: teamRoleId falls back if specific role isn't set
       const roleId = ticketType === 'support'
         ? (supportRoleId || teamRoleId)
         : (verifyRoleId  || teamRoleId);
@@ -49,11 +47,8 @@ module.exports = async (client, interaction) => {
         type: ChannelType.GuildText,
         parent: parentId ?? undefined,
         permissionOverwrites: [
-          // Alle anderen sehen nichts
           { id: interaction.guild.roles.everyone, deny: ['ViewChannel'] },
-          // Ticket-Ersteller darf lesen & schreiben
           { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
-          // Team-Rolle darf lesen & schreiben
           ...(roleId
             ? [{
                 id: roleId,
@@ -63,7 +58,6 @@ module.exports = async (client, interaction) => {
         ]
       });
 
-      // Begrüßung + Close-Button
       await channel.send({
         embeds: [
           new EmbedBuilder()
@@ -94,9 +88,7 @@ module.exports = async (client, interaction) => {
       });
     }
 
-    // ─── Ticket-Schließen ────────────────────────────────────────────
     if (interaction.customId === 'close_ticket') {
-      // Abschluss-Embed
       await interaction.channel.send({
         embeds: [
           new EmbedBuilder()
@@ -106,14 +98,11 @@ module.exports = async (client, interaction) => {
         ]
       });
 
-      // Kanal für Ersteller sperren, Team behält Zugriff
       const settings = await ServerSettings.findOne() || {};
       const { teamRoleId } = settings;
-      // Entziehen Sie dem Ersteller Schreibrechte
       await interaction.channel.permissionOverwrites.edit(interaction.user.id, {
         SendMessages: false
       });
-      // Stellen Sie sicher, dass die Team-Rolle weiterhin Zugriff hat
       if (teamRoleId) {
         await interaction.channel.permissionOverwrites.edit(teamRoleId, {
           ViewChannel: true,
@@ -127,7 +116,6 @@ module.exports = async (client, interaction) => {
       });
     }
 
-    // ─── Verwarnung („warn_…“) ────────────────────────────────────────
     if (action === 'warn') {
       try {
         const target   = await client.users.fetch(userId);
@@ -150,7 +138,6 @@ module.exports = async (client, interaction) => {
       }
     }
 
-    // ─── Kommentar-Modal („comment_…“) ───────────────────────────────
     if (action === 'comment') {
       const modal = new ModalBuilder()
         .setCustomId(`commentmodal_${userId}`)
@@ -168,7 +155,6 @@ module.exports = async (client, interaction) => {
     }
   }
 
-  // ─── Modal-Submit (Kommentar) ─────────────────────────────────────
   if (
     interaction.type === InteractionType.ModalSubmit &&
     interaction.customId.startsWith('commentmodal_')
