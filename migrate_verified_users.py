@@ -1,7 +1,7 @@
 import pandas as pd
 from pymongo import MongoClient
 
-df = pd.read_csv("namenslisten htl server leer.csv")
+df = pd.read_csv("name_list.csv")
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["schooldb"]
@@ -17,19 +17,16 @@ for _, row in df.iterrows():
         continue
 
     doc = {
-        "verificationNumber": int(row["Verifizierungsnummer"]),
+        "verificationNumber": int(row["Verification number"]),
         "discordTag": str(row["Discordtag"]).strip(),
         "discordId": discord_id,
-        "firstName": str(row["Vorname"]).strip(),
-        "lastName": str(row["Nachname"]).strip(),
-        "comment": str(row["Kommentar"]).strip() if not pd.isna(row["Kommentar"]) else ""
+        "firstName": str(row["First name"]).strip(),
+        "lastName": str(row["Last name"]).strip(),
+        "comment": str(row["Comment"]).strip() if not pd.isna(row["Comment"]) else ""
     }
 
     collection.insert_one(doc)
     inserted += 1
 
-print(f"✅ Erfolgreich eingetragen: {inserted}")
-print(f"⚠️ Übersprungen (bereits vorhanden): {skipped}")
-
-# for entry in collection.find({}, {"_id": 0}):
-#     print(entry)
+print(f"✅ Successfully inserted: {inserted}")
+print(f"⚠️ Skipped (already exists): {skipped}")

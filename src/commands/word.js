@@ -5,22 +5,22 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('word')
-    .setDescription('Verwaltet verbotene Wörter')
+    .setDescription('Manages banned words')
     .addSubcommand(subcommand =>
       subcommand
         .setName('add')
-        .setDescription('Fügt ein verbotenes Wort hinzu')
+        .setDescription('Adds a banned word')
         .addStringOption(option =>
-          option.setName('wort')
-            .setDescription('Verbotenes Wort')
+          option.setName('word')
+            .setDescription('Banned word')
             .setRequired(true)))
     .addSubcommand(subcommand =>
       subcommand
         .setName('remove')
-        .setDescription('Entfernt ein verbotenes Wort')
+        .setDescription('Removes a banned word')
         .addStringOption(option =>
-          option.setName('wort')
-            .setDescription('Wort, das entfernt werden soll')
+          option.setName('word')
+            .setDescription('Word to be removed')
             .setRequired(true))),
 
   async execute(interaction) {
@@ -35,21 +35,21 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
+        content: '❌ Only the server owner or members of the team role are allowed to do this.',
         flags: 64      });
     }
 
-    const word = interaction.options.getString('wort').toLowerCase();
+    const word = interaction.options.getString('word').toLowerCase();
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'add') {
       await BannedWord.updateOne({ word }, { word }, { upsert: true });
-      return interaction.reply(`✅ Verbotenes Wort hinzugefügt: **${word}**`);
+      return interaction.reply(`✅ Banned word added: **${word}**`);
     }
 
     if (sub === 'remove') {
       await BannedWord.deleteOne({ word });
-      return interaction.reply(`✅ Verbotenes Wort entfernt: **${word}**`);
+      return interaction.reply(`✅ Banned word removed: **${word}**`);
     }
   }
 };

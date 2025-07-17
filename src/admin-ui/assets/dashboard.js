@@ -168,7 +168,7 @@ async function saveComment(discordId, newComment) {
     if (!res.ok) throw new Error();
     fetchUsers();
   } catch {
-    alert("Fehler beim Speichern des Kommentars.");
+    alert("Error saving the comment!");
     fetchUsers();
   }
 }

@@ -21,7 +21,7 @@ module.exports = async (client, interaction) => {
       await command.execute(interaction);
     } catch (err) {
       console.error(err);
-      await interaction.reply({ content: '⚠️ Fehler bei der Ausführung!', flags: 64 });
+      await interaction.reply({ content: '⚠️ Error during execution!', flags: 64 });
     }
   }
 
@@ -61,14 +61,14 @@ module.exports = async (client, interaction) => {
       await channel.send({
         embeds: [
           new EmbedBuilder()
-            .setTitle(`📨 ${ticketType === 'support' ? 'Support-' : 'Verifizierungs-'}Ticket eröffnet`)
+            .setTitle(`📨 ${ticketType === 'support' ? 'Support-' : 'Verification-'}ticket opened`)
             .setDescription(
-              `👋 **${interaction.user}**, willkommen im Ticket!\n\n` +
-              `Nur du und das Serverteam haben Zugriff auf diesen Kanal.\n` +
+              `👋 **${interaction.user}**, welcome to the ticket!\n\n` +
+              `Only you and the server team have access to this channel.\n` +
               `${ticketType === 'support'
-                ? 'Bitte schildere dein Anliegen so genau wie möglich.'
-                : 'Bitte sende hier ein Bild deiner EDU-Card oder einen Verifizierungsnachweis.'}\n\n` +
-              `🔒 *Hinweis: Nachrichten in diesem Kanal können bis zu 30 Tage gespeichert werden.*`
+                ? 'Please describe your issue as precisely as possible.'
+                : 'Please send a picture of your EDU card or a verification proof here.'}\n\n` +
+              `🔒 *Note: Messages in this channel may be stored for up to 30 days.*`
             )
             .setColor(ticketType === 'support' ? 'Blurple' : 'Green')
         ],
@@ -76,14 +76,14 @@ module.exports = async (client, interaction) => {
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('close_ticket')
-              .setLabel('🔒 Ticket schließen')
+              .setLabel('🔒 Close ticket')
               .setStyle(ButtonStyle.Danger)
           )
         ]
       });
 
       return interaction.reply({
-        content: `✅ Ticket erfolgreich erstellt: ${channel}`,
+        content: `✅ Ticket successfully created: ${channel}`,
         flags: 64
       });
     }
@@ -92,8 +92,8 @@ module.exports = async (client, interaction) => {
       await interaction.channel.send({
         embeds: [
           new EmbedBuilder()
-            .setTitle('📁 Ticket geschlossen')
-            .setDescription(`Dieses Ticket wurde von ${interaction.user} geschlossen.\nDanke für deine Anfrage!`)
+            .setTitle('📁 Ticket closed')
+            .setDescription(`This ticket was closed by ${interaction.user}.\nThank you for your inquiry!`)
             .setColor('Red')
         ]
       });
@@ -111,7 +111,7 @@ module.exports = async (client, interaction) => {
       }
 
       return interaction.reply({
-        content: '✅ Ticket geschlossen und Kanal gesperrt.',
+        content: '✅ Ticket closed and channel locked.',
         flags: 64
       });
     }
@@ -121,32 +121,32 @@ module.exports = async (client, interaction) => {
         const target   = await client.users.fetch(userId);
         const verified = await VerifiedUser.findOne({ discordId: userId });
         if (!verified) {
-          return interaction.reply({ content: '❌ Benutzer ist nicht verifiziert.', flags: 64 });
+          return interaction.reply({ content: '❌ User is not verified.', flags: 64 });
         }
         verified.warnings.push({
-          reason:   `Verwarnung wegen verbotenem Wort: "${bannedWord}"`,
+          reason:   `Warning due to banned word: "${bannedWord}"`,
           issuedBy: interaction.user.id,
           date:     new Date()
         });
         await verified.save();
-        try { await target.send(`⚠️ Du wurdest wegen des Wortes "${bannedWord}" verwarnt.`); }
+        try { await target.send(`⚠️ You have been warned for the word "${bannedWord}".`); }
         catch {}
-        return interaction.reply({ content: `✅ ${target.tag} wurde verwarnt.`, flags: 0 });
+        return interaction.reply({ content: `✅ ${target.tag} was warned.`, flags: 0 });
       } catch (err) {
         console.error(err);
-        return interaction.reply({ content: '❌ Fehler beim Verwarnen.', flags: 64 });
+        return interaction.reply({ content: '❌ Error while warning.', flags: 64 });
       }
     }
 
     if (action === 'comment') {
       const modal = new ModalBuilder()
         .setCustomId(`commentmodal_${userId}`)
-        .setTitle('Kommentar zum Vorfall')
+        .setTitle('Comment on the incident')
         .addComponents(
           new ActionRowBuilder().addComponents(
             new TextInputBuilder()
               .setCustomId('comment')
-              .setLabel('Kommentartext')
+              .setLabel('Comment text')
               .setStyle(TextInputStyle.Paragraph)
               .setRequired(true)
           )
@@ -167,8 +167,8 @@ module.exports = async (client, interaction) => {
       { upsert: false }
     );
     if (result) {
-      return interaction.reply({ content: '✅ Kommentar gespeichert.', flags: 0 });
+      return interaction.reply({ content: '✅ Comment saved.', flags: 0 });
     }
-    return interaction.reply({ content: '❌ Kein verifizierter Benutzer gefunden.', flags: 64 });
+    return interaction.reply({ content: '❌ No verified user found.', flags: 64 });
   }
 };

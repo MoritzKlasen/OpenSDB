@@ -17,8 +17,8 @@ mongoose.connect(process.env.DB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log("✅ Mit MongoDB verbunden!"))
-.catch(err => console.error("❌ MongoDB-Verbindung fehlgeschlagen:", err));
+.then(() => console.log("✅ Connected to MongoDB!"))
+.catch(err => console.error("❌ MongoDB connection failed:", err));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -32,7 +32,7 @@ app.post('/api/login', (req, res) => {
     username !== ADMIN_USERNAME ||
     !bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)
   ) {
-    return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
+    return res.status(401).json({ error: 'Incorrect username or password' });
   }
 
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
@@ -61,7 +61,7 @@ app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   const user = USERS.find(u => u.username === username);
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    return res.status(401).json({ error: 'Falsche Zugangsdaten' });
+    return res.status(401).json({ error: 'Incorrect login credentials' });
   }
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
   res.cookie('token', token, { httpOnly: true });
@@ -97,8 +97,8 @@ app.get('/api/verified-users', authMiddleware, async (req, res) => {
     });
     res.json(users);
   } catch (err) {
-    console.error('Fehler beim Abrufen der User:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -107,14 +107,14 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
   try {
     const user = await VerifiedUser.findOne({ discordId });
     if (!user || !user.warnings?.[index]) {
-      return res.status(404).json({ error: 'Warnung nicht gefunden' });
+      return res.status(404).json({ error: 'Warning not found' });
     }
     user.warnings.splice(index, 1);
     await user.save();
     res.json({ success: true });
   } catch (err) {
-    console.error('Fehler beim Entfernen der Warnung:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    console.error('Error removing the warning:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -123,8 +123,8 @@ app.delete('/api/delete-user/:discordId', authMiddleware, async (req, res) => {
     await VerifiedUser.deleteOne({ discordId: req.params.discordId });
     res.json({ success: true });
   } catch (err) {
-    console.error('Fehler beim Löschen des Users:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    console.error('Error deleting the user:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -135,14 +135,14 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   try {
     const user = await VerifiedUser.findOne({ discordId });
     if (!user) {
-      return res.status(404).json({ error: 'User nicht gefunden' });
+      return res.status(404).json({ error: 'User not found' });
     }
     user.comment = comment;
     await user.save();
     res.json({ success: true });
   } catch (err) {
-    console.error('Fehler beim Aktualisieren des Kommentars:', err);
-    res.status(500).json({ error: 'Interner Serverfehler' });
+    console.error('Error updating the comment:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -151,6 +151,6 @@ app.get('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Admin UI läuft unter: http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0',() => {
+  console.log(`✅ Admin UI is running at: http://0.0.0.0:${PORT}`);
 });

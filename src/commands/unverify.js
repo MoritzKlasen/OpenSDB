@@ -5,10 +5,10 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('unverify')
-    .setDescription('Löscht die Verifizierung eines Benutzers.')
+    .setDescription('Deletes the verification from a user.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('Der Benutzer, der ent-verifiziert werden soll.')
+        .setDescription('The user to be unverified.')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -23,7 +23,7 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
+        content: '❌ Only the server owner or members of the team role are allowed to do this.',
         flags: 64
       });
     }
@@ -33,13 +33,13 @@ module.exports = {
 
     if (!result) {
       return interaction.reply({
-        content: `❌ ${user.tag} war nicht verifiziert.`,
+        content: `❌ ${user.tag} was not verified.`,
         flags: 64
       });
     }
 
     await interaction.reply({
-      content: `✅ Verifizierung von ${user.tag} wurde gelöscht.`,
+      content: `✅ Verification for ${user.tag} has been deleted.`,
       flags: 0    });
   }
 };

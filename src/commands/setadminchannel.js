@@ -4,10 +4,10 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setadminchannel')
-    .setDescription('Setzt den Admin-Channel für Wortmeldungen')
+    .setDescription('Sets the admin channel for word reports')
     .addChannelOption(option =>
       option.setName('channel')
-        .setDescription('Admin-Channel')
+        .setDescription('Admin channel')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -15,7 +15,7 @@ module.exports = {
 
     if (interaction.user.id !== guildOwnerId) {
       return interaction.reply({
-        content: '❌ Nur der Server-Owner darf das ausführen.',
+        content: '❌ Only the server owner is allowed to execute this.',
         flags: 64
       });
     }
@@ -29,7 +29,7 @@ module.exports = {
     );
 
     await interaction.reply({
-      content: `✅ Admin-Channel wurde gesetzt: ${channel.toString()}`,
+      content: `✅ Admin channel has been set: ${channel.toString()}`,
       flags: 64
     });
   }

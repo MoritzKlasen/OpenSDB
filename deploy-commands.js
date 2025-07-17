@@ -12,7 +12,7 @@ for (const file of commandFiles) {
   if ('data' in command && 'execute' in command) {
     commands.push(command.data.toJSON());
   } else {
-    console.warn(`[WARNUNG] Die Datei ${file} hat kein gültiges Command-Format.`);
+    console.warn(`[WARNING] The file ${file} has an invalid command format.`);
   }
 }
 
@@ -20,15 +20,15 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log(`📤 Registriere ${commands.length} Slash-Commands...`);
+    console.log(`📤 Registering ${commands.length} slash commands...`);
 
     await rest.put(
       Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.ALLOWED_GUILD_ID),
       { body: commands }
     );
 
-    console.log('✅ Erfolgreich registriert!');
+    console.log('✅ Successfully registered!');
   } catch (error) {
-    console.error('❌ Fehler beim Registrieren:', error);
+    console.error('❌ Error during registration:', error);
   }
 })();

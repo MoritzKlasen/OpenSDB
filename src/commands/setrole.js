@@ -4,22 +4,22 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setrole')
-    .setDescription('Setzt Rollen')
+    .setDescription('Sets roles')
     .addRoleOption(option =>
-      option.setName('rolle')
-        .setDescription('Die Rolle mit Team-Zugriff')
+      option.setName('role')
+        .setDescription('The role with team access')
         .setRequired(true)),
 
   async execute(interaction) {
     const isOwner = interaction.user.id === interaction.guild.ownerId;
     if (!isOwner) {
       return interaction.reply({
-        content: '❌ Nur der Server-Owner darf das.',
+        content: '❌ Only the server owner is allowed to execute this.',
         flags: 64
       });
     }
 
-    const role = interaction.options.getRole('rolle');
+    const role = interaction.options.getRole('role');
 
     await ServerSettings.findOneAndUpdate(
       {},
@@ -28,7 +28,7 @@ module.exports = {
     );
 
     await interaction.reply({
-      content: `✅ Team-Rolle wurde gesetzt auf: **${role.name}**`,
+      content: `✅ Team role has been set to: **${role.name}**`,
       flags: 64
     });
   }

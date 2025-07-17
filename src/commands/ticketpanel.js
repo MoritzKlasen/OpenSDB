@@ -11,30 +11,30 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ticketpanel')
-    .setDescription('Erstellt ein Ticket-Panel (Support / Verify)')
+    .setDescription('Creates a ticket panel (Support / Verify)')
     .addStringOption(o =>
       o.setName('titel')
-       .setDescription('Embed-Titel')
+       .setDescription('Embed title')
        .setRequired(true))
     .addStringOption(o =>
-      o.setName('beschreibung')
-       .setDescription('Embed-Beschreibung')
+      o.setName('description')
+       .setDescription('Embed description')
        .setRequired(true))
     .addStringOption(o =>
       o.setName('button')
-       .setDescription('Button-Text')
+       .setDescription('Button text')
        .setRequired(true))
     .addStringOption(o =>
-      o.setName('typ')
-       .setDescription('Ticket-Typ')
+      o.setName('type')
+       .setDescription('Ticket type')
        .addChoices(
          { name: 'Support', value: 'support' },
          { name: 'Verify',  value: 'verify' }
        )
        .setRequired(true))
     .addChannelOption(o =>
-      o.setName('kategorie')
-       .setDescription('Kategorie für neue Tickets')
+      o.setName('category')
+       .setDescription('Category for new tickets')
        .addChannelTypes(ChannelType.GuildCategory)
        .setRequired(true)),
 
@@ -44,14 +44,14 @@ module.exports = {
     const isOwner    = interaction.user.id === interaction.guild.ownerId;
     const isTeam     = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
     if (!isOwner && !isTeam) {
-      return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
+      return interaction.reply({ content: '❌ No permission.', flags: 64 });
     }
 
     const title       = interaction.options.getString('titel');
-    const description = interaction.options.getString('beschreibung');
+    const description = interaction.options.getString('description');
     const buttonLabel = interaction.options.getString('button');
-    const type        = interaction.options.getString('typ');
-    const category    = interaction.options.getChannel('kategorie');
+    const type        = interaction.options.getString('type');
+    const category    = interaction.options.getChannel('category');
 
     const embed = new EmbedBuilder()
       .setTitle(title)

@@ -9,9 +9,9 @@ function loadCommands(client) {
     const command = require(path.join(commandsPath, file));
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command);
-      console.log(`✅ Command geladen: ${command.data.name}`);
+      console.log(`✅ Command loaded: ${command.data.name}`);
     } else {
-      console.warn(`⚠️ Ungültiges Command-Format in Datei: ${file}`);
+      console.warn(`⚠️ Invalid command format in file: ${file}`);
     }
   }
 }

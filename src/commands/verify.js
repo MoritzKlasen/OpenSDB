@@ -5,18 +5,18 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('verify')
-    .setDescription('Verifiziert einen Benutzer')
+    .setDescription('Verifies a user')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('Der zu verifizierende Benutzer')
+        .setDescription('The user to be verified')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('vorname')
-        .setDescription('Vorname')
+      option.setName('firstname')
+        .setDescription('First name')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('nachname')
-        .setDescription('Nachname')
+      option.setName('lastname')
+        .setDescription('Last name')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -32,14 +32,14 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ Nur der Server-Owner oder Mitglieder der Team-Rolle dürfen das.',
+        content: '❌ Only the server owner or members of the team role are allowed to do this.',
         flags: 64
       });
     }
 
     const user = interaction.options.getUser('user');
-    const firstName = interaction.options.getString('vorname');
-    const lastName = interaction.options.getString('nachname');
+    const firstName = interaction.options.getString('firstname');
+    const lastName = interaction.options.getString('lastname');
 
     const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
     const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
@@ -47,7 +47,7 @@ module.exports = {
     const exists = await VerifiedUser.findOne({ discordId: user.id });
     if (exists) {
       return interaction.reply({
-        content: `⚠️ ${user.tag} ist bereits verifiziert!`,
+        content: `⚠️ ${user.tag} is already verified!`,
         flags: 64
       });
     }
@@ -63,7 +63,7 @@ module.exports = {
     await newUser.save();
 
     await interaction.reply({
-      content: `✅ ${user.tag} wurde erfolgreich verifiziert als **#${newVerificationNumber} – ${firstName} ${lastName}**`,
+      content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${firstName} ${lastName}**`,
       flags: 0
     });
   }

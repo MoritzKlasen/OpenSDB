@@ -69,9 +69,9 @@
     <h1>Admin Login</h1>
     <div id="errorMsg" class="error" style="display:none;"></div>
     <form id="loginForm">
-      <input type="text" name="username" placeholder="Benutzername" required>
-      <input type="password" name="password" placeholder="Passwort" required>
-      <button type="submit">Anmelden</button>
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Log in</button>
     </form>
   </div>
 
@@ -95,7 +95,7 @@
       if (res.ok) {
         window.location.href = '/dashboard';
       } else {
-        errEl.textContent = '❌ Benutzername oder Passwort falsch.';
+        errEl.textContent = '❌ Incorrect username or password.';
         errEl.style.display = 'block';
       }
     });

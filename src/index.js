@@ -19,7 +19,7 @@ connectDB();
 loadCommands(client);
 
 client.once('ready', () => {
-  console.log(`✅ Bot ist online als ${client.user.tag}`);
+  console.log(`✅ Bot is online as ${client.user.tag}`);
 });
 
 client.on('interactionCreate', async interaction => {

@@ -4,15 +4,15 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('comment')
-    .setDescription('Fügt einem verifizierten Benutzer einen Kommentar hinzu oder ändert ihn.')
+    .setDescription('Adds or modifies a comment for a verified user.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('Der Benutzer, dessen Kommentar gesetzt werden soll.')
+        .setDescription('The user whose comment is to be set.')
         .setRequired(true)
     )
     .addStringOption(option =>
       option.setName('text')
-        .setDescription('Der neue Kommentar.')
+        .setDescription('The new comment.')
         .setRequired(true)
     ),
 
@@ -24,7 +24,7 @@ module.exports = {
 
     if (!verified) {
       return interaction.reply({
-        content: `❌ ${user.tag} ist nicht verifiziert.`,
+        content: `❌ ${user.tag} is not verified.`,
         flags: 64
       });
     }
@@ -33,7 +33,7 @@ module.exports = {
     await verified.save();
 
     return interaction.reply({
-      content: `✅ Kommentar für ${user.tag} wurde gesetzt:\n> ${text}`,
+      content: `✅ Comment for ${user.tag} has been set:\n> ${text}`,
       flags: 0
     });
   }
