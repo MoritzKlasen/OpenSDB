@@ -1,6 +1,20 @@
-# School Discord Bot (Docker + MongoDB)
+# OpenSDB - Open School Discord Bot (Docker + MongoDB)
 
 A self-hosted Discord bot for school communities, complete with an admin web UI, running in Docker containers and persisting data in MongoDB.
+
+---
+
+## Features
+
+- **Secure Verification System** – Assign roles to verified users via `/verify`, with name logging and persistent tracking  
+- **Admin Web UI** – Manage users, warnings, and verification status via a password-protected local dashboard  
+- **Warning System** – Track, add, and remove warnings per user; list top offenders with `/listwarns`  
+- **Prohibited Word Filter** – Detects flagged words and notifies admins with context and user info  
+- **Customizable Roles** – Define which roles are considered “admin”, “team”, or “verified”  
+- **Comment System** – Add context or notes to users via modal input, saved to the database  
+- **CSV → MongoDB Migration** – Import student data via a command-line migration script  
+- **Modular Codebase** – Designed for expansion and customization by schools and developers  
+- **Fully Open Source** – Modify, rebrand, and extend for your own school use cases
 
 ---
 
