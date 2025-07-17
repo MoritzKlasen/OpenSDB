@@ -67,6 +67,7 @@ DB_URI=mongodb://mongo:27017/schooldb
 ADMIN_USERNAME=admin          # your desired admin username
 ADMIN_PASSWORD=supersecret    # your desired admin password
 JWT_SECRET=anotherSuperSecret # JWT signing secret
+ADMIN_UI_PORT=8001            # your desired port
 ```
 
 > **Security:** Never commit `.env` to version control. Add it to your `.gitignore`.
