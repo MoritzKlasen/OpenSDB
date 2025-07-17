@@ -35,7 +35,7 @@ services:
     networks:
       - internal
     ports:
-      - "3001:3001"
+      - "${ADMIN_UI_PORT}:${ADMIN_UI_PORT}"
     restart: unless-stopped
     read_only: true
     tmpfs:

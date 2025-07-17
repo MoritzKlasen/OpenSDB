@@ -10,7 +10,7 @@ const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
 const VerifiedUser = require('./database/models/VerifiedUser');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.ADMIN_UI_PORT || 8001; 
 const JWT_SECRET = bcrypt.hashSync(process.env.JWT_SECRET, 10);
 
 mongoose.connect(process.env.DB_URI, {
