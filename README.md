@@ -79,7 +79,7 @@ Build and start all services (Bot, Admin UI, MongoDB):
 docker-compose up --build -d
 ```
 
-The admin dashboard will be available at <http://localhost:3001/login.html>.
+The admin dashboard will be available at <http://SERVER-IP-ADDRESS:3001/login.html>.
 
 ### View Logs
 
@@ -154,4 +154,6 @@ with open("verified_users.csv", newline="", encoding="utf-8") as csvfile:
 
 ---
 
-> Happy coding! If you run into any issues or have feature requests, feel free to open an issue on the [GitHub repository](https://github.com/MoritzKlasen/HTL-Dornbirn).
+>Happy coding! If you run into any issues or would like to request new features, feel free to open an issue on the [GitHub-Repo](https://github.com/MoritzKlasen/HTL-Dornbirn).
+
+Made with ❤️ by McScheleba
