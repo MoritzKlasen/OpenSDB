@@ -80,7 +80,7 @@ Build and start all services (Bot, Admin UI, MongoDB):
 docker compose up --build -d
 ```
 
-The admin dashboard will be available at <http://SERVER-IP-ADDRESS:3001/login.html>.
+The admin dashboard will be available at <http://SERVER-IP-ADDRESS:8001/login.html>.
 
 ### View Logs
 
@@ -148,7 +148,7 @@ with open("verified_users.csv", newline="", encoding="utf-8") as csvfile:
 
 ## Troubleshooting
 
-- **Ports in Use**: Make sure nothing else is running on ports `3001` (web UI) or `27017` (MongoDB) on your host.  
+- **Ports in Use**: Make sure nothing else is running on ports `8001` (web UI) or `27017` (MongoDB) on your host.  
 - **Environment Variables Not Loaded**: Verify your `.env` file is in the project root and follows the `KEY=VALUE` format.  
 - **Docker Build Issues**: If dependencies change, rerun with `docker-compose up --build`.  
 - **Admin Login Fails**: Ensure `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` match what you use on the login page.  

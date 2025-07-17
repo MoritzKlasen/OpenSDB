@@ -33,7 +33,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Only the server owner or members of the team role are allowed to do this.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -48,7 +48,7 @@ module.exports = {
     if (exists) {
       return interaction.reply({
         content: `⚠️ ${user.tag} is already verified!`,
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -73,7 +73,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${first_Name} ${last_Name}**`,
-      ephemeral: false
+      flags: 0
     });
   }
 };

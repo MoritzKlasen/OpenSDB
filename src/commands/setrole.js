@@ -19,7 +19,7 @@ module.exports = {
     if (!isOwner) {
       return interaction.reply({
         content: '❌ Only the server owner is allowed to execute this.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -29,7 +29,7 @@ module.exports = {
     if (!teamRole && !verifiedRole) {
       return interaction.reply({
         content: '⚠️ Please provide at least one role to update.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -47,6 +47,6 @@ module.exports = {
     if (teamRole) reply += `• Team role: **${teamRole.name}**\n`;
     if (verifiedRole) reply += `• Verified role: **${verifiedRole.name}**`;
 
-    await interaction.reply({ content: reply, ephemeral: true });
+    await interaction.reply({ content: reply, flags: 64 });
   }
 };

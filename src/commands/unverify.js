@@ -25,7 +25,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Only the server owner or members of the team role are allowed to do this.',
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -35,7 +35,7 @@ module.exports = {
     if (!result) {
       return interaction.reply({
         content: `❌ ${user.tag} was not verified.`,
-        ephemeral: true
+        flags: 64
       });
     }
 
@@ -50,7 +50,7 @@ module.exports = {
 
     await interaction.reply({
       content: `✅ Verification for ${user.tag} has been deleted.`,
-      ephemeral: false
+      flags: 64
     });
   }
 };
