@@ -27,6 +27,15 @@ A self-hosted Discord bot for school communities, complete with an admin web UI,
 
 ---
 
+## Install Dependencies
+
+Before running the bot, install the Node.js packages:
+
+```bash
+npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose
+```
+---
+
 ## Quickstart
 
 ### Clone the Repository
@@ -91,7 +100,7 @@ docker-compose logs -f web
 
 ## CSV → MongoDB Migration
 
-Import verified users from a CSV file (e.g. `verified_users.csv`) into MongoDB.
+Import verified users from a CSV file (e.g. `name_list.csv`) into MongoDB.
 
 ### Setup Python Environment
 
