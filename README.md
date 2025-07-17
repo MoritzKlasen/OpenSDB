@@ -27,15 +27,6 @@ A self-hosted Discord bot for school communities, complete with an admin web UI,
 
 ---
 
-## Install Dependencies
-
-Before running the bot, install the Node.js packages:
-
-```bash
-npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose
-```
----
-
 ## Quickstart
 
 ### Clone the Repository
@@ -43,6 +34,14 @@ npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonw
 ```bash
 git clone https://github.com/MoritzKlasen/HTL-Dornbirn.git
 cd HTL-Dornbirn
+```
+
+### Install Dependencies
+
+Before running the bot, install the Node.js packages:
+
+```bash
+npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose
 ```
 
 ### Create Your `.env` File
