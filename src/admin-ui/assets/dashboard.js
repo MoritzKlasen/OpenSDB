@@ -174,10 +174,38 @@ function setupExportCsv() {
     });
 }
 
+function setupImportCsv() {
+  const input = document.getElementById('importCsvInput');
+  const btn   = document.getElementById('importCsvButton');
+
+  btn.addEventListener('click', async () => {
+    if (!input.files.length) {
+      return alert('Please select a CSV file first.');
+    }
+    const file = input.files[0];
+    const form = new FormData();
+    form.append('file', file);
+
+    const res = await fetch('/api/import-users', {
+      method: 'POST',
+      body: form
+    });
+    const json = await res.json();
+    if (res.ok) {
+      alert(`Import successful: ${json.imported} records imported.`);
+      fetchUsers(); 
+    } else {
+      alert(`Import failed: ${json.error}`);
+    }
+    input.value = ''; 
+  });
+}
+
 window.onload = () => {
   fetchUsers();
   setupFilter();
   setupDarkmode();
   setupLogout();
   setupExportCsv();
+  setupImportCsv();
 };

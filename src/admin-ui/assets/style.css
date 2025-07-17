@@ -125,10 +125,43 @@ body {
 .hidden {
   display: none !important;
 }
-#exportCsvButton {
-  background-color: #4caf50;
+#exportCsvButton,
+#importCsvButton {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
   color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease, opacity 0.3s ease;
 }
-.dark #exportCsvButton {
-  background-color: #388e3c;
+#exportCsvButton:hover,
+#importCsvButton:hover {
+  opacity: 0.9;
+}
+#exportCsvButton {
+  background-color: #6fc22c;
+}
+#importCsvButton {
+  background-color: #6fc22c;
+}
+.dark #exportCsvButton,
+.dark #importCsvButton {
+  background-color: #fbff00;
+  color: #000;
+}
+#importCsvInput {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #111;
+  transition: background 0.3s ease, border 0.3s ease, color 0.3s ease;
+}
+#importCsvInput:hover {
+  border-color: #999;
+}
+.dark #importCsvInput {
+  background-color: #2a2a2a;
+  border-color: #555;
+  color: #f0f0f0;
 }

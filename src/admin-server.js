@@ -9,6 +9,10 @@ const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
 const VerifiedUser = require('./database/models/VerifiedUser');
 const { Parser } = require('json2csv');
+const multer = require('multer');
+const csv = require('csvtojson');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const PORT = process.env.ADMIN_UI_PORT || 8001; 
@@ -172,6 +176,50 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Export failed' });
   }
 });
+
+app.post(
+  '/api/import-users',
+  authMiddleware,
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const users = await csv().fromString(req.file.buffer.toString());
+
+      let imported = 0;
+      for (const row of users) {
+        let warnings = [];
+        try {
+          warnings = JSON.parse(row.warnings || '[]');
+        } catch {}
+
+        await VerifiedUser.updateOne(
+          { discordId: row.discordId },
+          {
+            $set: {
+              verificationNumber: Number(row.verificationNumber),
+              discordTag: row.discordTag,
+              firstName: row.firstName,
+              lastName: row.lastName,
+              comment: row.comment || '',
+              warnings: warnings
+            }
+          },
+          { upsert: true }
+        );
+        imported++;
+      }
+
+      res.json({ success: true, imported });
+    } catch (err) {
+      console.error('Import error:', err);
+      res.status(500).json({ error: 'Import failed' });
+    }
+  }
+);
 
 app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   const { discordId } = req.params;
