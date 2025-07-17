@@ -32,8 +32,8 @@ A self-hosted Discord bot for school communities, complete with an admin web UI,
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/MoritzKlasen/HTL-Dornbirn.git
-cd HTL-Dornbirn
+git clone https://github.com/MoritzKlasen/OpenSDB.git
+cd OpenSDB
 ```
 
 ### Create Your `.env` File
@@ -111,6 +111,6 @@ npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonw
 
 ---
 
->If you run into any issues or would like to request new features, feel free to open an issue on the [GitHub-Repo](https://github.com/MoritzKlasen/HTL-Dornbirn).
+>If you run into any issues or would like to request new features, feel free to open an issue on the [GitHub-Repo](https://github.com/MoritzKlasen/OpenSDB).
 
 Made with ❤️ by McScheleba
