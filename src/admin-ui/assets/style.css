@@ -125,3 +125,10 @@ body {
 .hidden {
   display: none !important;
 }
+#exportCsvButton {
+  background-color: #4caf50;
+  color: #fff;
+}
+.dark #exportCsvButton {
+  background-color: #388e3c;
+}

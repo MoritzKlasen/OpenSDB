@@ -167,9 +167,17 @@ async function saveComment(discordId, newComment) {
   }
 }
 
+function setupExportCsv() {
+  document.getElementById('exportCsvButton')
+    .addEventListener('click', () => {
+      window.open('/api/export-users', '_blank');
+    });
+}
+
 window.onload = () => {
   fetchUsers();
   setupFilter();
   setupDarkmode();
   setupLogout();
+  setupExportCsv();
 };

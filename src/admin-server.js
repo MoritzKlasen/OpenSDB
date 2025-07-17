@@ -8,6 +8,7 @@ require('dotenv').config();
 const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
 const VerifiedUser = require('./database/models/VerifiedUser');
+const { Parser } = require('json2csv');
 
 const app = express();
 const PORT = process.env.ADMIN_UI_PORT || 8001; 
@@ -127,6 +128,50 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
 //     res.status(500).json({ error: 'Internal server error' });
 //   }
 // });
+
+app.get('/api/export-users', authMiddleware, async (req, res) => {
+  try {
+    const users = await VerifiedUser.find({}, {
+      verificationNumber: 1,
+      discordTag: 1,
+      discordId: 1,
+      firstName: 1,
+      lastName: 1,
+      comment: 1,
+      warnings: 1,
+      _id: 0
+    }).lean();
+
+    const data = users.map(u => ({
+      verificationNumber: u.verificationNumber,
+      discordTag: u.discordTag,
+      discordId: u.discordId,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      comment: u.comment,
+      warnings: JSON.stringify(u.warnings)
+    }));
+
+    const fields = [
+      'verificationNumber',
+      'discordTag',
+      'discordId',
+      'firstName',
+      'lastName',
+      'comment',
+      'warnings'
+    ];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(data);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('verified_users.csv');
+    res.send(csv);
+  } catch (err) {
+    console.error('Error during CSV export:', err);
+    res.status(500).json({ error: 'Export failed' });
+  }
+});
 
 app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   const { discordId } = req.params;

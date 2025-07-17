@@ -41,7 +41,7 @@ cd HTL-Dornbirn
 Before running the bot, install the Node.js packages:
 
 ```bash
-npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose
+npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose json2csv
 ```
 
 ### Create Your `.env` File
