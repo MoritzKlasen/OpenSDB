@@ -8,7 +8,7 @@ RUN npm ci --only=production
 
 # Rest rüberkopieren
 COPY src ./src
-COPY admin-ui ./admin-ui
+COPY src/admin-ui ./admin-ui
 
 EXPOSE 3001
 

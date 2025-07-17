@@ -76,7 +76,7 @@ JWT_SECRET=anotherSuperSecret # JWT signing secret
 Build and start all services (Bot, Admin UI, MongoDB):
 
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 The admin dashboard will be available at <http://SERVER-IP-ADDRESS:3001/login.html>.
@@ -86,13 +86,13 @@ The admin dashboard will be available at <http://SERVER-IP-ADDRESS:3001/login.ht
 To stream logs for the bot service:
 
 ```bash
-docker-compose logs -f bot
+docker compose logs -f bot
 ```
 
 To stream logs for the web UI:
 
 ```bash
-docker-compose logs -f web
+docker compose logs -f web
 ```
 
 ---
