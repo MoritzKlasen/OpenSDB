@@ -11,11 +11,11 @@ module.exports = {
         .setDescription('The user to be verified')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('first_name')
+      option.setName('firstname')
         .setDescription('First name')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('last_name')
+      option.setName('lastname')
         .setDescription('Last name')
         .setRequired(true)),
 
@@ -38,8 +38,8 @@ module.exports = {
     }
 
     const user = interaction.options.getUser('user');
-    const firstName = interaction.options.getString('first_name');
-    const lastName = interaction.options.getString('last_name');
+    const first_Name = interaction.options.getString('firstname');
+    const last_Name = interaction.options.getString('lastname');
 
     const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
     const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
@@ -56,14 +56,14 @@ module.exports = {
       verificationNumber: newVerificationNumber,
       discordTag: user.tag,
       discordId: user.id,
-      firstName,
-      lastName
+      firstName: first_Name,
+      lastName: last_Name
     });
 
     await newUser.save();
 
     await interaction.reply({
-      content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${firstName} ${lastName}**`,
+      content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${first_Name} ${last_Name}**`,
       flags: 0
     });
   }
