@@ -4,32 +4,49 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setrole')
-    .setDescription('Sets roles')
+    .setDescription('Sets important roles for the bot')
     .addRoleOption(option =>
-      option.setName('role')
+      option.setName('teamrole')
         .setDescription('The role with team access')
-        .setRequired(true)),
+        .setRequired(false))
+    .addRoleOption(option =>
+      option.setName('verifiedrole')
+        .setDescription('The role that verified users will receive')
+        .setRequired(false)),
 
   async execute(interaction) {
     const isOwner = interaction.user.id === interaction.guild.ownerId;
     if (!isOwner) {
       return interaction.reply({
         content: '❌ Only the server owner is allowed to execute this.',
-        flags: 64
+        ephemeral: true
       });
     }
 
-    const role = interaction.options.getRole('role');
+    const teamRole = interaction.options.getRole('teamrole');
+    const verifiedRole = interaction.options.getRole('verifiedrole');
+
+    if (!teamRole && !verifiedRole) {
+      return interaction.reply({
+        content: '⚠️ Please provide at least one role to update.',
+        ephemeral: true
+      });
+    }
+
+    const update = {};
+    if (teamRole) update.teamRoleId = teamRole.id;
+    if (verifiedRole) update.verifiedRoleId = verifiedRole.id;
 
     await ServerSettings.findOneAndUpdate(
-      {},
-      { teamRoleId: role.id },
+      {}, // keine guildId mehr nötig
+      update,
       { upsert: true }
     );
 
-    await interaction.reply({
-      content: `✅ Team role has been set to: **${role.name}**`,
-      flags: 64
-    });
+    let reply = '✅ Updated roles:\n';
+    if (teamRole) reply += `• Team role: **${teamRole.name}**\n`;
+    if (verifiedRole) reply += `• Verified role: **${verifiedRole.name}**`;
+
+    await interaction.reply({ content: reply, ephemeral: true });
   }
 };

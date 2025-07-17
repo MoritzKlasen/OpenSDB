@@ -25,7 +25,7 @@ module.exports = {
 
     const settings = await ServerSettings.findOne();
     const teamRoleId = settings?.teamRoleId;
-
+    const verifiedRoleId = settings?.verifiedRoleId;
 
     const isOwner = userId === guildOwnerId;
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
@@ -33,7 +33,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Only the server owner or members of the team role are allowed to do this.',
-        flags: 64
+        ephemeral: true
       });
     }
 
@@ -48,7 +48,7 @@ module.exports = {
     if (exists) {
       return interaction.reply({
         content: `⚠️ ${user.tag} is already verified!`,
-        flags: 64
+        ephemeral: true
       });
     }
 
@@ -62,9 +62,18 @@ module.exports = {
 
     await newUser.save();
 
+    try {
+      const member = await interaction.guild.members.fetch(user.id);
+      if (verifiedRoleId && !member.roles.cache.has(verifiedRoleId)) {
+        await member.roles.add(verifiedRoleId);
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not assign verified role to ${user.tag}:`, err.message);
+    }
+
     await interaction.reply({
       content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${first_Name} ${last_Name}**`,
-      flags: 0
+      ephemeral: false
     });
   }
 };

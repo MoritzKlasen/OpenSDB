@@ -17,6 +17,7 @@ module.exports = {
 
     const settings = await ServerSettings.findOne();
     const teamRoleId = settings?.teamRoleId;
+    const verifiedRoleId = settings?.verifiedRoleId;
 
     const isOwner = userId === guildOwnerId;
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
@@ -24,7 +25,7 @@ module.exports = {
     if (!isOwner && !isTeam) {
       return interaction.reply({
         content: '❌ Only the server owner or members of the team role are allowed to do this.',
-        flags: 64
+        ephemeral: true
       });
     }
 
@@ -34,12 +35,22 @@ module.exports = {
     if (!result) {
       return interaction.reply({
         content: `❌ ${user.tag} was not verified.`,
-        flags: 64
+        ephemeral: true
       });
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(user.id);
+      if (verifiedRoleId && member.roles.cache.has(verifiedRoleId)) {
+        await member.roles.remove(verifiedRoleId);
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not remove verified role from ${user.tag}:`, err.message);
     }
 
     await interaction.reply({
       content: `✅ Verification for ${user.tag} has been deleted.`,
-      flags: 0    });
+      ephemeral: false
+    });
   }
 };

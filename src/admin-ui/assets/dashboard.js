@@ -2,7 +2,7 @@ let allUsers = [];
 
 function formatDate(dateStr) {
   const date = new Date(dateStr);
-  return date.toLocaleString("de-AT", {
+  return date.toLocaleString("en-US", {
     dateStyle: "short",
     timeStyle: "short",
   });
@@ -23,14 +23,14 @@ function renderUsers(users) {
   container.innerHTML = "";
 
   if (users.length === 0) {
-    container.innerHTML = '<p>❗ Keine Nutzer gefunden.</p>';
+    container.innerHTML = '<p>❗ No users found.</p>';
     return;
   }
 
   users.forEach((user) => {
     const commentSection = user.comment && user.comment.trim() !== ""
       ? `<p style="margin-bottom:4px;">
-           <strong>Kommentar:</strong>
+           <strong>Comment:</strong>
            <span 
              class="comment-text" 
              data-discord-id="${user.discordId}" 
@@ -38,36 +38,36 @@ function renderUsers(users) {
              style="cursor:text; text-decoration:underline;"
            >${user.comment}</span>
          </p>`
-        : `<p style="margin-bottom:4px; color:#666;">
-            <strong>Kommentar:</strong>
-            <span
-              class="comment-text"
-              data-discord-id="${user.discordId}"
-              onclick="enableEdit(this)"
-              style="cursor:text; margin-left:8px; font-size:0.9em; text-decoration:underline;"
-            >Kommentar hinzufügen</span>
-          </p>`;
+      : `<p style="margin-bottom:4px; color:#666;">
+           <strong>Comment:</strong>
+           <span
+             class="comment-text"
+             data-discord-id="${user.discordId}"
+             onclick="enableEdit(this)"
+             style="cursor:text; margin-left:8px; font-size:0.9em; text-decoration:underline;"
+           >Add comment</span>
+         </p>`;
 
     let warnsHtml = "";
     (user.warnings || []).forEach((w, i) => {
       warnsHtml += `
         <li>
-          <strong>${i + 1}.</strong> ${w.reason || "Kein Grund"}
-          <br><em>von:</em> ${w.issuedBy || "Unbekannt"}
-          <br><em>am:</em> ${formatDate(w.date)}
-          <br><button onclick="deleteWarning('${user.discordId}', ${i})">🗑️ Warnung löschen</button>
+          <strong>${i + 1}.</strong> ${w.reason || "No reason provided"}
+          <br><em>by:</em> ${w.issuedBy || "Unknown"}
+          <br><em>on:</em> ${formatDate(w.date)}
+          <br><button onclick="deleteWarning('${user.discordId}', ${i})">🗑️ Delete warning</button>
         </li>`;
     });
-    if (!warnsHtml) warnsHtml = "<li>Keine Verwarnungen</li>";
+    if (!warnsHtml) warnsHtml = "<li>No warnings</li>";
 
     const html = `
       <strong>👤 ${user.firstName} ${user.lastName}</strong><br>
       <strong>📛 Discord:</strong> ${user.discordTag} (${user.discordId})<br>
       ${commentSection}
-      <strong>⚠️ Verwarnungen:</strong>
-      <ul>${warnsHtml}</ul>
-      <button onclick="deleteUser('${user.discordId}')">❌ Verifizierung löschen</button>
-    `;
+      <strong>⚠️ Warnings:</strong>
+      <ul>${warnsHtml}</ul>`
+      //  <button onclick="deleteUser('${user.discordId}')">❌ Remove verification</button>
+    ;
 
     const userBox = document.createElement("div");
     userBox.classList.add("user-box");
@@ -77,22 +77,22 @@ function renderUsers(users) {
 }
 
 async function deleteWarning(discordId, index) {
-  if (!confirm("Willst du diese Warnung wirklich löschen?")) return;
+  if (!confirm("Are you sure you want to delete this warning?")) return;
   const res = await fetch(`/api/remove-warning/${discordId}/${index}`, {
     method: "DELETE",
   });
   if (res.ok) fetchUsers();
-  else alert("Fehler beim Löschen der Warnung.");
+  else alert("Error deleting the warning.");
 }
 
-async function deleteUser(discordId) {
-  if (!confirm("Willst du den Nutzer wirklich löschen?")) return;
-  const res = await fetch(`/api/delete-user/${discordId}`, {
-    method: "DELETE",
-  });
-  if (res.ok) fetchUsers();
-  else alert("Fehler beim Löschen des Nutzers.");
-}
+// async function deleteUser(discordId) {
+//   if (!confirm("Are you sure you want to delete this user?")) return;
+//   const res = await fetch(`/api/delete-user/${discordId}`, {
+//     method: "DELETE",
+//   });
+//   if (res.ok) fetchUsers();
+//   else alert("Error deleting the user.");
+// }
 
 function setupFilter() {
   document
@@ -150,12 +150,6 @@ function enableEdit(span) {
   });
   span.replaceWith(input);
   input.focus();
-}
-
-function enableEditSpan(discordId) {
-  const dummySpan = document.createElement("span");
-  dummySpan.dataset.discordId = discordId;
-  enableEdit(dummySpan);
 }
 
 async function saveComment(discordId, newComment) {
