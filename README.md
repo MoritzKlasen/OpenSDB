@@ -1,6 +1,6 @@
 # OpenSDB - Open School Discord Bot (Docker + MongoDB)
 
-A self-hosted Discord bot for school communities, complete with an admin web UI, running in Docker containers and persisting data in MongoDB.
+A open source self-hosted Discord bot for school communities, complete with an admin web UI, running in Docker containers and persisting data in MongoDB.
 
 ---
 
