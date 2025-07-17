@@ -11,11 +11,11 @@ module.exports = {
         .setDescription('The user to be verified')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('firstname')
+      option.setName('first_name')
         .setDescription('First name')
         .setRequired(true))
     .addStringOption(option =>
-      option.setName('lastname')
+      option.setName('last_name')
         .setDescription('Last name')
         .setRequired(true)),
 
@@ -38,8 +38,8 @@ module.exports = {
     }
 
     const user = interaction.options.getUser('user');
-    const firstName = interaction.options.getString('firstname');
-    const lastName = interaction.options.getString('lastname');
+    const firstName = interaction.options.getString('first_name');
+    const lastName = interaction.options.getString('last_name');
 
     const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
     const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
