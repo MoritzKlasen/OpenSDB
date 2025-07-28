@@ -111,7 +111,7 @@ docker compose logs -f web
 Before running the bot, install the Node.js packages:
 
 ```bash
-npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose json2csv multer csvtojson helmet
+npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose json2csv multer csvtojson
 ```
 
 ---

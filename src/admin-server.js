@@ -1,16 +1,12 @@
-const express = require('express');
-const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const path = require('path');
-const mongoose = require('mongoose');
+const express       = require('express');
+const cookieParser  = require('cookie-parser');
+const jwt           = require('jsonwebtoken');
+const bcrypt        = require('bcrypt');
+const path          = require('path');
+const mongoose      = require('mongoose');
 require('dotenv').config();
-
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
-const JWT_SECRET = bcrypt.hashSync(process.env.JWT_SECRET, 10);
-
 const VerifiedUser = require('./database/models/VerifiedUser');
 const { Parser } = require('json2csv');
 const multer = require('multer');
@@ -19,24 +15,15 @@ const csv = require('csvtojson');
 const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
-const PORT = process.env.ADMIN_UI_PORT || 8001;
+const PORT = process.env.ADMIN_UI_PORT || 8001; 
+const JWT_SECRET = bcrypt.hashSync(process.env.JWT_SECRET, 10);
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],   // Inline-Scripts erlauben
-        styleSrc: ["'self'", "'unsafe-inline'"],    // Inline-Styles erlauben
-        imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", 'https:', 'data:'],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-  })
-);
+mongoose.connect(process.env.DB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ Connected to MongoDB!"))
+.catch(err => console.error("❌ MongoDB connection failed:", err));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -136,6 +123,16 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
   }
 });
 
+// app.delete('/api/delete-user/:discordId', authMiddleware, async (req, res) => {
+//   try {
+//     await VerifiedUser.deleteOne({ discordId: req.params.discordId });
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.error('Error deleting the user:', err);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
 app.get('/api/export-users', authMiddleware, async (req, res) => {
   try {
     const users = await VerifiedUser.find({}, {
@@ -169,11 +166,11 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
       'warnings'
     ];
     const parser = new Parser({ fields });
-    const csvData = parser.parse(data);
+    const csv = parser.parse(data);
 
     res.header('Content-Type', 'text/csv');
     res.attachment('verified_users.csv');
-    res.send(csvData);
+    res.send(csv);
   } catch (err) {
     console.error('Error during CSV export:', err);
     res.status(500).json({ error: 'Export failed' });
@@ -191,13 +188,13 @@ app.post(
       }
 
       const users = await csv().fromString(req.file.buffer.toString());
-      let imported = 0;
 
+      let imported = 0;
       for (const row of users) {
         let warnings = [];
         try {
           warnings = JSON.parse(row.warnings || '[]');
-        } catch { }
+        } catch {}
 
         await VerifiedUser.updateOne(
           { discordId: row.discordId },
@@ -247,13 +244,6 @@ app.get('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-mongoose.connect(process.env.DB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log("✅ Connected to MongoDB!"))
-  .catch(err => console.error("❌ MongoDB connection failed:", err));
-
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0',() => {
   console.log(`✅ Admin UI is running at: http://0.0.0.0:${PORT}`);
 });
