@@ -26,9 +26,8 @@ A open source self-hosted Discord bot for school communities, complete with an a
    2.2 [Create Your `.env` File](#create-your-env-file)  
    2.3 [Launch with Docker Compose](#launch-with-docker-compose)  
    2.4 [View Logs](#view-logs)  
-3. [CSV → MongoDB Migration](#csv--mongodb-migration)  
-   3.1 [Setup Python Environment](#setup-python-environment)  
-   3.2 [Run the Migration Script](#run-the-migration-script)  
+3. [Developing Locally](#developing-locally)  
+   3.1 [Install Dependencies](#install-dependencies)  
 4. [Troubleshooting](#troubleshooting)  
 
 ---
