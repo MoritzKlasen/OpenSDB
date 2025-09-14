@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
+const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,6 +18,15 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const settings = await ServerSettings.findOne() || {};
+    const teamRoleId = settings.teamRoleId;
+    const isOwner = interaction.user.id === interaction.guild.ownerId;
+    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+
+    if (!isOwner && !isTeam) {
+      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+    }
+
     const user = interaction.options.getUser('user');
     const reason = interaction.options.getString('reason');
 
@@ -29,8 +39,12 @@ module.exports = {
       });
     }
 
+    if (!Array.isArray(verified.warnings)) {
+      verified.warnings = [];
+    }
+
     verified.warnings.push({
-      reason: reason,
+      reason,
       issuedBy: interaction.user.id,
       date: new Date()
     });

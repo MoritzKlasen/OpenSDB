@@ -18,7 +18,7 @@ module.exports = {
     const isOwner = interaction.user.id === interaction.guild.ownerId;
     if (!isOwner) {
       return interaction.reply({
-        content: '❌ Only the server owner is allowed to execute this.',
+        content: '❌ No permission.',
         flags: 64
       });
     }

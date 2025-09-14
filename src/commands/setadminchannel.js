@@ -15,7 +15,7 @@ module.exports = {
 
     if (interaction.user.id !== guildOwnerId) {
       return interaction.reply({
-        content: '❌ Only the server owner is allowed to execute this.',
+        content: '❌ No permission.',
         flags: 64
       });
     }
