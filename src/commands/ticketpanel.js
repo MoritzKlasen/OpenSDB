@@ -11,22 +11,22 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ticketpanel')
-    .setDescription('Creates a ticket panel (Support / Verify)')
+    .setDescription('Erstellt ein Ticket-Panel (Support / Verifizierung)')
     .addStringOption(o =>
       o.setName('titel')
-       .setDescription('Embed title')
+       .setDescription('Embed Titel')
        .setRequired(true))
     .addStringOption(o =>
       o.setName('description')
-       .setDescription('Embed description')
+       .setDescription('Embed Beschreibung')
        .setRequired(true))
     .addStringOption(o =>
       o.setName('button')
-       .setDescription('Button text')
+       .setDescription('Button Text')
        .setRequired(true))
     .addStringOption(o =>
       o.setName('type')
-       .setDescription('Ticket type')
+       .setDescription('Ticket Typ')
        .addChoices(
          { name: 'Support', value: 'support' },
          { name: 'Verify',  value: 'verify' }
@@ -34,7 +34,7 @@ module.exports = {
        .setRequired(true))
     .addChannelOption(o =>
       o.setName('category')
-       .setDescription('Category for new tickets')
+       .setDescription('Kategorie für neue Tickets')
        .addChannelTypes(ChannelType.GuildCategory)
        .setRequired(true)),
 
@@ -44,7 +44,7 @@ module.exports = {
     const isOwner    = interaction.user.id === interaction.guild.ownerId;
     const isTeam     = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
     if (!isOwner && !isTeam) {
-      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+      return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
     }
 
     const title       = interaction.options.getString('titel');
