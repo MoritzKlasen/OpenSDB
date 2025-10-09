@@ -4,11 +4,12 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setadminchannel')
-    .setDescription('Sets the admin channel for word reports')
+    .setDescription('Legt den Admin-Kanal für Wortmeldungen fest.')
     .addChannelOption(option =>
       option.setName('channel')
-        .setDescription('Admin channel')
-        .setRequired(true)),
+        .setDescription('Admin-Kanal')
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
     const settings = await ServerSettings.findOne() || {};
@@ -19,12 +20,12 @@ module.exports = {
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
     if (!isOwner && !isAdmin && !isTeam) {
-      return interaction.reply({ content: '❌ No Permission.', flags: 64 });
+      return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
     }
 
     const channel = interaction.options.getChannel('channel');
     if (channel.guild.id !== interaction.guild.id) {
-      return interaction.reply({ content: '❌ The specified channel does not belong to this server.', flags: 64 });
+      return interaction.reply({ content: '❌ Der angegebene Kanal gehört nicht zu diesem Server.', flags: 64 });
     }
 
     await ServerSettings.findOneAndUpdate(
@@ -34,7 +35,7 @@ module.exports = {
     );
 
     await interaction.reply({
-      content: `✅ Admin channel has been set: ${channel.toString()}`,
+      content: `✅ Admin-Kanal wurde festgelegt: ${channel.toString()}`,
       flags: 64
     });
   }
