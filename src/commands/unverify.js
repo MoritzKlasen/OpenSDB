@@ -5,10 +5,10 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('unverify')
-    .setDescription('Deletes the verification from a user.')
+    .setDescription('Löscht die Verifizierung eines Benutzers.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('The user to be unverified.')
+        .setDescription('Der Benutzer, dessen Verifizierung gelöscht werden soll.')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -24,7 +24,7 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ No permission.',
+        content: '❌ Keine Berechtigung.',
         flags: 64
       });
     }
@@ -34,7 +34,7 @@ module.exports = {
 
     if (!result) {
       return interaction.reply({
-        content: `❌ ${user.tag} was not verified.`,
+        content: `❌ ${user.tag} wurde nicht verifiziert.`,
         flags: 64
       });
     }
@@ -45,11 +45,11 @@ module.exports = {
         await member.roles.remove(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not remove verified role from ${user.tag}:`, err.message);
+      console.warn(`⚠️ Konnte die verifizierte Rolle von ${user.tag} nicht entfernen:`, err.message);
     }
 
     await interaction.reply({
-      content: `✅ Verification for ${user.tag} has been deleted.`,
+      content: `✅ Die Verifizierung von ${user.tag} wurde gelöscht.`,
       flags: 64
     });
   }
