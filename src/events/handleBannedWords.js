@@ -30,21 +30,21 @@ module.exports = async function handleBannedWords(client, message) {
         if (!adminChannel) return;
 
         const embed = new EmbedBuilder()
-          .setTitle('🚨 Banned word detected')
-          .setDescription(`**User:** ${message.author.tag}\n**Channel:** <#${message.channel.id}>\n**Message:** ${message.content}`)
-          .addFields({ name: 'Word', value: `\`${banned}\`` })
+          .setTitle('🚨 Verbotenes Wort erkannt')
+          .setDescription(`**Benutzer:** ${message.author.tag}\n**Kanal:** <#${message.channel.id}>\n**Nachricht:** ${message.content}`)
+          .addFields({ name: 'Wort', value: `\`${banned}\`` })
           .setColor('Red')
           .setTimestamp();
 
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId(`warn_${message.author.id}_${banned}`)
-            .setLabel('Warn')
+            .setLabel('Verwarnen')
             .setStyle(ButtonStyle.Danger),
 
           new ButtonBuilder()
             .setCustomId(`comment_${message.author.id}`)
-            .setLabel('Comment')
+            .setLabel('Kommentar hinzufügen')
             .setStyle(ButtonStyle.Secondary)
         );
 
@@ -53,7 +53,7 @@ module.exports = async function handleBannedWords(client, message) {
           components: [row]
         });
       } catch (err) {
-        console.error('❌ Error sending to the admin channel:', err);
+        console.error('❌ Fehler beim Senden an den Admin-Kanal:', err);
       }
 
       break;
