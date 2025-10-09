@@ -5,18 +5,18 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('verify')
-    .setDescription('Verifies a user')
+    .setDescription('Verifiziert einen Benutzer.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('The user to be verified')
+        .setDescription('Der Benutzer, der verifiziert werden soll.')
         .setRequired(true))
     .addStringOption(option =>
       option.setName('firstname')
-        .setDescription('First name')
+        .setDescription('Vorname')
         .setRequired(true))
     .addStringOption(option =>
       option.setName('lastname')
-        .setDescription('Last name')
+        .setDescription('Nachname')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -32,23 +32,23 @@ module.exports = {
     const isTeam  = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
     if (!isOwner && !isTeam) {
-      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+      return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
     }
 
     if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-      return interaction.reply({ content: '❌ I lack the **Manage Roles** permission.', flags: 64 });
+      return interaction.reply({ content: '❌ Mir fehlt das Recht **Rollen verwalten**.', flags: 64 });
     }
 
-    const user = interaction.options.getUser('user');
+    const user       = interaction.options.getUser('user');
     const first_Name = interaction.options.getString('firstname');
-    const last_Name = interaction.options.getString('lastname');
+    const last_Name  = interaction.options.getString('lastname');
 
     const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
     const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
 
     const exists = await VerifiedUser.findOne({ discordId: user.id });
     if (exists) {
-      return interaction.reply({ content: `⚠️ ${user.tag} is already verified!`, flags: 64 });
+      return interaction.reply({ content: `⚠️ ${user.tag} ist bereits verifiziert!`, flags: 64 });
     }
 
     const newUser = new VerifiedUser({
@@ -56,7 +56,7 @@ module.exports = {
       discordTag: user.tag,
       discordId: user.id,
       firstName: first_Name,
-      lastName: last_Name
+      lastName : last_Name
     });
     await newUser.save();
 
@@ -64,7 +64,7 @@ module.exports = {
     try {
       member = await interaction.guild.members.fetch(user.id);
     } catch (err) {
-      console.warn(`⚠️ Could not fetch GuildMember for ${user.tag}:`, err?.message);
+      console.warn(`⚠️ Konnte GuildMember für ${user.tag} nicht fetchen:`, err?.message);
       return interaction.reply({ content: `⚠️ Konnte ${user.tag} nicht finden.`, flags: 64 });
     }
 
@@ -73,7 +73,7 @@ module.exports = {
         await member.roles.add(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not assign verifiedRole to ${user.tag}:`, err?.message);
+      console.warn(`⚠️ Konnte verifiedRole für ${user.tag} nicht zuweisen:`, err?.message);
     }
 
     try {
@@ -81,12 +81,11 @@ module.exports = {
         await member.roles.remove(onJoinRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not remove onJoinRole from ${user.tag}:`, err?.message);
+      console.warn(`⚠️ Konnte onJoinRole für ${user.tag} nicht entfernen:`, err?.message);
     }
 
     await interaction.reply({
-      content: `✅ ${user.tag} was successfully verified as **#${newVerificationNumber} – ${first_Name} ${last_Name}**`,
-      flags: 0
+      content: `✅ ${user.tag} wurde verifiziert als **#${newVerificationNumber} – ${first_Name} ${last_Name}**`,
     });
   }
 };
