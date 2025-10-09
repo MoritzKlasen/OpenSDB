@@ -5,15 +5,15 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
-    .setDescription('Warns a verified user.')
+    .setDescription('Verwarnt einen verifizierten Benutzer.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('The user to be warned.')
+        .setDescription('Der Benutzer, der verwarnt werden soll.')
         .setRequired(true)
     )
     .addStringOption(option =>
       option.setName('reason')
-        .setDescription('The reason for the warning.')
+        .setDescription('Der Grund für die Verwarnung.')
         .setRequired(true)
     ),
 
@@ -24,7 +24,7 @@ module.exports = {
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
     if (!isOwner && !isTeam) {
-      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+      return interaction.reply({ content: '❌ Keine Berechtigung.', flags: 64 });
     }
 
     const user = interaction.options.getUser('user');
@@ -34,7 +34,7 @@ module.exports = {
 
     if (!verified) {
       return interaction.reply({
-        content: `❌ ${user.tag} is not verified.`,
+        content: `❌ ${user.tag} ist nicht verifiziert.`,
         flags: 64
       });
     }
@@ -52,7 +52,7 @@ module.exports = {
     await verified.save();
 
     return interaction.reply({
-      content: `✅ ${user.tag} was warned by ${interaction.user.tag}.\nReason: *${reason}*`,
+      content: `✅ ${user.tag} wurde von ${interaction.user.tag} verwarnt.\nGrund: *${reason}*`,
       flags: 0
     });
   }
