@@ -5,22 +5,22 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('word')
-    .setDescription('Manages banned words')
+    .setDescription('Verwaltet verbotene Wörter.')
     .addSubcommand(subcommand =>
       subcommand
         .setName('add')
-        .setDescription('Adds a banned word')
+        .setDescription('Fügt ein verbotenes Wort hinzu')
         .addStringOption(option =>
           option.setName('word')
-            .setDescription('Banned word')
+            .setDescription('Verbotenes Wort')
             .setRequired(true)))
     .addSubcommand(subcommand =>
       subcommand
         .setName('remove')
-        .setDescription('Removes a banned word')
+        .setDescription('Entfernt ein verbotenes Wort')
         .addStringOption(option =>
           option.setName('word')
-            .setDescription('Word to be removed')
+            .setDescription('Zu entfernendes Wort')
             .setRequired(true))),
 
   async execute(interaction) {
@@ -35,8 +35,9 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ No permission.',
-        flags: 64      });
+        content: '❌ Keine Berechtigung.',
+        flags: 64
+      });
     }
 
     const word = interaction.options.getString('word').toLowerCase();
@@ -44,12 +45,12 @@ module.exports = {
 
     if (sub === 'add') {
       await BannedWord.updateOne({ word }, { word }, { upsert: true });
-      return interaction.reply(`✅ Banned word added: **${word}**`);
+      return interaction.reply(`✅ Verbotenes Wort hinzugefügt: **${word}**`);
     }
 
     if (sub === 'remove') {
       await BannedWord.deleteOne({ word });
-      return interaction.reply(`✅ Banned word removed: **${word}**`);
+      return interaction.reply(`✅ Verbotenes Wort entfernt: **${word}**`);
     }
   }
 };
