@@ -101,7 +101,8 @@ module.exports = async (client, interaction) => {
       const settings = await ServerSettings.findOne() || {};
       const { teamRoleId } = settings;
       await interaction.channel.permissionOverwrites.edit(interaction.user.id, {
-        SendMessages: false
+        SendMessages: false,
+        ViewChannel: false
       });
       if (teamRoleId) {
         await interaction.channel.permissionOverwrites.edit(teamRoleId, {

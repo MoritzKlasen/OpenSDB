@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
@@ -11,16 +11,21 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
-    const guildOwnerId = interaction.guild.ownerId;
+    const settings = await ServerSettings.findOne() || {};
+    const teamRoleId = settings.teamRoleId;
 
-    if (interaction.user.id !== guildOwnerId) {
-      return interaction.reply({
-        content: '❌ No permission.',
-        flags: 64
-      });
+    const isOwner = interaction.user.id === interaction.guild.ownerId;
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
+    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+
+    if (!isOwner && !isAdmin && !isTeam) {
+      return interaction.reply({ content: '❌ No Permission.', flags: 64 });
     }
 
     const channel = interaction.options.getChannel('channel');
+    if (channel.guild.id !== interaction.guild.id) {
+      return interaction.reply({ content: '❌ The specified channel does not belong to this server.', flags: 64 });
+    }
 
     await ServerSettings.findOneAndUpdate(
       {},

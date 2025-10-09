@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 
@@ -24,17 +24,19 @@ module.exports = {
     const userId = interaction.user.id;
 
     const settings = await ServerSettings.findOne();
-    const teamRoleId = settings?.teamRoleId;
-    const verifiedRoleId = settings?.verifiedRoleId;
+    const teamRoleId      = settings?.teamRoleId;
+    const verifiedRoleId  = settings?.verifiedRoleId;
+    const onJoinRoleId    = settings?.onJoinRoleId;
 
     const isOwner = userId === guildOwnerId;
-    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+    const isTeam  = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
     if (!isOwner && !isTeam) {
-      return interaction.reply({
-        content: '❌ No permission.',
-        flags: 64
-      });
+      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+    }
+
+    if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+      return interaction.reply({ content: '❌ I lack the **Manage Roles** permission.', flags: 64 });
     }
 
     const user = interaction.options.getUser('user');
@@ -46,10 +48,7 @@ module.exports = {
 
     const exists = await VerifiedUser.findOne({ discordId: user.id });
     if (exists) {
-      return interaction.reply({
-        content: `⚠️ ${user.tag} is already verified!`,
-        flags: 64
-      });
+      return interaction.reply({ content: `⚠️ ${user.tag} is already verified!`, flags: 64 });
     }
 
     const newUser = new VerifiedUser({
@@ -59,16 +58,30 @@ module.exports = {
       firstName: first_Name,
       lastName: last_Name
     });
-
     await newUser.save();
 
+    let member;
     try {
-      const member = await interaction.guild.members.fetch(user.id);
+      member = await interaction.guild.members.fetch(user.id);
+    } catch (err) {
+      console.warn(`⚠️ Could not fetch GuildMember for ${user.tag}:`, err?.message);
+      return interaction.reply({ content: `⚠️ Konnte ${user.tag} nicht finden.`, flags: 64 });
+    }
+
+    try {
       if (verifiedRoleId && !member.roles.cache.has(verifiedRoleId)) {
         await member.roles.add(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not assign verified role to ${user.tag}:`, err.message);
+      console.warn(`⚠️ Could not assign verifiedRole to ${user.tag}:`, err?.message);
+    }
+
+    try {
+      if (onJoinRoleId && member.roles.cache.has(onJoinRoleId)) {
+        await member.roles.remove(onJoinRoleId);
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not remove onJoinRole from ${user.tag}:`, err?.message);
     }
 
     await interaction.reply({

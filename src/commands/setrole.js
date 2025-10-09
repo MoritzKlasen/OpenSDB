@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
 
 module.exports = {
@@ -15,20 +15,27 @@ module.exports = {
         .setRequired(false)),
 
   async execute(interaction) {
+    const settings = await ServerSettings.findOne() || {};
+    const teamRoleId = settings.teamRoleId;
+
     const isOwner = interaction.user.id === interaction.guild.ownerId;
-    if (!isOwner) {
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
+    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+
+    if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
-        content: '❌ No permission.',
+        content: '❌ No Permission.',
         flags: 64
       });
     }
 
     const teamRole = interaction.options.getRole('teamrole');
     const verifiedRole = interaction.options.getRole('verifiedrole');
+    const onJoinRole = interaction.options.getRole('onjoinrole');
 
-    if (!teamRole && !verifiedRole) {
+    if (!teamRole && !verifiedRole && !onJoinRole) {
       return interaction.reply({
-        content: '⚠️ Please provide at least one role to update.',
+        content: '⚠️ Please specify at least one role to update.',
         flags: 64
       });
     }
@@ -36,16 +43,18 @@ module.exports = {
     const update = {};
     if (teamRole) update.teamRoleId = teamRole.id;
     if (verifiedRole) update.verifiedRoleId = verifiedRole.id;
+    if (onJoinRole) update.onJoinRoleId = onJoinRole.id;
 
     await ServerSettings.findOneAndUpdate(
-      {}, // keine guildId mehr nötig
+      {},
       update,
       { upsert: true }
     );
 
     let reply = '✅ Updated roles:\n';
-    if (teamRole) reply += `• Team role: **${teamRole.name}**\n`;
-    if (verifiedRole) reply += `• Verified role: **${verifiedRole.name}**`;
+    if (teamRole) reply += `• Teamrole: **${teamRole.name}**\n`;
+    if (verifiedRole) reply += `• Verified Role: **${verifiedRole.name}**\n`;
+    if (onJoinRole) reply += `• On-Join-Role: **${onJoinRole.name}**`;
 
     await interaction.reply({ content: reply, flags: 64 });
   }
