@@ -4,14 +4,18 @@ const ServerSettings = require('../database/models/ServerSettings');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setrole')
-    .setDescription('Sets important roles for the bot')
+    .setDescription('Legt wichtige Rollen für den Bot fest.')
     .addRoleOption(option =>
       option.setName('teamrole')
-        .setDescription('The role with team access')
+        .setDescription('Die Rolle mit Teamzugang')
         .setRequired(false))
     .addRoleOption(option =>
       option.setName('verifiedrole')
-        .setDescription('The role that verified users will receive')
+        .setDescription('Die Rolle, die verifizierte Benutzer erhalten')
+        .setRequired(false))
+    .addRoleOption(option =>
+      option.setName('onjoinrole')
+        .setDescription('Die Rolle, die neuen Mitgliedern zugewiesen wird')
         .setRequired(false)),
 
   async execute(interaction) {
@@ -24,7 +28,7 @@ module.exports = {
 
     if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
-        content: '❌ No Permission.',
+        content: '❌ Keine Berechtigung.',
         flags: 64
       });
     }
@@ -35,7 +39,7 @@ module.exports = {
 
     if (!teamRole && !verifiedRole && !onJoinRole) {
       return interaction.reply({
-        content: '⚠️ Please specify at least one role to update.',
+        content: '⚠️ Bitte geben Sie mindestens eine Rolle zum Aktualisieren an.',
         flags: 64
       });
     }
@@ -51,10 +55,10 @@ module.exports = {
       { upsert: true }
     );
 
-    let reply = '✅ Updated roles:\n';
-    if (teamRole) reply += `• Teamrole: **${teamRole.name}**\n`;
-    if (verifiedRole) reply += `• Verified Role: **${verifiedRole.name}**\n`;
-    if (onJoinRole) reply += `• On-Join-Role: **${onJoinRole.name}**`;
+    let reply = '✅ Aktualisierte Rollen:\n';
+    if (teamRole) reply += `• Teamrolle: **${teamRole.name}**\n`;
+    if (verifiedRole) reply += `• Verifizierte Rolle: **${verifiedRole.name}**`;
+    if (onJoinRole) reply += `• On-Join-Rolle: **${onJoinRole.name}**`;
 
     await interaction.reply({ content: reply, flags: 64 });
   }
