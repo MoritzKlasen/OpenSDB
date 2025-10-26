@@ -56,7 +56,8 @@ module.exports = {
       discordTag: user.tag,
       discordId: user.id,
       firstName: first_Name,
-      lastName: last_Name
+      lastName: last_Name,
+      verifiedAt: new Date()
     });
     await newUser.save();
 
