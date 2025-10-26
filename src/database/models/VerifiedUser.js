@@ -7,13 +7,14 @@ const verifiedUserSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
   comment: { type: String, default: "" },
-    warnings: [
+  warnings: [
     {
       reason: String,
       issuedBy: String,
       date: { type: Date, default: Date.now }
     }
-  ]
+  ],
+  verifiedAt: { type: Date, default: null }
 });
 
 module.exports = mongoose.model('VerifiedUser', verifiedUserSchema);
