@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard</title>
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <link rel="stylesheet" href="/assets/style.css">
 </head>
+
 <body>
-  <h1>Admin Dashboard</h1>
+  <header class="top-bar">
+    <h1>Admin Dashboard</h1>
+    <div class="actions">
+      <input type="text" id="searchInput" placeholder="Search">
+      <label class="file-upload">
+        <input type="file" id="importCsvInput" accept=".csv" hidden>
+        Import CSV
+      </label>
+      <button id="exportCsvButton">Export CSV</button>
+      <button id="toggleDarkmode">🌙</button>
+      <button id="logoutButton">Logout</button>
+    </div>
+  </header>
 
-  <div class="top-bar">
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="🔍 Search by Name or DiscordTag"
-    />
-    <input type="file" id="importCsvInput" accept=".csv" />
-    <button id="importCsvButton">📤 Import CSV</button>
-    <button id="exportCsvButton">📥 Export CSV</button>
-    <button id="toggleDarkmode">🌙</button>
-    <button id="logoutButton">🔒 Logout</button>
-  </div>
+  <main id="userContainer">Loading verified users…</main>
 
-  <div id="userContainer">Lade verifizierte Nutzer…</div>
   <script src="/assets/dashboard.js"></script>
 </body>
+
 </html>

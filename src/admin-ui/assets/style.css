@@ -1,167 +1,218 @@
-*, *::before, *::after {
+/* === RESET === */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
+
 body {
-  font-family: sans-serif;
-  margin: 20px;
-  background-color: #f0f0f0;
-  color: #111;
+  font-family: "Inter", system-ui, sans-serif;
+  margin: 0;
+  background-color: #f9f9fb;
+  color: #1a1a1a;
   transition: background 0.3s ease, color 0.3s ease;
 }
+
+/* === DARK MODE === */
 .dark body {
   background-color: #121212;
   color: #f0f0f0;
 }
+
+/* === TOP BAR === */
 .top-bar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  padding: 16px 28px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-.top-bar #searchInput {
+
+.dark .top-bar {
+  background: rgba(20, 20, 20, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.top-bar h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: inherit;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* === SEARCH === */
+#searchInput {
   flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
+  padding: 8px 12px;
   border-radius: 6px;
-  transition: background 0.3s ease, color 0.3s ease, border 0.3s ease;
-  background-color: #fff;
-  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 15px;
+  background: #fff;
+  transition: all 0.3s ease;
 }
-.dark .top-bar #searchInput {
-  background-color: #2a2a2a;
-  border-color: #555;
-  color: #f0f0f0;
+
+.dark #searchInput {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #fff;
 }
-.top-bar button {
-  padding: 6px 10px;
+
+#searchInput:focus {
+  border-color: #7f56d9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(127, 86, 217, 0.25);
+}
+
+/* === BUTTONS === */
+button,
+.file-upload {
+  padding: 8px 14px;
+  border-radius: 6px;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s ease, color 0.3s ease;
-}
-#toggleDarkmode {
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #7f56d9;
   color: #fff;
 }
+
+button:hover,
+.file-upload:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+#exportCsvButton {
+  background: #5ec2b7;
+  color: #000;
+}
+
+.dark #exportCsvButton {
+  background: #7f56d9;
+  color: #fff;
+}
+
 #logoutButton {
   background: #d9534f;
-  color: #fff;
 }
-.top-bar button:hover {
-  opacity: 0.9;
+
+#toggleDarkmode {
+  background: #2d2d2d;
 }
+
 .dark #toggleDarkmode {
-  background-color: #5ec2b7;
+  background: #5ec2b7;
   color: #000;
 }
-.dark #logoutButton {
-  background-color: #c9302c;
-  color: #fff;
+
+/* === FILE UPLOAD === */
+.file-upload {
+  background: #5ec2b7;
+  color: #000;
 }
+
+.dark .file-upload {
+  background: #fbff00;
+  color: #000;
+}
+
+/* === USERS LIST === */
 #userContainer {
   width: 100%;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 20px;
 }
+
 .user-box {
   background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
-  color: #111;
-  transition: background 0.3s ease, border 0.3s ease, color 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
+
+.user-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
 .dark .user-box {
-  background-color: #1e1e1e;
-  border-color: #444;
-  color: #f0f0f0;
+  background: #1e1e1e;
+  border-color: #333;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
+
+/* === USER BUTTONS === */
 .user-box button {
-  display: inline-block;
-  padding: 6px 10px;
-  margin-top: 6px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-.user-box button {
-  background-color: #7f56d9;
+  margin-top: 8px;
+  background: #7f56d9;
   color: #fff;
 }
-.dark .user-box button {
-  background-color: #5ec2b7;
-  color: #000;
-}
+
 .user-box button[onclick*="deleteWarning"] {
-  background-color: #5ec2b7;
+  background: #5ec2b7;
   color: #000;
 }
+
+.dark .user-box button {
+  background: #5ec2b7;
+  color: #000;
+}
+
 .dark .user-box button[onclick*="deleteWarning"] {
-  background-color: #7f56d9;
+  background: #7f56d9;
   color: #fff;
 }
+
+/* === TEXT ELEMENTS === */
 .user-box ul {
-  margin: 8px 0 0 16px;
+  margin: 10px 0 0 20px;
+  padding: 0;
 }
+
 .user-box li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.4;
 }
-.dark li {
-  color: #ddd;
-}
+
 .dark strong {
   color: #fff;
 }
+
 .dark em {
-  color: #bbb;
+  color: #aaa;
 }
+
+/* === UTILITIES === */
 .center {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 50vh;
 }
+
 .hidden {
   display: none !important;
-}
-#exportCsvButton,
-#importCsvButton {
-  padding: 6px 10px;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.3s ease, opacity 0.3s ease;
-}
-#exportCsvButton:hover,
-#importCsvButton:hover {
-  opacity: 0.9;
-}
-#exportCsvButton {
-  background-color: #6fc22c;
-}
-#importCsvButton {
-  background-color: #6fc22c;
-}
-.dark #exportCsvButton,
-.dark #importCsvButton {
-  background-color: #fbff00;
-  color: #000;
-}
-#importCsvInput {
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
-  color: #111;
-  transition: background 0.3s ease, border 0.3s ease, color 0.3s ease;
-}
-#importCsvInput:hover {
-  border-color: #999;
-}
-.dark #importCsvInput {
-  background-color: #2a2a2a;
-  border-color: #555;
-  color: #f0f0f0;
 }
