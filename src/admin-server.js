@@ -41,7 +41,7 @@ app.post('/api/login', (req, res) => {
   }
 
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
-  res.cookie('token', token, { httpOnly: true });
+  res.cookie('token', token, { httpOnly: true, secure: true });
   res.json({ success: true });
 });
 
@@ -60,17 +60,6 @@ app.get('/', (req, res) => {
 
 app.get(['/login', '/login.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-ui', 'login.html'));
-});
-
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = USERS.find(u => u.username === username);
-  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    return res.status(401).json({ error: 'Incorrect login credentials' });
-  }
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
-  res.cookie('token', token, { httpOnly: true });
-  res.json({ success: true });
 });
 
 function authMiddleware(req, res, next) {
@@ -98,7 +87,8 @@ app.get('/api/verified-users', authMiddleware, async (req, res) => {
       firstName: 1,
       lastName: 1,
       comment: 1,
-      warnings: 1
+      warnings: 1,
+      verifiedAt: 1
     });
     res.json(users);
   } catch (err) {
@@ -143,17 +133,19 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
       lastName: 1,
       comment: 1,
       warnings: 1,
+      verifiedAt: 1,
       _id: 0
     }).lean();
 
     const data = users.map(u => ({
-      verificationNumber: u.verificationNumber,
-      discordTag: u.discordTag,
-      discordId: u.discordId,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      comment: u.comment,
-      warnings: JSON.stringify(u.warnings)
+      verificationNumber: u.verificationNumber ?? '',
+      discordTag: u.discordTag ?? '',
+      discordId: u.discordId ?? '',
+      firstName: u.firstName ?? '',
+      lastName: u.lastName ?? '',
+      comment: u.comment ?? '',
+      warnings: JSON.stringify(u.warnings ?? []),
+      verifiedAt: u.verifiedAt ? new Date(u.verifiedAt).toISOString() : ''
     }));
 
     const fields = [
@@ -163,14 +155,17 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
       'firstName',
       'lastName',
       'comment',
-      'warnings'
+      'warnings',
+      'verifiedAt'
     ];
     const parser = new Parser({ fields });
     const csv = parser.parse(data);
 
-    res.header('Content-Type', 'text/csv');
+    const withBOM = '\ufeff' + csv;
+
+    res.header('Content-Type', 'text/csv; charset=utf-8');
     res.attachment('verified_users.csv');
-    res.send(csv);
+    res.send(withBOM);
   } catch (err) {
     console.error('Error during CSV export:', err);
     res.status(500).json({ error: 'Export failed' });
@@ -187,29 +182,57 @@ app.post(
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const users = await csv().fromString(req.file.buffer.toString());
-
+      const rows = await csv().fromString(req.file.buffer.toString('utf-8'));
       let imported = 0;
-      for (const row of users) {
+
+      for (const row of rows) {
         let warnings = [];
         try {
           warnings = JSON.parse(row.warnings || '[]');
-        } catch {}
+          if (!Array.isArray(warnings)) warnings = [];
+        } catch {
+          warnings = [];
+        }
 
-        await VerifiedUser.updateOne(
-          { discordId: row.discordId },
-          {
-            $set: {
-              verificationNumber: Number(row.verificationNumber),
-              discordTag: row.discordTag,
-              firstName: row.firstName,
-              lastName: row.lastName,
-              comment: row.comment || '',
-              warnings: warnings
-            }
-          },
-          { upsert: true }
-        );
+        let parsedVerifiedAt = null;
+        if (row.verifiedAt && typeof row.verifiedAt === 'string') {
+          const d = new Date(row.verifiedAt);
+          if (!isNaN(d.getTime())) parsedVerifiedAt = d;
+        }
+
+        const existing = await VerifiedUser.findOne({ discordId: row.discordId }).lean();
+
+        const setFields = {
+          verificationNumber: Number(row.verificationNumber) || 0,
+          discordTag: row.discordTag || '',
+          firstName: row.firstName || '',
+          lastName: row.lastName || '',
+          comment: row.comment || '',
+          warnings
+        };
+
+        const filter = { discordId: row.discordId };
+        const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+
+        if (!existing) {
+          const toInsert = {
+            ...setFields,
+            ...(parsedVerifiedAt ? { verifiedAt: parsedVerifiedAt } : {})
+          };
+          await VerifiedUser.updateOne(filter, { $set: toInsert }, options);
+        } else {
+          const updateOps = { $set: setFields };
+
+          const hasVerifiedAt =
+            existing.verifiedAt !== undefined &&
+            existing.verifiedAt !== null;
+
+          if (!hasVerifiedAt && parsedVerifiedAt) {
+            updateOps.$set.verifiedAt = parsedVerifiedAt;
+          }
+          await VerifiedUser.updateOne(filter, updateOps, options);
+        }
+
         imported++;
       }
 

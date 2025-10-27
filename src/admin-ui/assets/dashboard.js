@@ -1,11 +1,10 @@
 let allUsers = [];
 
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleString("en-US", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+function formatDate(value) {
+  if (!value) return "—";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 async function fetchUsers() {
@@ -63,6 +62,7 @@ function renderUsers(users) {
     const html = `
       <strong>👤 ${user.firstName} ${user.lastName}</strong><br>
       <strong>📛 Discord:</strong> ${user.discordTag} (${user.discordId})<br>
+      <strong>🕒 Verifiziert seit:</strong> <span title="${user.verifiedAt ? new Date(user.verifiedAt).toISOString() : ''}">${formatDate(user.verifiedAt)}</span><br>
       ${commentSection}
       <strong>⚠️ Warnings:</strong>
       <ul>${warnsHtml}</ul>`
