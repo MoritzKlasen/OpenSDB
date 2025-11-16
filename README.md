@@ -1,101 +1,106 @@
-# OpenSDB - Open School Discord Bot (Docker + MongoDB)
-
-A open source self-hosted Discord bot for school communities, complete with an admin web UI, running in Docker containers and persisting data in MongoDB.
+Hier ist der gesamte Text *verständlich und natürlich auf Deutsch* übersetzt – inklusive technischer Fachbegriffe, sauberem Stil und konsistenter Formatierung:
 
 ---
 
-## Features
+# OpenSDB – Open School Discord Bot (Docker + MongoDB)
 
-- **Secure Verification System** – Assign roles to verified users via `/verify`, with name logging and persistent tracking  
-- **Admin Web UI** – Manage users, warnings, and verification status via a password-protected local dashboard  
-- **Warning System** – Track, add, and remove warnings per user; list top offenders with `/listwarns`  
-- **Prohibited Word Filter** – Detects flagged words and notifies admins with context and user info  
-- **Customizable Roles** – Define which roles are considered “admin”, “team”, or “verified”  
-- **Comment System** – Add context or notes to users via modal input, saved to the database  
-- **CSV → MongoDB Migration** – Import student data via the Admin Web UI
-- **Modular Codebase** – Designed for expansion and customization by schools and developers  
-- **Fully Open Source** – Modify, rebrand, and extend for your own school use cases
+Ein quelloffener, selbst gehosteter Discord-Bot für Schul-Communities, inklusive Admin-Weboberfläche, ausgeführt in Docker-Containern und mit persistenten Daten in MongoDB.
 
 ---
 
-## Table of Contents
+## Funktionen
 
-1. [Prerequisites](#prerequisites)  
-2. [Quickstart](#quickstart)  
-   2.1 [Clone the Repository](#clone-the-repository)  
-   2.2 [Create Your `.env` File](#create-your-env-file)  
-   2.3 [Launch with Docker Compose](#launch-with-docker-compose)  
-   2.4 [View Logs](#view-logs)  
-3. [Developing Locally](#developing-locally)  
-   3.1 [Install Dependencies](#install-dependencies)  
-4. [Troubleshooting](#troubleshooting)  
-
----
-
-## Prerequisites
-
-- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) installed  
-- Basic familiarity with the command line  
-- A Discord application (Bot token, Client ID) and a target guild/server ID  
+* **Sicheres Verifizierungssystem** – Weist verifizierten Nutzern über `/verify` automatisch Rollen zu, mit Namensprotokollierung und dauerhafter Speicherung
+* **Admin-Weboberfläche** – Verwalte Nutzer, Verwarnungen und Verifizierungsstatus über ein passwortgeschütztes lokales Dashboard
+* **Verwarnungssystem** – Erfasse, füge hinzu und entferne Verwarnungen pro Nutzer; liste mit `/listwarns` die Nutzer mit den meisten Verwarnungen auf
+* **Wortfilter für verbotene Begriffe** – Erkennt markierte Wörter und benachrichtigt das Adminteam mit Kontext und Nutzerinformationen
+* **Anpassbare Rollen** – Lege fest, welche Rollen als „Admin“, „Team“ oder „Verifiziert“ gelten
+* **Kommentarsystem** – Füge Nutzern über ein Modal-Fenster Hinweise oder Notizen hinzu, gespeichert in der Datenbank
+* **CSV → MongoDB Migration** – Importiere Schülerdaten direkt in der Admin-Weboberfläche
+* **Modularer Code** – Entwickelt für Erweiterbarkeit und Anpassungen durch Schulen und Entwickler
+* **Vollständig Open Source** – Ändern, erweitern und umbenennen für eigene Schul-Use-Cases
 
 ---
 
-## Quickstart
+## Inhaltsverzeichnis
 
-### Clone the Repository
+1. [Voraussetzungen](#voraussetzungen)
+2. [Schnellstart](#schnellstart)
+   2.1 [Repository klonen](#repository-klonen)
+   2.2 [`.env`-Datei erstellen](#env-datei-erstellen)
+   2.3 [Mit Docker Compose starten](#mit-docker-compose-starten)
+   2.4 [Logs anzeigen](#logs-anzeigen)
+3. [Lokal entwickeln](#lokal-entwickeln)
+   3.1 [Abhängigkeiten installieren](#abhängigkeiten-installieren)
+4. [Fehlerbehebung](#fehlerbehebung)
+
+---
+
+## Voraussetzungen
+
+* Installiertes [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
+* Grundkenntnisse im Umgang mit der Kommandozeile
+* Eine Discord-Anwendung (Bot-Token, Client-ID) und eine Ziel-Guild/Server-ID
+
+---
+
+## Schnellstart
+
+### Repository klonen
 
 ```bash
 git clone https://github.com/MoritzKlasen/OpenSDB.git
 cd OpenSDB
 ```
 
-### Create Your `.env` File
+### `.env`-Datei erstellen
 
-Create a file named `.env` in the project root:
+Erstelle im Projektverzeichnis eine Datei `.env`:
 
 ```bash
 nano .env
 ```
 
-Populate it with:
+Befülle sie mit:
 
 ```dotenv
 # Discord Bot
-DISCORD_TOKEN=your-bot-token-here
-CLIENT_ID=your-client-id-here
-ALLOWED_GUILD_ID=your-guild-id-here
+DISCORD_TOKEN=dein-bot-token
+CLIENT_ID=deine-client-id
+ALLOWED_GUILD_ID=deine-guild-id
 
 # MongoDB
 DB_URI=mongodb://mongo:27017/schooldb
 
 # Admin Web UI
-ADMIN_USERNAME=admin          # your desired admin username
-ADMIN_PASSWORD=supersecret    # your desired admin password
-JWT_SECRET=anotherSuperSecret # JWT signing secret
-ADMIN_UI_PORT=8001            # your desired port
+ADMIN_USERNAME=admin          # gewünschter Admin-Benutzername
+ADMIN_PASSWORD=supersecret    # gewünschtes Admin-Passwort
+JWT_SECRET=anotherSuperSecret # JWT-Signatur-Secret
+ADMIN_UI_PORT=8001            # gewünschter Port
 ```
 
-> **Security:** Never commit `.env` to version control. Add it to your `.gitignore`.
+> **Sicherheit:** Commite die `.env` niemals in ein Repository. Füge sie zur `.gitignore` hinzu.
 
-### Launch with Docker Compose
+### Mit Docker Compose starten
 
-Build and start all services (Bot, Admin UI, MongoDB):
+Baue und starte alle Services (Bot, Admin UI, MongoDB):
 
 ```bash
 docker compose up --build -d
 ```
 
-The admin dashboard will be available at <http://SERVER-IP-ADDRESS:8001/login.html>.
+Das Admin-Dashboard ist erreichbar unter:
+**[http://SERVER-IP-ADRESSE:8001/login.html](http://SERVER-IP-ADRESSE:8001/login.html)**
 
-### View Logs
+### Logs anzeigen
 
-To stream logs for the bot service:
+Bot-Logs streamen:
 
 ```bash
 docker compose logs -f bot
 ```
 
-To stream logs for the web UI:
+Logs der Weboberfläche:
 
 ```bash
 docker compose logs -f web
@@ -103,11 +108,11 @@ docker compose logs -f web
 
 ---
 
-## Developing Locally
+## Lokal entwickeln
 
-### Install Dependencies
+### Abhängigkeiten installieren
 
-Before running the bot, install the Node.js packages:
+Bevor der Bot lokal ausgeführt wird, installiere die Node.js-Pakete:
 
 ```bash
 npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonwebtoken mongoose multer csvtojson json2csv
@@ -115,15 +120,15 @@ npm install bcrypt cookie-parser discord.js dotenv dotenv-extended express jsonw
 
 ---
 
-## Troubleshooting
+## Fehlerbehebung
 
-- **Ports in Use**: Make sure nothing else is running on ports `8001` (web UI) or `27017` (MongoDB) on your host.  
-- **Environment Variables Not Loaded**: Verify your `.env` file is in the project root and follows the `KEY=VALUE` format.  
-- **Docker Build Issues**: If dependencies change, rerun with `docker compose up --build`.  
-- **Admin Login Fails**: Ensure `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` match what you use on the login page.  
+* **Port bereits belegt**: Stelle sicher, dass nichts anderes auf Port `8001` (Web UI) oder `27017` (MongoDB) läuft.
+* **Umgebungsvariablen werden nicht geladen**: Prüfe, ob deine `.env` im Projektverzeichnis liegt und dem Format `KEY=VALUE` folgt.
+* **Build-Fehler in Docker**: Bei Änderungen der Dependencies `docker compose up --build` erneut ausführen.
+* **Admin-Login schlägt fehl**: `ADMIN_USERNAME` und `ADMIN_PASSWORD` in `.env` müssen mit den Login-Daten übereinstimmen.
 
 ---
 
->If you run into any issues or would like to request new features, feel free to open an issue on the [GitHub-Repo](https://github.com/MoritzKlasen/OpenSDB).
+> Wenn du Probleme hast oder neue Features vorschlagen möchtest, eröffne gerne ein Issue im [GitHub-Repository](https://github.com/MoritzKlasen/OpenSDB).
 
-Made with ❤️ by McScheleba
+Erstellt mit ❤️ von McScheleba
