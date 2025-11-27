@@ -24,6 +24,7 @@
     "multer": "^2.0.2"
   },
   "overrides": {
-    "undici": "6.21.2"
+    "undici": "6.21.2",
+    "body-parser": "2.2.1"
   }
 }
