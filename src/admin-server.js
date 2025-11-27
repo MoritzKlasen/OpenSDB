@@ -30,6 +30,33 @@ app.use(cookieParser());
 
 app.use('/assets', express.static(path.join(__dirname, 'admin-ui', 'assets')));
 
+function timingSafeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return out === 0;
+}
+function basicAuth(user, pass) {
+  return (req, res, next) => {
+    const hdr = req.headers.authorization || "";
+    if (!hdr.startsWith("Basic ")) {
+      res.set("WWW-Authenticate", 'Basic realm="metrics"');
+      return res.status(401).send("Unauthorized");
+    }
+    const decoded = Buffer.from(hdr.slice(6), "base64").toString("utf8");
+    const idx = decoded.indexOf(":");
+    const u = decoded.slice(0, idx);
+    const p = decoded.slice(idx + 1);
+    if (!timingSafeEqual(u, user) || !timingSafeEqual(p, pass)) {
+      res.set("WWW-Authenticate", 'Basic realm="metrics"');
+      return res.status(401).send("Unauthorized");
+    }
+    next();
+  };
+}
+const metricsBasic = basicAuth(process.env.METRICS_BASIC_USER || "grafana", process.env.METRICS_BASIC_PASS || "changeMe!");
+
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
 
@@ -171,6 +198,71 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Export failed' });
   }
 });
+
+app.get(
+  ['/api/metrics/users-per-day', '/api/metrics/users-per-day.csv', '/api/metrics/users-per-day.json'],
+  metricsBasic,
+  async (req, res) => {
+    try {
+      const tz   = req.query.tz   || 'Europe/Vienna';
+      const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+      const to   = req.query.to   ? new Date(req.query.to)   : new Date();
+      if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+      from.setUTCHours(0,0,0,0);
+      to.setUTCHours(23,59,59,999);
+
+      const dateField = 'verifiedAt';
+
+      const rows = await VerifiedUser.aggregate([
+        { $match: { [dateField]: { $gte: from, $lte: to } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}`, timezone: tz } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]);
+
+      const map = new Map(rows.map(r => [r._id, r.count]));
+      const out = [];
+      const cur = new Date(from);
+      while (cur <= to) {
+        const day = cur.toISOString().slice(0,10);
+        out.push({ day, count: map.get(day) || 0 });
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      let cum = 0;
+      const data = out.map(d => ({
+        ts: new Date(d.day).toISOString(),
+        daily: d.count,
+        cumulative: (cum += d.count),
+      }));
+
+      const wantsCsv  = req.path.endsWith('.csv');
+      const wantsJson = req.path.endsWith('.json') || !wantsCsv;
+
+      if (wantsCsv) {
+        const csv = 'ts,daily,cumulative\n' + data.map(r => `${r.ts},${r.daily},${r.cumulative}`).join('\n');
+        res.type('text/csv; charset=utf-8');
+        if (req.query.download === '1') res.attachment('users-per-day.csv');
+        return res.send(csv);
+      }
+      if (wantsJson) {
+        res.type('application/json; charset=utf-8');
+        res.set('Cache-Control', 'public, max-age=60');
+        return res.json(data);
+      }
+
+      res.set('Cache-Control', 'public, max-age=60');
+      return res.json(data);
+    } catch (err) {
+      console.error('Metrics error:', err);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  }
+);
 
 app.post(
   '/api/import-users',
