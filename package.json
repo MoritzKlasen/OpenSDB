@@ -20,6 +20,7 @@
     "express": "^5.1.0",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
+    "jws": "^3.2.3",
     "mongoose": "^8.19.2",
     "multer": "^2.0.2"
   },
