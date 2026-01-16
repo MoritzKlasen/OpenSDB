@@ -20,7 +20,7 @@ module.exports = {
         .setRequired(false)),
 
   async execute(interaction) {
-    const settings = await ServerSettings.findOne() || {};
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId }) || {};
     const teamRoleId = settings.teamRoleId;
 
     const isOwner = interaction.user.id === interaction.guild.ownerId;
@@ -51,7 +51,7 @@ module.exports = {
     if (onJoinRole) update.onJoinRoleId = onJoinRole.id;
 
     await ServerSettings.findOneAndUpdate(
-      {},
+      { guildId: interaction.guildId },
       update,
       { upsert: true }
     );
