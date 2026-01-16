@@ -19,7 +19,7 @@ client.commands = new Collection();
 connectDB();
 loadCommands(client);
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`✅ Bot is online as ${client.user.tag}`);
 });
 
