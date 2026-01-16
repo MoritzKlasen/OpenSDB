@@ -140,16 +140,6 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
   }
 });
 
-// app.delete('/api/delete-user/:discordId', authMiddleware, async (req, res) => {
-//   try {
-//     await VerifiedUser.deleteOne({ discordId: req.params.discordId });
-//     res.json({ success: true });
-//   } catch (err) {
-//     console.error('Error deleting the user:', err);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-
 app.get('/api/export-users', authMiddleware, async (req, res) => {
   try {
     const users = await VerifiedUser.find({}, {

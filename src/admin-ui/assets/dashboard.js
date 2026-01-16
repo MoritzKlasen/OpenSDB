@@ -65,9 +65,7 @@ function renderUsers(users) {
       <strong>🕒 Verifiziert seit:</strong> <span title="${user.verifiedAt ? new Date(user.verifiedAt).toISOString() : ''}">${formatDate(user.verifiedAt)}</span><br>
       ${commentSection}
       <strong>⚠️ Warnings:</strong>
-      <ul>${warnsHtml}</ul>`
-      //  <button onclick="deleteUser('${user.discordId}')">❌ Remove verification</button>
-    ;
+      <ul>${warnsHtml}</ul>`;
 
     const userBox = document.createElement("div");
     userBox.classList.add("user-box");
@@ -84,15 +82,6 @@ async function deleteWarning(discordId, index) {
   if (res.ok) fetchUsers();
   else alert("Error deleting the warning.");
 }
-
-// async function deleteUser(discordId) {
-//   if (!confirm("Are you sure you want to delete this user?")) return;
-//   const res = await fetch(`/api/delete-user/${discordId}`, {
-//     method: "DELETE",
-//   });
-//   if (res.ok) fetchUsers();
-//   else alert("Error deleting the user.");
-// }
 
 function setupFilter() {
   document

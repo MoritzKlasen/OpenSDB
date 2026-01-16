@@ -1,0 +1,101 @@
+{
+  "language": {
+    "current": "Aktuelle Bot-Sprache für diesen Server ist: {languageName} ({lang}).",
+    "setSuccess": "Bot-Sprache für diesen Server wurde gesetzt auf: {languageName} ({lang}).",
+    "invalid": "Ungültige Sprache. Erlaubt: de, en."
+  },
+  "errors": {
+    "missingPermission": "Du hast dafür keine Berechtigung.",
+    "generic": "Etwas ist schiefgelaufen.",
+    "noPermission": "❌ Keine Berechtigung.",
+    "executionError": "⚠️ Fehler bei der Ausführung!"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "Support",
+      "desc": "Du brauchst Hilfe? Öffne ein Support-Ticket.",
+      "button": "Ticket öffnen"
+    },
+    "verify": {
+      "title": "Verifizierung",
+      "desc": "Klicke unten, um die Verifizierung zu starten.",
+      "button": "Verifizieren"
+    }
+  },
+  "tickets": { 
+    "created": "✅ Ticket erfolgreich erstellt: {channel}",
+    "openedTitleSupport": "📨 Support-Ticket eröffnet",
+    "openedTitleVerify": "📨 Verifizierungs-Ticket eröffnet",
+    "welcome": "👋 **{user}**, willkommen in deinem Ticket!",
+    "privacy": "🔒 *Hinweis: Nachrichten in diesem Channel können bis zu 30 Tage gespeichert werden.*",
+    "supportAsk": "Bitte beschreibe dein Problem so genau wie möglich.",
+    "verifyAsk": "Bitte sende hier ein Bild deines Schülerausweises oder einen anderen Verifizierungsnachweis.",
+    "accessInfo": "Nur du und das Server-Team haben Zugriff auf diesen Channel.",
+    "close": "🔒 Ticket schließen",
+    "alreadyClosed": "❌ Dieses Ticket ist bereits geschlossen.",
+    "closedTitle": "🔒 Ticket geschlossen",
+    "closedDesc": "Dieses Ticket wurde von {user} geschlossen."
+  },
+  "warnings": {
+    "notVerified": "❌ Benutzer ist nicht verifiziert.",
+    "issued": "✅ {user} wurde verwarnt.",
+    "error": "❌ Fehler beim Ausstellen der Verwarnung.",
+    "dmMessage": "⚠️ Du wurdest verwarnt wegen der Verwendung des Wortes \"{word}\"."
+  },
+  "comments": {
+    "saved": "✅ Kommentar gespeichert.",
+    "noUser": "❌ Kein verifizierter Benutzer gefunden.",
+    "noPermission": "❌ Keine Berechtigung.",
+    "set": "✅ Kommentar für {user} wurde gesetzt:\n> {text}",
+    "notVerified": "❌ {user} ist nicht verifiziert."
+  },
+  "verify": {
+    "noPermission": "❌ Keine Berechtigung.",
+    "noManageRoles": "❌ Mir fehlt die **Manage Roles** Berechtigung.",
+    "alreadyVerified": "⚠️ {user} ist bereits verifiziert!",
+    "memberNotFound": "⚠️ Konnte {user} nicht finden.",
+    "success": "✅ {user} wurde erfolgreich verifiziert als **#{number} – {fullName}**"
+  },
+  "unverify": {
+    "noPermission": "❌ Keine Berechtigung.",
+    "notVerified": "❌ {user} war nicht verifiziert.",
+    "success": "✅ Verifizierung für {user} wurde gelöscht."
+  },
+  "deanon": {
+    "notVerified": "❌ {user} ist nicht verifiziert.",
+    "title": "🔍 Verifizierter Benutzer",
+    "discord": "Discord",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "commentTitle": "📝 Kommentar",
+    "warningsTitle": "⚠️ Letzte Verwarnungen"
+  },
+  "warn": {
+    "noPermission": "❌ Keine Berechtigung.",
+    "notVerified": "❌ {user} ist nicht verifiziert.",
+    "success": "✅ {user} wurde von {issuer} verwarnt.\nGrund: *{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ Verbotenes Wort hinzugefügt: **{word}**",
+    "wordRemoved": "✅ Verbotenes Wort entfernt: **{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ Keine Berechtigung.",
+    "wrongServer": "❌ Der angegebene Channel gehört nicht zu diesem Server.",
+    "success": "✅ Admin-Channel wurde gesetzt: {channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ Keine Berechtigung.",
+    "noRolesSpecified": "⚠️ Bitte geben Sie mindestens eine Rolle an.",
+    "updated": "✅ Rollen aktualisiert:\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 Verbotenes Wort erkannt",
+    "user": "Benutzer",
+    "channel": "Channel",
+    "message": "Nachricht",
+    "word": "Wort",
+    "warn": "Verwarnen",
+    "comment": "Kommentar"
+  }
+}

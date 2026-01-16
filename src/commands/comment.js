@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
+const { t } = require('../utils/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -24,7 +25,7 @@ module.exports = {
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
     if (!isOwner && !isTeam) {
-      return interaction.reply({ content: '❌ No permission.', flags: 64 });
+      return interaction.reply({ content: await t(interaction.guildId, 'comments.noPermission'), flags: 64 });
     }
 
     const user = interaction.options.getUser('user');
@@ -34,7 +35,7 @@ module.exports = {
 
     if (!verified) {
       return interaction.reply({
-        content: `❌ ${user.tag} is not verified.`,
+        content: await t(interaction.guildId, 'comments.notVerified', { user: user.tag }),
         flags: 64
       });
     }
@@ -43,7 +44,7 @@ module.exports = {
     await verified.save();
 
     return interaction.reply({
-      content: `✅ Comment for ${user.tag} has been set:\n> ${text}`,
+      content: await t(interaction.guildId, 'comments.set', { user: user.tag, text }),
       flags: 0
     });
   }

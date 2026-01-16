@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const BannedWord = require('../database/models/BannedWord');
 const ServerSettings = require('../database/models/ServerSettings');
+const { t } = require('../utils/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -35,7 +36,7 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ No permission.',
+        content: await t(interaction.guildId, 'errors.noPermission'),
         flags: 64      });
     }
 
@@ -44,12 +45,12 @@ module.exports = {
 
     if (sub === 'add') {
       await BannedWord.updateOne({ word }, { word }, { upsert: true });
-      return interaction.reply(`✅ Banned word added: **${word}**`);
+      return interaction.reply(await t(interaction.guildId, 'banned.wordAdded', { word }));
     }
 
     if (sub === 'remove') {
       await BannedWord.deleteOne({ word });
-      return interaction.reply(`✅ Banned word removed: **${word}**`);
+      return interaction.reply(await t(interaction.guildId, 'banned.wordRemoved', { word }));
     }
   }
 };

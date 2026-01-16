@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
+const { t } = require('../utils/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,18 +19,18 @@ module.exports = {
 
     if (!verified) {
       return interaction.reply({
-        content: `❌ ${user.tag} is not verified.`,
+        content: await t(interaction.guildId, 'deanon.notVerified', { user: user.tag }),
         flags: 64
       });
     }
 
     const embed = new EmbedBuilder()
-      .setTitle(`🔍 Verified user`)
+      .setTitle(await t(interaction.guildId, 'deanon.title'))
       .setThumbnail(user.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: 'Discord', value: user.tag, inline: true },
-        { name: 'First name', value: verified.firstName || '–', inline: true },
-        { name: 'Last name', value: verified.lastName || '–', inline: true }
+        { name: await t(interaction.guildId, 'deanon.discord'), value: user.tag, inline: true },
+        { name: await t(interaction.guildId, 'deanon.firstName'), value: verified.firstName || '–', inline: true },
+        { name: await t(interaction.guildId, 'deanon.lastName'), value: verified.lastName || '–', inline: true }
       )
       .setColor('Blurple')
       .setTimestamp();
@@ -40,7 +41,7 @@ module.exports = {
     const isPrivileged = isOwner || isTeam;
 
     if (isPrivileged && verified.comment && verified.comment.trim() !== '') {
-      embed.addFields({ name: '📝 Comment', value: verified.comment });
+      embed.addFields({ name: await t(interaction.guildId, 'deanon.commentTitle'), value: verified.comment });
     }
 
     if (isPrivileged && Array.isArray(verified.warnings) && verified.warnings.length > 0) {
@@ -61,7 +62,7 @@ module.exports = {
           })
       );
 
-      embed.addFields({ name: '⚠️ Recent warnings', value: lastWarnings.join('\n') });
+      embed.addFields({ name: await t(interaction.guildId, 'deanon.warningsTitle'), value: lastWarnings.join('\n') });
     }
 
     return interaction.reply({ embeds: [embed] });

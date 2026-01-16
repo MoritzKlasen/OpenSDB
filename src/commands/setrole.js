@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
+const { t } = require('../utils/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,6 +13,10 @@ module.exports = {
     .addRoleOption(option =>
       option.setName('verifiedrole')
         .setDescription('The role that verified users will receive')
+        .setRequired(false))
+    .addRoleOption(option =>
+      option.setName('onjoinrole')
+        .setDescription('The role given to new members')
         .setRequired(false)),
 
   async execute(interaction) {
@@ -24,7 +29,7 @@ module.exports = {
 
     if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
-        content: '❌ No Permission.',
+        content: await t(interaction.guildId, 'setrole.noPermission'),
         flags: 64
       });
     }
@@ -35,7 +40,7 @@ module.exports = {
 
     if (!teamRole && !verifiedRole && !onJoinRole) {
       return interaction.reply({
-        content: '⚠️ Please specify at least one role to update.',
+        content: await t(interaction.guildId, 'setrole.noRolesSpecified'),
         flags: 64
       });
     }
@@ -51,11 +56,14 @@ module.exports = {
       { upsert: true }
     );
 
-    let reply = '✅ Updated roles:\n';
-    if (teamRole) reply += `• Teamrole: **${teamRole.name}**\n`;
-    if (verifiedRole) reply += `• Verified Role: **${verifiedRole.name}**\n`;
-    if (onJoinRole) reply += `• On-Join-Role: **${onJoinRole.name}**`;
+    let roles = '';
+    if (teamRole) roles += `• Teamrole: **${teamRole.name}**\n`;
+    if (verifiedRole) roles += `• Verified Role: **${verifiedRole.name}**\n`;
+    if (onJoinRole) roles += `• On-Join-Role: **${onJoinRole.name}**`;
 
-    await interaction.reply({ content: reply, flags: 64 });
+    await interaction.reply({ 
+      content: await t(interaction.guildId, 'setrole.updated', { roles }), 
+      flags: 64 
+    });
   }
 };

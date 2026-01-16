@@ -1,0 +1,102 @@
+{
+  "language": {
+    "current": "Current bot language for this server is: {languageName} ({lang}).",
+    "setSuccess": "Bot language for this server has been set to: {languageName} ({lang}).",
+    "invalid": "Invalid language. Allowed: de, en."
+  },
+  "errors": {
+    "missingPermission": "You don't have permission to do that.",
+    "generic": "Something went wrong.",
+    "noPermission": "❌ No permission.",
+    "executionError": "⚠️ Error during execution!"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "Support",
+      "desc": "Need help? Open a support ticket.",
+      "button": "Open Ticket"
+    },
+    "verify": {
+      "title": "Verification",
+      "desc": "Click below to start verification.",
+      "button": "Verify"
+    }
+  },
+  "tickets": { 
+    "created": "✅ Ticket successfully created: {channel}",
+    "openedTitleSupport": "📨 Support Ticket Opened",
+    "openedTitleVerify": "📨 Verification Ticket Opened",
+    "welcome": "👋 **{user}**, welcome to your ticket!",
+    "privacy": "🔒 *Note: Messages in this channel may be stored for up to 30 days.*",
+    "supportAsk": "Please describe your issue as accurately as possible.",
+    "verifyAsk": "Please send an image of your EDU card or other proof of verification here.",
+    "accessInfo": "Only you and the server team have access to this channel.",
+    "close": "🔒 Close Ticket",
+    "alreadyClosed": "❌ This ticket is already closed.",
+    "closedTitle": "🔒 Ticket Closed",
+    "closedDesc": "This ticket was closed by {user}."
+  },
+  "warnings": {
+    "notVerified": "❌ User is not verified.",
+    "issued": "✅ {user} has been warned.",
+    "error": "❌ Error while issuing warning.",
+    "dmMessage": "⚠️ You have been warned for using the word \"{word}\"."
+  },
+  "comments": {
+    "saved": "✅ Comment saved.",
+    "noUser": "❌ No verified user found.",
+    "noPermission": "❌ No permission.",
+    "set": "✅ Comment for {user} has been set:\n> {text}",
+    "notVerified": "❌ {user} is not verified."
+  },
+  "verify": {
+    "noPermission": "❌ No permission.",
+    "noManageRoles": "❌ I lack the **Manage Roles** permission.",
+    "alreadyVerified": "⚠️ {user} is already verified!",
+    "memberNotFound": "⚠️ Could not find {user}.",
+    "success": "✅ {user} was successfully verified as **#{number} – {fullName}**"
+  },
+  "unverify": {
+    "noPermission": "❌ No permission.",
+    "notVerified": "❌ {user} was not verified.",
+    "success": "✅ Verification for {user} has been deleted."
+  },
+  "deanon": {
+    "notVerified": "❌ {user} is not verified.",
+    "title": "🔍 Verified user",
+    "discord": "Discord",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "commentTitle": "📝 Comment",
+    "warningsTitle": "⚠️ Recent warnings"
+  },
+  "warn": {
+    "noPermission": "❌ No permission.",
+    "notVerified": "❌ {user} is not verified.",
+    "success": "✅ {user} was warned by {issuer}.\nReason: *{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ Banned word added: **{word}**",
+    "wordRemoved": "✅ Banned word removed: **{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ No Permission.",
+    "wrongServer": "❌ The specified channel does not belong to this server.",
+    "success": "✅ Admin channel has been set: {channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ No Permission.",
+    "noRolesSpecified": "⚠️ Please specify at least one role to update.",
+    "updated": "✅ Updated roles:\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 Banned word detected",
+    "user": "User",
+    "channel": "Channel",
+    "message": "Message",
+    "word": "Word",
+    "warn": "Warn",
+    "comment": "Comment"
+  }
+}
+

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
+const { t } = require('../utils/i18n');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -24,7 +25,7 @@ module.exports = {
 
     if (!isOwner && !isTeam) {
       return interaction.reply({
-        content: '❌ No permission.',
+        content: await t(interaction.guildId, 'unverify.noPermission'),
         flags: 64
       });
     }
@@ -34,7 +35,7 @@ module.exports = {
 
     if (!result) {
       return interaction.reply({
-        content: `❌ ${user.tag} was not verified.`,
+        content: await t(interaction.guildId, 'unverify.notVerified', { user: user.tag }),
         flags: 64
       });
     }
@@ -49,7 +50,7 @@ module.exports = {
     }
 
     await interaction.reply({
-      content: `✅ Verification for ${user.tag} has been deleted.`,
+      content: await t(interaction.guildId, 'unverify.success', { user: user.tag }),
       flags: 64
     });
   }

@@ -11,6 +11,8 @@ const {
   Colors
 } = require('discord.js');
 
+const LocalizedMessage = require('../database/models/LocalizedMessage');
+const { t } = require("../utils/i18n");
 const ServerSettings = require('../database/models/ServerSettings');
 const VerifiedUser   = require('../database/models/VerifiedUser');
 
@@ -76,7 +78,7 @@ module.exports = async (client, interaction) => {
       await command.execute(interaction);
     } catch (err) {
       console.error(err);
-      await interaction.reply({ content: '⚠️ Error during execution!', flags: 64 });
+      await interaction.reply({ content: await t(interaction.guildId, "errors.executionError"), flags: 64 });
     }
   }
 
@@ -88,7 +90,7 @@ module.exports = async (client, interaction) => {
       const ticketType = userId;
       const parentId   = extra || null;
 
-      const settings = await ServerSettings.findOne() || {};
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId }).lean() || {};
       const { teamRoleId, supportRoleId, verifyRoleId } = settings;
 
       const roleId = ticketType === 'support'
@@ -115,32 +117,59 @@ module.exports = async (client, interaction) => {
       const meta3 = topicSetFlag(meta2, 'opener', interaction.user.id);
       await channel.setTopic(meta3).catch(() => {});
 
-      await channel.send({
+      const guildId = interaction.guildId;
+
+      const titleKey = ticketType === "support"
+        ? "tickets.openedTitleSupport"
+        : "tickets.openedTitleVerify";
+
+      const askKey = ticketType === "support"
+        ? "tickets.supportAsk"
+        : "tickets.verifyAsk";
+
+      const ticketMsg = await channel.send({
         embeds: [
           new EmbedBuilder()
-            .setTitle(`📨 ${ticketType === 'support' ? 'Support ' : 'Verification '}Ticket Opened`)
+            .setTitle(await t(guildId, titleKey))
             .setDescription(
-              `👋 **${interaction.user}**, welcome to your ticket!\n\n` +
-              `Only you and the server team have access to this channel.\n` +
-              (ticketType === 'support'
-                ? 'Please describe your issue as accurately as possible.'
-                : 'Please send an image of your EDU card or other proof of verification here.') +
-              `\n\n🔒 *Note: Messages in this channel may be stored for up to 30 days.*`
+              `${await t(guildId, "tickets.welcome", { user: `${interaction.user}` })}\n\n` +
+              `${await t(guildId, "tickets.accessInfo")}\n` +
+              `${await t(guildId, askKey)}\n\n` +
+              `${await t(guildId, "tickets.privacy")}`
             )
-            .setColor(ticketType === 'support' ? Colors.Blurple : Colors.Green)
+            .setColor(ticketType === "support" ? Colors.Blurple : Colors.Green)
         ],
         components: [
           new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-              .setCustomId('close_ticket')
-              .setLabel('🔒 Close Ticket')
+              .setCustomId("close_ticket")
+              .setLabel(await t(guildId, "tickets.close"))
               .setStyle(ButtonStyle.Danger)
           )
         ]
       });
 
+      // ✅ TRACK it so language refresh can edit it later
+      await LocalizedMessage.updateOne(
+        { guildId: interaction.guildId, messageId: ticketMsg.id },
+        {
+          $set: {
+            guildId: interaction.guildId,
+            channelId: channel.id,
+            messageId: ticketMsg.id,
+            key: "ticket.opened",
+            vars: {
+              type: ticketType,              // support|verify
+              userMention: `${interaction.user}` // so we can re-render later
+            }
+          }
+        },
+        { upsert: true }
+      );
+
+
       return interaction.reply({
-        content: `✅ Ticket successfully created: ${channel}`,
+        content: await t(interaction.guildId, "tickets.created", { channel: `${channel}` }),
         flags: 64
       });
     }
@@ -155,7 +184,7 @@ module.exports = async (client, interaction) => {
           if (disabledRows.length) {
             await interaction.update({ components: disabledRows });
           } else {
-            await interaction.reply({ content: '✅ Ticket is already closed.', flags: 64 });
+            await interaction.reply({ content: await t(interaction.guildId, "tickets.alreadyClosed"), flags: 64 });
           }
         } catch {}
         return;
@@ -163,7 +192,7 @@ module.exports = async (client, interaction) => {
 
       let openerId = topicGetFlag(channel.topic, 'opener');
       if (!openerId) {
-        const settings = await ServerSettings.findOne() || {};
+        const settings = await ServerSettings.findOne({ guildId: interaction.guildId }).lean() || {};
         openerId = await resolveOpenerIdFromOverwrites(channel, settings.teamRoleId);
       }
 
@@ -181,7 +210,7 @@ module.exports = async (client, interaction) => {
           AddReactions: false
         }).catch(() => {});
 
-        const settings = await ServerSettings.findOne() || {};
+        const settings = await ServerSettings.findOne({ guildId: interaction.guildId }).lean() || {};
         const { teamRoleId } = settings;
         if (teamRoleId) {
           await channel.permissionOverwrites.edit(teamRoleId, {
@@ -205,8 +234,8 @@ module.exports = async (client, interaction) => {
       }
 
       const closedEmbed = new EmbedBuilder()
-        .setTitle('📁 Ticket Closed')
-        .setDescription(`This ticket has been closed by ${interaction.user}.\nThank you for your request!`)
+        .setTitle(await t(interaction.guildId, "tickets.closedTitle"))
+        .setDescription(await t(interaction.guildId, "tickets.closedDesc", { user: `${interaction.user}` }))
         .setColor(Colors.Red);
 
       try {
@@ -218,8 +247,10 @@ module.exports = async (client, interaction) => {
         }
       } catch (e) {
         console.warn('Button disable/update error:', e);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ embeds: [closedEmbed] });
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp({ content: await t(interaction.guildId, "errors.generic"), flags: 64 });
+        } else {
+          await interaction.reply({ content: await t(interaction.guildId, "errors.generic"), flags: 64 });
         }
       }
       return;
@@ -230,7 +261,7 @@ module.exports = async (client, interaction) => {
         const target   = await client.users.fetch(userId);
         const verified = await VerifiedUser.findOne({ discordId: userId });
         if (!verified) {
-          return interaction.reply({ content: '❌ User is not verified.', flags: 64 });
+          return interaction.reply({ content: await t(interaction.guildId, "warnings.notVerified"), flags: 64 });
         }
         verified.warnings.push({
           reason:   `Warning for prohibited word: "${bannedWord}"`,
@@ -238,11 +269,11 @@ module.exports = async (client, interaction) => {
           date:     new Date()
         });
         await verified.save();
-        try { await target.send(`⚠️ You have been warned for using the word "${bannedWord}".`); } catch {}
-        return interaction.reply({ content: `✅ ${target.tag} has been warned.`, flags: 0 });
+        try { await target.send(await t(interaction.guildId, "warnings.dmMessage", { word: bannedWord })); } catch {}
+        return interaction.reply({ content: await t(interaction.guildId, "warnings.issued", { user: `${target.tag}` }), flags: 0 });
       } catch (err) {
         console.error(err);
-        return interaction.reply({ content: '❌ Error while issuing warning.', flags: 64 });
+        return interaction.reply({ content: await t(interaction.guildId, "warnings.error"), flags: 64 });
       }
     }
 
@@ -275,8 +306,8 @@ module.exports = async (client, interaction) => {
       { upsert: false }
     );
     if (result) {
-      return interaction.reply({ content: '✅ Comment saved.', flags: 0 });
+      return interaction.reply({ content: await t(interaction.guildId, "comments.saved"), flags: 0 });
     }
-    return interaction.reply({ content: '❌ No verified user found.', flags: 64 });
+    return interaction.reply({ content: await t(interaction.guildId, "comments.noUser"), flags: 64 });
   }
 };
