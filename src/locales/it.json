@@ -1,0 +1,101 @@
+{
+  "language": {
+    "current": "La lingua attuale del bot per questo server è: {languageName} ({lang}).",
+    "setSuccess": "La lingua del bot per questo server è stata impostata su: {languageName} ({lang}).",
+    "invalid": "Lingua non valida. Consentite: de, en, es, fr, it, tr, zh."
+  },
+  "errors": {
+    "missingPermission": "Non hai il permesso di farlo.",
+    "generic": "Qualcosa è andato storto.",
+    "noPermission": "❌ Nessun permesso.",
+    "executionError": "⚠️ Errore durante l'esecuzione!"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "Supporto",
+      "desc": "Hai bisogno di aiuto? Apri un ticket di supporto.",
+      "button": "Apri Ticket"
+    },
+    "verify": {
+      "title": "Verifica",
+      "desc": "Fai clic di seguito per avviare la verifica.",
+      "button": "Verifica"
+    }
+  },
+  "tickets": { 
+    "created": "✅ Ticket creato con successo: {channel}",
+    "openedTitleSupport": "📨 Ticket di Supporto Aperto",
+    "openedTitleVerify": "📨 Ticket di Verifica Aperto",
+    "welcome": "👋 **{user}**, benvenuto nel tuo ticket!",
+    "privacy": "🔒 *Nota: I messaggi in questo canale possono essere conservati fino a 30 giorni.*",
+    "supportAsk": "Descrivi il tuo problema il più accuratamente possibile.",
+    "verifyAsk": "Per favore invia un'immagine della tua tessera studentesca o un'altra prova di verifica qui.",
+    "accessInfo": "Solo tu e il team del server avete accesso a questo canale.",
+    "close": "🔒 Chiudi Ticket",
+    "alreadyClosed": "❌ Questo ticket è già chiuso.",
+    "closedTitle": "🔒 Ticket Chiuso",
+    "closedDesc": "Questo ticket è stato chiuso da {user}."
+  },
+  "warnings": {
+    "notVerified": "❌ L'utente non è verificato.",
+    "issued": "✅ {user} è stato avvertito.",
+    "error": "❌ Errore durante l'emissione dell'avvertimento.",
+    "dmMessage": "⚠️ Sei stato avvertito per aver usato la parola \"{word}\"."
+  },
+  "comments": {
+    "saved": "✅ Commento salvato.",
+    "noUser": "❌ Nessun utente verificato trovato.",
+    "noPermission": "❌ Nessun permesso.",
+    "set": "✅ Commento per {user} è stato impostato:\n> {text}",
+    "notVerified": "❌ {user} non è verificato."
+  },
+  "verify": {
+    "noPermission": "❌ Nessun permesso.",
+    "noManageRoles": "❌ Mi manca il permesso **Gestisci Ruoli**.",
+    "alreadyVerified": "⚠️ {user} è già verificato!",
+    "memberNotFound": "⚠️ Impossibile trovare {user}.",
+    "success": "✅ {user} è stato verificato con successo come **#{number} – {fullName}**"
+  },
+  "unverify": {
+    "noPermission": "❌ Nessun permesso.",
+    "notVerified": "❌ {user} non era verificato.",
+    "success": "✅ La verifica per {user} è stata eliminata."
+  },
+  "deanon": {
+    "notVerified": "❌ {user} non è verificato.",
+    "title": "🔍 Utente verificato",
+    "discord": "Discord",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "commentTitle": "📝 Commento",
+    "warningsTitle": "⚠️ Avvertimenti recenti"
+  },
+  "warn": {
+    "noPermission": "❌ Nessun permesso.",
+    "notVerified": "❌ {user} non è verificato.",
+    "success": "✅ {user} è stato avvertito da {issuer}.\nMotivo: *{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ Parola vietata aggiunta: **{word}**",
+    "wordRemoved": "✅ Parola vietata rimossa: **{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ Nessun permesso.",
+    "wrongServer": "❌ Il canale specificato non appartiene a questo server.",
+    "success": "✅ Il canale admin è stato impostato: {channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ Nessun permesso.",
+    "noRolesSpecified": "⚠️ Specifica almeno un ruolo da aggiornare.",
+    "updated": "✅ Ruoli aggiornati:\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 Parola vietata rilevata",
+    "user": "Utente",
+    "channel": "Canale",
+    "message": "Messaggio",
+    "word": "Parola",
+    "warn": "Avvertimento",
+    "comment": "Commento"
+  }
+}

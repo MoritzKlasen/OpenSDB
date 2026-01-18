@@ -2,7 +2,7 @@
   "language": {
     "current": "Current bot language for this server is: {languageName} ({lang}).",
     "setSuccess": "Bot language for this server has been set to: {languageName} ({lang}).",
-    "invalid": "Invalid language. Allowed: de, en."
+    "invalid": "Invalid language. Allowed: de, en, es, fr, it, tr, zh."
   },
   "errors": {
     "missingPermission": "You don't have permission to do that.",

@@ -4,11 +4,16 @@ const path = require("path");
 const ServerSettings = require("../database/models/ServerSettings");
 
 const DEFAULT_LANG = "en";
-const SUPPORTED = new Set(["de", "en"]);
+const SUPPORTED = new Set(["de", "en", "es", "fr", "it", "tr", "zh"]);
 
 const LOCALES = {
   en: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "en.json"), "utf8")),
-  de: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "de.json"), "utf8"))
+  de: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "de.json"), "utf8")),
+  es: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "es.json"), "utf8")),
+  fr: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "fr.json"), "utf8")),
+  it: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "it.json"), "utf8")),
+  tr: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "tr.json"), "utf8")),
+  zh: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "zh.json"), "utf8"))
 };
 
 const guildLangCache = new Map();

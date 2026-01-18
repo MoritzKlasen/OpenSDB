@@ -1,0 +1,101 @@
+{
+  "language": {
+    "current": "El idioma actual del bot para este servidor es: {languageName} ({lang}).",
+    "setSuccess": "El idioma del bot para este servidor ha sido establecido a: {languageName} ({lang}).",
+    "invalid": "Idioma inválido. Permitidos: de, en, es, fr, it, tr, zh."
+  },
+  "errors": {
+    "missingPermission": "No tienes permiso para hacer eso.",
+    "generic": "Algo salió mal.",
+    "noPermission": "❌ Sin permiso.",
+    "executionError": "⚠️ ¡Error durante la ejecución!"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "Soporte",
+      "desc": "¿Necesitas ayuda? Abre un ticket de soporte.",
+      "button": "Abrir Ticket"
+    },
+    "verify": {
+      "title": "Verificación",
+      "desc": "Haz clic a continuación para iniciar la verificación.",
+      "button": "Verificar"
+    }
+  },
+  "tickets": { 
+    "created": "✅ Ticket creado exitosamente: {channel}",
+    "openedTitleSupport": "📨 Ticket de soporte abierto",
+    "openedTitleVerify": "📨 Ticket de verificación abierto",
+    "welcome": "👋 **{user}**, ¡bienvenido a tu ticket!",
+    "privacy": "🔒 *Nota: Los mensajes en este canal pueden almacenarse hasta 30 días.*",
+    "supportAsk": "Por favor describe tu problema con la mayor precisión posible.",
+    "verifyAsk": "Por favor envía una imagen de tu tarjeta de estudiante u otra prueba de verificación aquí.",
+    "accessInfo": "Solo tú y el equipo del servidor tienen acceso a este canal.",
+    "close": "🔒 Cerrar Ticket",
+    "alreadyClosed": "❌ Este ticket ya está cerrado.",
+    "closedTitle": "🔒 Ticket Cerrado",
+    "closedDesc": "Este ticket fue cerrado por {user}."
+  },
+  "warnings": {
+    "notVerified": "❌ El usuario no está verificado.",
+    "issued": "✅ {user} ha sido advertido.",
+    "error": "❌ Error al emitir la advertencia.",
+    "dmMessage": "⚠️ Has sido advertido por usar la palabra \"{word}\"."
+  },
+  "comments": {
+    "saved": "✅ Comentario guardado.",
+    "noUser": "❌ No se encontró usuario verificado.",
+    "noPermission": "❌ Sin permiso.",
+    "set": "✅ Comentario para {user} ha sido establecido:\n> {text}",
+    "notVerified": "❌ {user} no está verificado."
+  },
+  "verify": {
+    "noPermission": "❌ Sin permiso.",
+    "noManageRoles": "❌ Me falta el permiso **Gestionar Roles**.",
+    "alreadyVerified": "⚠️ ¡{user} ya está verificado!",
+    "memberNotFound": "⚠️ No se pudo encontrar a {user}.",
+    "success": "✅ {user} fue verificado exitosamente como **#{number} – {fullName}**"
+  },
+  "unverify": {
+    "noPermission": "❌ Sin permiso.",
+    "notVerified": "❌ {user} no fue verificado.",
+    "success": "✅ La verificación de {user} ha sido eliminada."
+  },
+  "deanon": {
+    "notVerified": "❌ {user} no está verificado.",
+    "title": "🔍 Usuario verificado",
+    "discord": "Discord",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "commentTitle": "📝 Comentario",
+    "warningsTitle": "⚠️ Advertencias recientes"
+  },
+  "warn": {
+    "noPermission": "❌ Sin permiso.",
+    "notVerified": "❌ {user} no está verificado.",
+    "success": "✅ {user} fue advertido por {issuer}.\nRazón: *{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ Palabra prohibida agregada: **{word}**",
+    "wordRemoved": "✅ Palabra prohibida eliminada: **{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ Sin permiso.",
+    "wrongServer": "❌ El canal especificado no pertenece a este servidor.",
+    "success": "✅ El canal de administrador ha sido establecido: {channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ Sin permiso.",
+    "noRolesSpecified": "⚠️ Por favor especifica al menos un rol a actualizar.",
+    "updated": "✅ Roles actualizados:\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 Palabra prohibida detectada",
+    "user": "Usuario",
+    "channel": "Canal",
+    "message": "Mensaje",
+    "word": "Palabra",
+    "warn": "Advertir",
+    "comment": "Comentario"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "language": {
+    "current": "Bu sunucu için bot dilinin şu anda: {languageName} ({lang}).",
+    "setSuccess": "Bu sunucu için bot dili şu şekilde ayarlandı: {languageName} ({lang}).",
+    "invalid": "Geçersiz dil. İzin verilen: de, en, es, fr, it, tr, zh."
+  },
+  "errors": {
+    "missingPermission": "Bunu yapmak için izniniz yok.",
+    "generic": "Bir şeyler yanlış gitti.",
+    "noPermission": "❌ İzin yok.",
+    "executionError": "⚠️ Yürütme sırasında hata!"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "Destek",
+      "desc": "Yardıma mı ihtiyacınız var? Bir destek bileti açın.",
+      "button": "Bilet Aç"
+    },
+    "verify": {
+      "title": "Doğrulama",
+      "desc": "Doğrulamayı başlatmak için aşağıya tıklayın.",
+      "button": "Doğrula"
+    }
+  },
+  "tickets": { 
+    "created": "✅ Bilet başarıyla oluşturuldu: {channel}",
+    "openedTitleSupport": "📨 Destek Bileti Açıldı",
+    "openedTitleVerify": "📨 Doğrulama Bileti Açıldı",
+    "welcome": "👋 **{user}**, biletinize hoş geldiniz!",
+    "privacy": "🔒 *Not: Bu kanaldaki mesajlar 30 güne kadar saklanabilir.*",
+    "supportAsk": "Lütfen sorununuzu mümkün olduğunca ayrıntılı olarak açıklayın.",
+    "verifyAsk": "Lütfen burada öğrenci kartınızın veya başka bir doğrulama kanıtının görüntüsünü gönderin.",
+    "accessInfo": "Yalnızca siz ve sunucu ekibi bu kanala erişebilir.",
+    "close": "🔒 Bileti Kapat",
+    "alreadyClosed": "❌ Bu bilet zaten kapalı.",
+    "closedTitle": "🔒 Bilet Kapalı",
+    "closedDesc": "Bu bilet {user} tarafından kapatıldı."
+  },
+  "warnings": {
+    "notVerified": "❌ Kullanıcı doğrulanmamış.",
+    "issued": "✅ {user} uyarıldı.",
+    "error": "❌ Uyarı düzenlenirken hata oluştu.",
+    "dmMessage": "⚠️ \"{word}\" kelimesini kullanmaktan dolayı uyarıldınız."
+  },
+  "comments": {
+    "saved": "✅ Yorum kaydedildi.",
+    "noUser": "❌ Doğrulanmış kullanıcı bulunamadı.",
+    "noPermission": "❌ İzin yok.",
+    "set": "✅ {user} için yorum ayarlandı:\n> {text}",
+    "notVerified": "❌ {user} doğrulanmamış."
+  },
+  "verify": {
+    "noPermission": "❌ İzin yok.",
+    "noManageRoles": "❌ **Rolleri Yönet** iznim yok.",
+    "alreadyVerified": "⚠️ {user} zaten doğrulanmış!",
+    "memberNotFound": "⚠️ {user} bulunamadı.",
+    "success": "✅ {user} **#{number} – {fullName}** olarak başarıyla doğrulandı"
+  },
+  "unverify": {
+    "noPermission": "❌ İzin yok.",
+    "notVerified": "❌ {user} doğrulanmamıştı.",
+    "success": "✅ {user} için doğrulama silindi."
+  },
+  "deanon": {
+    "notVerified": "❌ {user} doğrulanmamış.",
+    "title": "🔍 Doğrulanmış kullanıcı",
+    "discord": "Discord",
+    "firstName": "Ad",
+    "lastName": "Soyadı",
+    "commentTitle": "📝 Yorum",
+    "warningsTitle": "⚠️ Son uyarılar"
+  },
+  "warn": {
+    "noPermission": "❌ İzin yok.",
+    "notVerified": "❌ {user} doğrulanmamış.",
+    "success": "✅ {user}, {issuer} tarafından uyarıldı.\nSebep: *{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ Yasaklı kelime eklendi: **{word}**",
+    "wordRemoved": "✅ Yasaklı kelime kaldırıldı: **{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ İzin yok.",
+    "wrongServer": "❌ Belirtilen kanal bu sunucuya ait değil.",
+    "success": "✅ Admin kanalı ayarlandı: {channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ İzin yok.",
+    "noRolesSpecified": "⚠️ Lütfen güncellenecek en az bir rol belirtin.",
+    "updated": "✅ Roller güncellendi:\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 Yasaklı kelime algılandı",
+    "user": "Kullanıcı",
+    "channel": "Kanal",
+    "message": "Mesaj",
+    "word": "Kelime",
+    "warn": "Uyar",
+    "comment": "Yorum"
+  }
+}

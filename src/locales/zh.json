@@ -1,0 +1,101 @@
+{
+  "language": {
+    "current": "此服务器当前的机器人语言为：{languageName} ({lang})。",
+    "setSuccess": "此服务器的机器人语言已设置为：{languageName} ({lang})。",
+    "invalid": "无效的语言。允许的语言：de, en, es, fr, it, tr, zh。"
+  },
+  "errors": {
+    "missingPermission": "你没有权限这样做。",
+    "generic": "发生了错误。",
+    "noPermission": "❌ 无权限。",
+    "executionError": "⚠️ 执行过程中出错！"
+  },
+  "ticketPanel": {
+    "support": {
+      "title": "支持",
+      "desc": "需要帮助？打开支持工单。",
+      "button": "打开工单"
+    },
+    "verify": {
+      "title": "验证",
+      "desc": "点击下方开始验证。",
+      "button": "验证"
+    }
+  },
+  "tickets": { 
+    "created": "✅ 工单已成功创建：{channel}",
+    "openedTitleSupport": "📨 支持工单已打开",
+    "openedTitleVerify": "📨 验证工单已打开",
+    "welcome": "👋 **{user}**，欢迎来到你的工单！",
+    "privacy": "🔒 *注意：此频道中的消息可能会保存最长30天。*",
+    "supportAsk": "请尽可能详细地描述你的问题。",
+    "verifyAsk": "请在此处发送你的学生证或其他验证证明的图像。",
+    "accessInfo": "只有你和服务器团队可以访问此频道。",
+    "close": "🔒 关闭工单",
+    "alreadyClosed": "❌ 此工单已关闭。",
+    "closedTitle": "🔒 工单已关闭",
+    "closedDesc": "此工单已被 {user} 关闭。"
+  },
+  "warnings": {
+    "notVerified": "❌ 用户未验证。",
+    "issued": "✅ {user} 已被警告。",
+    "error": "❌ 发出警告时出错。",
+    "dmMessage": "⚠️ 你因使用单词 \"{word}\" 而被警告。"
+  },
+  "comments": {
+    "saved": "✅ 评论已保存。",
+    "noUser": "❌ 未找到已验证的用户。",
+    "noPermission": "❌ 无权限。",
+    "set": "✅ 已为 {user} 设置评论：\n> {text}",
+    "notVerified": "❌ {user} 未验证。"
+  },
+  "verify": {
+    "noPermission": "❌ 无权限。",
+    "noManageRoles": "❌ 我缺少 **管理角色** 权限。",
+    "alreadyVerified": "⚠️ {user} 已验证！",
+    "memberNotFound": "⚠️ 找不到 {user}。",
+    "success": "✅ {user} 已成功验证为 **#{number} – {fullName}**"
+  },
+  "unverify": {
+    "noPermission": "❌ 无权限。",
+    "notVerified": "❌ {user} 未验证。",
+    "success": "✅ 已删除 {user} 的验证。"
+  },
+  "deanon": {
+    "notVerified": "❌ {user} 未验证。",
+    "title": "🔍 已验证用户",
+    "discord": "Discord",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "commentTitle": "📝 评论",
+    "warningsTitle": "⚠️ 最近警告"
+  },
+  "warn": {
+    "noPermission": "❌ 无权限。",
+    "notVerified": "❌ {user} 未验证。",
+    "success": "✅ {user} 已被 {issuer} 警告。\n原因：*{reason}*"
+  },
+  "banned": {
+    "wordAdded": "✅ 禁用词已添加：**{word}**",
+    "wordRemoved": "✅ 禁用词已删除：**{word}**"
+  },
+  "setadminchannel": {
+    "noPermission": "❌ 无权限。",
+    "wrongServer": "❌ 指定的频道不属于此服务器。",
+    "success": "✅ 管理频道已设置：{channel}"
+  },
+  "setrole": {
+    "noPermission": "❌ 无权限。",
+    "noRolesSpecified": "⚠️ 请指定至少一个要更新的角色。",
+    "updated": "✅ 角色已更新：\n{roles}"
+  },
+  "bannedWords": {
+    "detected": "🚨 检测到禁用词",
+    "user": "用户",
+    "channel": "频道",
+    "message": "消息",
+    "word": "词",
+    "warn": "警告",
+    "comment": "评论"
+  }
+}

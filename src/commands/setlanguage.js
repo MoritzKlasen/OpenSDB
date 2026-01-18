@@ -29,11 +29,16 @@ module.exports = {
         .addStringOption(opt =>
           opt
             .setName("lang")
-            .setDescription("de or en")
+            .setDescription("de, en, es, fr, it, tr, or zh")
             .setRequired(true)
             .addChoices(
               { name: "German (de)", value: "de" },
-              { name: "English (en)", value: "en" }
+              { name: "English (en)", value: "en" },
+              { name: "Spanish (es)", value: "es" },
+              { name: "French (fr)", value: "fr" },
+              { name: "Italian (it)", value: "it" },
+              { name: "Turkish (tr)", value: "tr" },
+              { name: "Chinese Simplified (zh)", value: "zh" }
             )
         )
     ),
@@ -54,7 +59,8 @@ module.exports = {
       ).lean();
 
       const lang = settings.language || "en";
-      const languageName = lang === "de" ? "German" : "English";
+      const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
+      const languageName = languageNames[lang] || "English";
 
       return interaction.reply({
         content: await t(guildId, "language.current", { languageName, lang }),
@@ -73,7 +79,8 @@ module.exports = {
       const oldLang = currentSettings?.language || "en";
 
       if (oldLang === newLang) {
-        const languageName = newLang === "de" ? "German" : "English";
+        const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
+        const languageName = languageNames[newLang] || "English";
         return interaction.reply({
           content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),
           flags: 64
@@ -88,7 +95,8 @@ module.exports = {
 
       setGuildLanguageCache(guildId, newLang);
 
-      const languageName = newLang === "de" ? "German" : "English";
+      const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
+      const languageName = languageNames[newLang] || "English";
       await interaction.reply({
         content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),
         flags: 64
