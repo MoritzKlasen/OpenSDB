@@ -7,6 +7,23 @@ require('dotenv').config();
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
 
+// Helper to notify admin server of changes
+async function notifyAdminServer(type) {
+  try {
+    const response = await fetch('http://web:8001/api/internal/notify-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    });
+    if (!response.ok) {
+      console.warn(`⚠️ Failed to notify admin server: ${response.status}`);
+    }
+  } catch (err) {
+    // Silently fail - warn command should still work even if notification fails
+    console.warn('⚠️ Could not notify admin server:', err.message);
+  }
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
