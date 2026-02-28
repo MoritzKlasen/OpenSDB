@@ -25,7 +25,6 @@ const DashboardPage = () => {
       window.URL.revokeObjectURL(url)
     } catch (err) {
       setError('Failed to export CSV')
-      console.error(err)
     } finally {
       setIsExporting(false)
     }
@@ -48,7 +47,6 @@ const DashboardPage = () => {
       // Optionally refresh the user list
     } catch (err) {
       setError('Failed to import CSV')
-      console.error(err)
     } finally {
       setIsImporting(false)
       if (fileInputRef.current) {

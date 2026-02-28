@@ -20,23 +20,23 @@ connectDB();
 loadCommands(client);
 
 client.once('ready', async () => {
-  console.log(`✅ Bot is online as ${client.user.tag}`);
+  console.log(`Bot is online as ${client.user.tag}`);
   
   // Register slash commands with Discord API
   const commands = Array.from(client.commands.values()).map(cmd => cmd.data.toJSON());
   
   try {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    console.log(`📝 Registering ${commands.length} slash commands to Discord...`);
+    console.log(`Registering ${commands.length} slash commands to Discord...`);
     
     await rest.put(
       Routes.applicationCommands(client.user.id),
       { body: commands },
     );
     
-    console.log('✅ Slash commands registered successfully!');
+    console.log('Slash commands registered successfully!');
   } catch (error) {
-    console.error('❌ Failed to register commands:', error);
+    console.error('Failed to register commands:', error);
   }
 });
 

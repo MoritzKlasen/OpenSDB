@@ -2,6 +2,10 @@ const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { notifyAdminServer } = require('../utils/botNotifier');
+require('dotenv').config();
+
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
 
 // Helper to notify admin server of changes
 async function notifyAdminServer(type) {
@@ -70,7 +74,7 @@ module.exports = {
     await verified.save();
 
     // Notify admin server of the change
-    await notifyAdminServer('warning');
+    await notifyAdminServer('warning', INTERNAL_SECRET);
 
     return interaction.reply({
       content: await t(interaction.guildId, 'warn.success', { user: user.tag, issuer: interaction.user.tag, reason }),

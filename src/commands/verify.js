@@ -2,6 +2,10 @@ const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { notifyAdminServer } = require('../utils/botNotifier');
+require('dotenv').config();
+
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
 
 // Helper to notify admin server of changes
 async function notifyAdminServer(type) {
@@ -79,13 +83,13 @@ module.exports = {
     await newUser.save();
 
     // Notify admin server of new verification
-    await notifyAdminServer('verification');
+    await notifyAdminServer('verification', INTERNAL_SECRET);
 
     let member;
     try {
       member = await interaction.guild.members.fetch(user.id);
     } catch (err) {
-      console.warn(`⚠️ Could not fetch GuildMember for ${user.tag}:`, err?.message);
+      console.warn(`Could not fetch GuildMember for ${user.tag}:`, err?.message);
       return interaction.reply({ content: await t(interaction.guildId, 'verify.memberNotFound', { user: user.tag }), flags: 64 });
     }
 
@@ -94,7 +98,7 @@ module.exports = {
         await member.roles.add(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not assign verifiedRole to ${user.tag}:`, err?.message);
+      console.warn(`Could not assign verifiedRole to ${user.tag}:`, err?.message);
     }
 
     try {
@@ -102,7 +106,7 @@ module.exports = {
         await member.roles.remove(onJoinRoleId);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not remove onJoinRole from ${user.tag}:`, err?.message);
+      console.warn(`Could not remove onJoinRole from ${user.tag}:`, err?.message);
     }
 
     await interaction.reply({

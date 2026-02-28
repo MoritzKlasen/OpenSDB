@@ -60,11 +60,11 @@ function renderUsers(users) {
     if (!warnsHtml) warnsHtml = "<li>No warnings</li>";
 
     const html = `
-      <strong>👤 ${user.firstName} ${user.lastName}</strong><br>
-      <strong>📛 Discord:</strong> ${user.discordTag} (${user.discordId})<br>
-      <strong>🕒 Verifiziert seit:</strong> <span title="${user.verifiedAt ? new Date(user.verifiedAt).toISOString() : ''}">${formatDate(user.verifiedAt)}</span><br>
+      <strong>${user.firstName} ${user.lastName}</strong><br>
+      <strong>Discord:</strong> ${user.discordTag} (${user.discordId})<br>
+      <strong>Verified since:</strong> <span title="${user.verifiedAt ? new Date(user.verifiedAt).toISOString() : ''}">${formatDate(user.verifiedAt)}</span><br>
       ${commentSection}
-      <strong>⚠️ Warnings:</strong>
+      <strong>Warnings:</strong>
       <ul>${warnsHtml}</ul>`;
 
     const userBox = document.createElement("div");

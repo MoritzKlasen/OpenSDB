@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       })
       await logoutClient.get('/logout')
     } catch (err) {
-      console.error('Logout error:', err)
+      // Logout error - silently fail
     }
     setIsAuthenticated(false)
   }

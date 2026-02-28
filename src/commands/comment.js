@@ -2,6 +2,10 @@ const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { notifyAdminServer } = require('../utils/botNotifier');
+require('dotenv').config();
+
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -42,6 +46,9 @@ module.exports = {
 
     verified.comment = text;
     await verified.save();
+
+    // Notify admin server of comment update
+    await notifyAdminServer('comment-updated', INTERNAL_SECRET);
 
     return interaction.reply({
       content: await t(interaction.guildId, 'comments.set', { user: user.tag, text }),

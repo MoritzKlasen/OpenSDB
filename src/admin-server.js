@@ -6,6 +6,20 @@ const path          = require('path');
 const mongoose      = require('mongoose');
 const http          = require('http');
 const { initWebSocket, broadcast } = require('./utils/websocket');
+const {
+  getHelmetMiddleware,
+  createLoginLimiter,
+  createApiLimiter,
+  corsMiddleware,
+  verifyInternalRequest,
+  sanitizeInput
+} = require('./utils/security');
+const { logger, requestLogger, getSecurityEvents, getErrorLogs } = require('./utils/logger');
+const { validateEnvironment } = require('./utils/envValidator');
+
+// Validate environment variables first
+validateEnvironment();
+
 require('dotenv').config();
 const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
@@ -19,16 +33,35 @@ const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
 const PORT = process.env.ADMIN_UI_PORT || 8001; 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+
+// Trust proxy - required for rate-limiting and X-Forwarded-For headers from Nginx
+app.set('trust proxy', 1);
+
+logger.info('Starting OpenSDB Admin Server');
 
 mongoose.connect(process.env.DB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log("✅ Connected to MongoDB!"))
-.catch(err => console.error("❌ MongoDB connection failed:", err));
+.then(() => {
+  logger.info('Connected to MongoDB');
+})
+.catch(err => {
+  logger.error('MongoDB connection failed', { error: err.message });
+  process.exit(1);
+});
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Logging middleware
+app.use(requestLogger);
+
+// Security middleware
+app.use(getHelmetMiddleware());
+app.use(corsMiddleware);
+app.use(createApiLimiter());
 
 // Serve old assets for backward compatibility
 app.use('/assets', express.static(path.join(__dirname, 'admin-ui', 'assets')));
@@ -64,53 +97,71 @@ function basicAuth(user, pass) {
 }
 const metricsBasic = basicAuth(process.env.METRICS_BASIC_USER || "grafana", process.env.METRICS_BASIC_PASS || "changeMe!");
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', createLoginLimiter(), (req, res) => {
   const { username, password } = req.body;
+  const ip = req.ip || req.connection.remoteAddress;
 
   if (
     username !== ADMIN_USERNAME ||
     !bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)
   ) {
+    logger.security('login_failed', {
+      username,
+      ip,
+      reason: 'Invalid credentials',
+    });
     return res.status(401).json({ error: 'Incorrect username or password' });
   }
 
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
-  res.cookie('token', token, { httpOnly: true, secure: true });
+  res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+  
+  logger.security('login_success', {
+    username,
+    ip,
+  });
+  
   res.json({ success: true });
 });
 
 function authMiddleware(req, res, next) {
   const token = req.cookies.token;
   if (!token) {
+    logger.security('auth_failed', {
+      ip: req.ip || req.connection.remoteAddress,
+      path: req.path,
+      reason: 'No token provided',
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
     jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
+    logger.security('auth_failed', {
+      ip: req.ip || req.connection.remoteAddress,
+      path: req.path,
+      reason: 'Invalid or expired token',
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 }
 
-// Internal endpoint for bot to notify of changes (localhost only)
-app.post('/api/internal/notify-change', (req, res) => {
+// Internal endpoint for bot to notify of changes (requires signed request)
+app.post('/api/internal/notify-change', verifyInternalRequest(INTERNAL_SECRET, logger), (req, res) => {
   const { type } = req.body;
-  
-  // Only allow from localhost or internal Docker network (172.x.x.x)
-  const clientIp = req.ip || req.connection.remoteAddress;
-  const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp?.includes('127.0.0.1');
-  const isDockerInternal = clientIp?.startsWith('172.');
-  
-  if (!isLocal && !isDockerInternal) {
-    console.warn(`⚠️ Rejected internal notification from ${clientIp}`);
-    return res.status(403).json({ error: 'Forbidden' });
-  }
 
-  if (type === 'warning' || type === 'verification') {
-    console.log(`📢 Broadcasting ${type} update...`);
+  if (type === 'warning' || type === 'verification' || type === 'unverify' || type === 'comment-updated') {
+    logger.security('event_received', {
+      type,
+      message: `${type} update triggered by bot`,
+      source: 'internal_api'
+    });
+    logger.info(`Broadcasting ${type} update to all connected clients...`);
     broadcast('users-updated', { type });
     broadcast('analytics-updated', { type });
   } else if (type === 'analytics') {
+    logger.info(`Broadcasting analytics update...`);
     broadcast('analytics-updated', { type });
   }
 
@@ -130,7 +181,7 @@ app.get('/api/verified-users', authMiddleware, async (req, res) => {
     });
     res.json(users);
   } catch (err) {
-    console.error('Error fetching users:', err);
+    logger.error('Error fetching users', { error: err.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -149,7 +200,7 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
     broadcast('analytics-updated', { type: 'warning-deleted' });
     res.json({ success: true });
   } catch (err) {
-    console.error('Error removing the warning:', err);
+    logger.error('Error removing the warning', { error: err.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -198,7 +249,7 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
     res.attachment('verified_users.csv');
     res.send(withBOM);
   } catch (err) {
-    console.error('Error during CSV export:', err);
+    logger.error('Error during CSV export', { error: err.message });
     res.status(500).json({ error: 'Export failed' });
   }
 });
@@ -337,7 +388,7 @@ app.post(
       broadcast('analytics-updated', { type: 'import' });
       res.json({ success: true, imported });
     } catch (err) {
-      console.error('Import error:', err);
+      logger.error('Import error', { error: err.message });
       res.status(500).json({ error: 'Import failed' });
     }
   }
@@ -359,7 +410,7 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
     broadcast('analytics-updated', { type: 'user-updated' });
     res.json({ success: true });
   } catch (err) {
-    console.error('Error updating the comment:', err);
+    logger.error('Error updating the comment', { error: err.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -419,10 +470,13 @@ app.get('/api/analytics/warnings-per-day', authMiddleware, async (req, res) => {
 // Dashboard-specific analytics endpoints (JWT protected)
 app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
   try {
-    const tz   = req.query.tz   || 'Europe/Vienna';
-    const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
-    const to   = req.query.to   ? new Date(req.query.to)   : new Date();
+    let from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+    let to   = req.query.to   ? new Date(req.query.to)   : new Date();
+    
     if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    
+    from = new Date(from.getTime());
+    to = new Date(to.getTime());
     from.setUTCHours(0,0,0,0);
     to.setUTCHours(23,59,59,999);
 
@@ -432,7 +486,7 @@ app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
       { $match: { [dateField]: { $gte: from, $lte: to } } },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}`, timezone: tz } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}` } },
           count: { $sum: 1 }
         }
       },
@@ -457,16 +511,15 @@ app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    console.error('User growth error:', err);
+    logger.error('User growth error', { error: err.message });
     res.status(500).json({ error: 'Internal error' });
   }
 });
 
 app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => {
   try {
-    const tz = req.query.tz || 'Europe/Vienna';
-    const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
-    const to = req.query.to ? new Date(req.query.to) : new Date();
+    let from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+    let to = req.query.to ? new Date(req.query.to) : new Date();
     
     if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
     from.setUTCHours(0, 0, 0, 0);
@@ -486,7 +539,7 @@ app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => 
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: '$warnings.date', timezone: tz } },
+          _id: { $dateToString: { format: "%Y-%m-%d", date: '$warnings.date' } },
           count: { $sum: 1 }
         }
       },
@@ -509,7 +562,7 @@ app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => 
 
     res.json(data);
   } catch (err) {
-    console.error('Warnings activity error:', err);
+    logger.error('Warnings activity error', { error: err.message });
     res.status(500).json({ error: 'Internal error' });
   }
 });
@@ -517,6 +570,34 @@ app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => 
 app.get('/logout', (req, res) => {
   res.clearCookie('token');
   res.json({ success: true });
+});
+
+// ==========================================
+// Monitoring & Debugging Endpoints
+// ==========================================
+
+// Get security events (admin only)
+app.get('/api/monitoring/security-events', authMiddleware, (req, res) => {
+  const hours = parseInt(req.query.hours || '24', 10);
+  const events = getSecurityEvents(hours);
+  res.json({ events, count: events.length });
+});
+
+// Get error logs (admin only)
+app.get('/api/monitoring/errors', authMiddleware, (req, res) => {
+  const hours = parseInt(req.query.hours || '24', 10);
+  const errors = getErrorLogs(hours);
+  res.json({ errors, count: errors.length });
+});
+
+// Health check (no auth required)
+app.get('/api/monitoring/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV,
+  });
 });
 
 // SPA catch-all: serve React app's index.html for non-API routes
@@ -538,5 +619,15 @@ const server = http.createServer(app);
 initWebSocket(server);
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Admin UI is running at: http://0.0.0.0:${PORT}`);
+  logger.info('Admin UI is running', {
+    url: `http://0.0.0.0:${PORT}`,
+    environment: process.env.NODE_ENV,
+    websocket: 'wss://0.0.0.0/ws',
+  });
+  
+  logger.info('Monitoring endpoints available:', {
+    health: '/api/monitoring/health',
+    security: '/api/monitoring/security-events?hours=24',
+    errors: '/api/monitoring/errors?hours=24',
+  });
 });

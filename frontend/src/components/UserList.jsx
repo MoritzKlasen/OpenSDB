@@ -20,13 +20,14 @@ const UserList = () => {
       
       // Update selected user with fresh data if one is selected
       setSelectedUser(prevSelected => {
-        if (!prevSelected) return null
+        if (!prevSelected) {
+          return null
+        }
         const updated = response.data.find(u => u._id === prevSelected._id)
         return updated || prevSelected
       })
     } catch (err) {
       setError('Failed to load users')
-      console.error(err)
     } finally {
       setIsLoading(false)
     }
@@ -45,7 +46,7 @@ const UserList = () => {
     }
   }, [loadUsers])
 
-  useWebSocket(handleWebSocketMessage)
+  const ws = useWebSocket(handleWebSocketMessage)
 
   const filteredUsers = users.filter(user => {
     const term = searchTerm.toLowerCase()
@@ -73,9 +74,11 @@ const UserList = () => {
       {/* User List Panel */}
       <div className="lg:col-span-1">
         <Card className="flex flex-col h-full">
-          <div className="card-header">
-            <h2 className="text-lg font-bold text-slate-100">Users</h2>
-            <p className="text-xs text-slate-400 mt-1">{filteredUsers.length} users</p>
+          <div className="card-header flex justify-between items-start">
+            <div>
+              <h2 className="text-lg font-bold text-slate-100">Users</h2>
+              <p className="text-xs text-slate-400 mt-1">{filteredUsers.length} users</p>
+            </div>
           </div>
 
           <div className="mb-4">
