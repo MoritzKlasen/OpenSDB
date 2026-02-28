@@ -4,6 +4,8 @@ const jwt           = require('jsonwebtoken');
 const bcrypt        = require('bcrypt');
 const path          = require('path');
 const mongoose      = require('mongoose');
+const http          = require('http');
+const { initWebSocket, broadcast } = require('./utils/websocket');
 require('dotenv').config();
 const ADMIN_USERNAME      = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
@@ -16,7 +18,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const PORT = process.env.ADMIN_UI_PORT || 8001; 
-const JWT_SECRET = bcrypt.hashSync(process.env.JWT_SECRET, 10);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 mongoose.connect(process.env.DB_URI, {
   useNewUrlParser: true,
@@ -28,7 +30,12 @@ mongoose.connect(process.env.DB_URI, {
 app.use(express.json());
 app.use(cookieParser());
 
+// Serve old assets for backward compatibility
 app.use('/assets', express.static(path.join(__dirname, 'admin-ui', 'assets')));
+
+// Serve React frontend from dist (built files)
+const frontendPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendPath));
 
 function timingSafeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -72,38 +79,42 @@ app.post('/api/login', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/', (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.redirect('/login.html');
-  }
-  try {
-    jwt.verify(token, JWT_SECRET);
-    return res.redirect('/dashboard');
-  } catch {
-    return res.redirect('/login.html');
-  }
-});
-
-app.get(['/login', '/login.html'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin-ui', 'login.html'));
-});
-
 function authMiddleware(req, res, next) {
   const token = req.cookies.token;
   if (!token) {
-    return res.redirect('/login.html');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
     jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    return res.redirect('/login.html');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 }
 
-app.get(['/dashboard', '/dashboard.html'], authMiddleware, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin-ui', 'dashboard.html'));
+// Internal endpoint for bot to notify of changes (localhost only)
+app.post('/api/internal/notify-change', (req, res) => {
+  const { type } = req.body;
+  
+  // Only allow from localhost or internal Docker network (172.x.x.x)
+  const clientIp = req.ip || req.connection.remoteAddress;
+  const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp?.includes('127.0.0.1');
+  const isDockerInternal = clientIp?.startsWith('172.');
+  
+  if (!isLocal && !isDockerInternal) {
+    console.warn(`⚠️ Rejected internal notification from ${clientIp}`);
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (type === 'warning' || type === 'verification') {
+    console.log(`📢 Broadcasting ${type} update...`);
+    broadcast('users-updated', { type });
+    broadcast('analytics-updated', { type });
+  } else if (type === 'analytics') {
+    broadcast('analytics-updated', { type });
+  }
+
+  res.json({ success: true });
 });
 
 app.get('/api/verified-users', authMiddleware, async (req, res) => {
@@ -133,6 +144,9 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
     }
     user.warnings.splice(index, 1);
     await user.save();
+    // Broadcast updates to all clients
+    broadcast('users-updated', { discordId });
+    broadcast('analytics-updated', { type: 'warning-deleted' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error removing the warning:', err);
@@ -318,6 +332,9 @@ app.post(
         imported++;
       }
 
+      // Broadcast data refresh to all clients
+      broadcast('users-updated', { type: 'import' });
+      broadcast('analytics-updated', { type: 'import' });
       res.json({ success: true, imported });
     } catch (err) {
       console.error('Import error:', err);
@@ -337,6 +354,9 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
     }
     user.comment = comment;
     await user.save();
+    // Broadcast updates to all clients
+    broadcast('users-updated', { discordId });
+    broadcast('analytics-updated', { type: 'user-updated' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error updating the comment:', err);
@@ -344,11 +364,179 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   }
 });
 
-app.get('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.redirect('/login.html');
+app.get('/api/analytics/warnings-per-day', authMiddleware, async (req, res) => {
+  try {
+    const tz = req.query.tz || 'Europe/Vienna';
+    const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    from.setUTCHours(0, 0, 0, 0);
+    to.setUTCHours(23, 59, 59, 999);
+
+    const rows = await VerifiedUser.aggregate([
+      {
+        $match: {
+          'warnings.date': { $gte: from, $lte: to }
+        }
+      },
+      { $unwind: '$warnings' },
+      {
+        $match: {
+          'warnings.date': { $gte: from, $lte: to }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: '$warnings.date', timezone: tz } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const map = new Map(rows.map(r => [r._id, r.count]));
+    const out = [];
+    const cur = new Date(from);
+    while (cur <= to) {
+      const day = cur.toISOString().slice(0, 10);
+      out.push({ day, count: map.get(day) || 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const data = out.map(d => ({
+      ts: new Date(d.day).toISOString(),
+      count: d.count
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error('Analytics error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
 
-app.listen(PORT, '0.0.0.0',() => {
+// Dashboard-specific analytics endpoints (JWT protected)
+app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
+  try {
+    const tz   = req.query.tz   || 'Europe/Vienna';
+    const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+    const to   = req.query.to   ? new Date(req.query.to)   : new Date();
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    from.setUTCHours(0,0,0,0);
+    to.setUTCHours(23,59,59,999);
+
+    const dateField = 'verifiedAt';
+
+    const rows = await VerifiedUser.aggregate([
+      { $match: { [dateField]: { $gte: from, $lte: to } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}`, timezone: tz } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const map = new Map(rows.map(r => [r._id, r.count]));
+    const out = [];
+    const cur = new Date(from);
+    while (cur <= to) {
+      const day = cur.toISOString().slice(0,10);
+      out.push({ day, count: map.get(day) || 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    let cum = 0;
+    const data = out.map(d => ({
+      ts: new Date(d.day).toISOString(),
+      daily: d.count,
+      cumulative: (cum += d.count),
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error('User growth error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => {
+  try {
+    const tz = req.query.tz || 'Europe/Vienna';
+    const from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    from.setUTCHours(0, 0, 0, 0);
+    to.setUTCHours(23, 59, 59, 999);
+
+    const rows = await VerifiedUser.aggregate([
+      {
+        $match: {
+          'warnings.date': { $gte: from, $lte: to }
+        }
+      },
+      { $unwind: '$warnings' },
+      {
+        $match: {
+          'warnings.date': { $gte: from, $lte: to }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: '$warnings.date', timezone: tz } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const map = new Map(rows.map(r => [r._id, r.count]));
+    const out = [];
+    const cur = new Date(from);
+    while (cur <= to) {
+      const day = cur.toISOString().slice(0, 10);
+      out.push({ day, count: map.get(day) || 0 });
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const data = out.map(d => ({
+      ts: new Date(d.day).toISOString(),
+      count: d.count
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error('Warnings activity error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+app.get('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ success: true });
+});
+
+// SPA catch-all: serve React app's index.html for non-API routes
+app.get(/.*/, (req, res) => {
+  // Skip if it's an API route (already handled above)
+  if (req.path.startsWith('/api/') || req.path === '/logout') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  // Serve index.html for all other routes (React routing)
+  const indexPath = path.join(frontendPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Not found' });
+    }
+  });
+});
+
+const server = http.createServer(app);
+initWebSocket(server);
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Admin UI is running at: http://0.0.0.0:${PORT}`);
 });

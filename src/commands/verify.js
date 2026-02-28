@@ -3,6 +3,22 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 
+// Helper to notify admin server of changes
+async function notifyAdminServer(type) {
+  try {
+    const response = await fetch('http://web:8001/api/internal/notify-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    });
+    if (!response.ok) {
+      console.warn(`⚠️ Failed to notify admin server: ${response.status}`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not notify admin server:', err.message);
+  }
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('verify')
@@ -61,6 +77,9 @@ module.exports = {
       verifiedAt: new Date()
     });
     await newUser.save();
+
+    // Notify admin server of new verification
+    await notifyAdminServer('verification');
 
     let member;
     try {

@@ -4,7 +4,9 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "npm run build:frontend && node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +25,10 @@
     "jws": "^3.2.3",
     "mongoose": "^8.21.0",
     "multer": "^2.0.2",
-    "qs": "^6.15.0"
+    "qs": "^6.15.0",
+    "ws": "^8.14.2"
   },
+  "devDependencies": {},
   "overrides": {
     "undici": "6.23.0",
     "body-parser": "2.2.1"
