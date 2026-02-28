@@ -1,6 +1,6 @@
 # OpenSDB - Open School Discord Bot
 
-A comprehensive, open-source self-hosted Discord bot for managing school communities. Features a secure student verification system, admin dashboard, warning management, ticket system, and multi-language support—all containerized with Docker and backed by MongoDB.
+A comprehensive, open-source self-hosted Discord bot for managing school communities. Features a secure student verification system, modern React-based admin dashboard with real-time updates, advanced analytics, warning management, ticket system, and multi-language support—all containerized with Docker and backed by MongoDB.
 
 **Repository:** [GitHub - MoritzKlasen/OpenSDB](https://github.com/MoritzKlasen/OpenSDB)
 
@@ -19,9 +19,10 @@ A comprehensive, open-source self-hosted Discord bot for managing school communi
 9. [Ticket System](#ticket-system)
 10. [Localization](#localization)
 11. [Developing Locally](#developing-locally)
-12. [Troubleshooting](#troubleshooting)
-13. [Security Considerations](#security-considerations)
-14. [Contributing](#contributing)
+12. [Logging and Monitoring](#logging-and-monitoring)
+13. [Troubleshooting](#troubleshooting)
+14. [Security Considerations](#security-considerations)
+15. [Contributing](#contributing)
 
 ---
 
@@ -30,12 +31,13 @@ A comprehensive, open-source self-hosted Discord bot for managing school communi
 OpenSDB is designed specifically for school Discord servers to:
 - **Verify student identities** and assign them appropriate roles
 - **Monitor server behavior** with a banned words filter and warning system
-- **Manage administrative tasks** through an intuitive web dashboard
-- **Support multi-language environments** (English & German built-in)
-- **Create support and verification workflows** via ticket systems
-- **Track and report** user activity and verification metrics
+- **Manage administrative tasks** through a modern React-based web dashboard with real-time updates
+- **Support multi-language environments** (English, German, Spanish, French, Italian, Turkish, Chinese built-in)
+- **Create support and verification workflows** via ticket systems with automatic channel management
+- **Track and report** user activity, verification metrics, and warning trends through interactive analytics
+- **Bulk manage users** with CSV import/export for batch operations and data migration
 
-The entire system runs in Docker containers for easy deployment and scaling.
+The entire system runs in Docker containers for easy deployment and scaling, with Nginx reverse proxy providing SSL/TLS termination and WebSocket support.
 
 ---
 
@@ -53,6 +55,12 @@ The entire system runs in Docker containers for easy deployment and scaling.
 - **Admin Notifications** – Get real-time alerts in a dedicated admin channel with quick action buttons
 - **Comment Prompts** – Add notes directly from ban notifications
 
+### Real-time Admin Dashboard
+- **WebSocket Integration** – Live dashboard updates without page refreshes
+- **Multi-user Synchronization** – Changes made by one admin appear instantly on all other connected sessions
+- **Instant User List Updates** – New verifications appear immediately in admin panel
+- **Live Analytics** – Real-time user growth and warning metrics
+
 ### Infrastructure & Support
 - **Ticket System** – Students can create support tickets or verification requests
 - **Auto-role Assignment** – Assign roles to new members or upon verification
@@ -60,12 +68,14 @@ The entire system runs in Docker containers for easy deployment and scaling.
 - **Role Customization** – Configure separate roles for teams, verified users, and new members
 
 ### Advanced Features
-- **Multi-language Support** – English and German localization with per-server language settings
-- **Localized Message Updates** – Language changes automatically update all bot messages
-- **CSV Import/Export** – Bulk import student data or export for analysis
-- **Metrics API** – Track verification rates with JSON/CSV endpoints
-- **Message Tracking** – Bot tracks and manages message updates for localization
-- **Secure Admin UI** – JWT-authenticated web dashboard with HTTPS support
+- **Multi-language Support** – 7 built-in languages (English, German, Spanish, French, Italian, Turkish, Chinese) with per-server language settings
+- **Localized Message Updates** – Language changes automatically update all bot messages deployed in tracking system
+- **CSV Import/Export** – Bulk import student data or export verified users with warnings for analysis and backup
+- **Metrics API** – Track verification rates and warning trends with JSON/CSV endpoints for Grafana integration
+- **Message Tracking** – Bot tracks and manages message updates for automatic localization across all languages
+- **Real-time Admin Dashboard** – Modern React frontend with WebSocket support for live user and warning updates
+- **Interactive Analytics** – Charts for user growth trends and warning activity patterns
+- **Secure Admin UI** – JWT-authenticated web dashboard with HTTPS/SSL support and CORS protection
 
 ---
 
@@ -74,37 +84,58 @@ The entire system runs in Docker containers for easy deployment and scaling.
 ### Services (Docker Compose)
 
 ```
-┌─────────────┐
-│ Discord Bot │ (Node.js + discord.js)
-│   Bots      │ • Processes commands & interactions
-│  Service    │ • Monitors messages for banned words
-│             │ • Memory: 256M, CPU: 0.50
-└──────┬──────┘
-       │
-       ├────────────────┬──────────────┐
-       │                │              │
-┌──────▼──────┐  ┌──────▼────┐  ┌──────▼─────┐
-│   MongoDB   │  │ Admin Web │  │   Nginx    │
-│             │  │   Server  │  │  Reverse   │
-│ (mongo:7)   │  │ (Express) │  │   Proxy    │
-│             │  │ Memory:   │  │ (SSL/TLS)  │
-│ Port: 27017 │  │ 128M,     │  │ Ports:     │
-│ Database    │  │ CPU: 0.25 │  │ 80, 443    │
-└─────────────┘  └───────────┘  └────────────┘
+┌──────────────────────────────────────────────────────┐
+│                   Nginx Reverse Proxy                │
+│              (SSL/TLS, WebSocket Support)            │
+└─────────────────────┬────────────────────────────────┘
+                      │
+        ┌─────────────┴──────────────┐
+        │                            │
+┌───────▼────────┐         ┌────────▼──────────┐
+│  Discord Bot   │         │  Admin Web App    │
+│  (Node.js +    │         │  (Node.js +       │
+│   discord.js)  │         │   Express)        │
+│                │         │                   │
+│ • Processes    │         │ • React Frontend  │
+│   commands     │         │   (Vite build)    │
+│ • Monitors     │         │ • Real-time WS    │
+│   messages     │         │ • User Management │
+│ • Manages      │         │ • Analytics       │
+│   roles & warn │         │ • CSV Import/Exp  │
+│                │         │                   │
+│ Memory: 256M   │         │ Memory: 128M      │
+│ CPU: 0.50      │         │ CPU: 0.25         │
+└────────┬───────┘         └────────┬──────────┘
+         │                          │
+         └──────────────┬───────────┘
+                        │
+                   ┌────▼─────┐
+                   │ MongoDB   │
+                   │ (mongo:7) │
+                   │           │
+                   │ Database  │
+                   │ Port:27017│
+                   │ (internal)│
+                   └───────────┘
 ```
 
 ### Technology Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| Bot Runtime | Node.js | 20-slim |
-| Web UI Runtime | Node.js | 18-alpine |
-| Discord Library | discord.js | 14.25+ |
-| Web Framework | Express.js | 5.2+ |
-| Database | MongoDB | 7 |
-| Reverse Proxy | Nginx | alpine |
-| Authentication | JWT + bcrypt | node packages |
-| Language Locales | JSON | en.json, de.json |
+| Component | Technology | Version | Purpose |
+|-----------|-----------|---------|---------|
+| Bot Runtime | Node.js | 20-slim | Discord bot execution |
+| Web UI Runtime | Node.js | 18-alpine | Admin dashboard backend |
+| Discord Library | discord.js | 14.25+ | Discord bot interactions |
+| Web Framework | Express.js | 5.2+ | REST API and admin UI server |
+| Frontend Framework | React | 18+ | Modern UI components |
+| Frontend Build | Vite | 5.0+ | Fast, optimized builds |
+| Styling | Tailwind CSS | 3.0+ | Utility-first CSS |
+| Charts | Recharts | 2.0+ | Interactive data visualization |
+| Real-time | WebSocket | 8.14+ | Live dashboard updates |
+| Database | MongoDB | 7 | User and settings storage |
+| Reverse Proxy | Nginx | alpine | SSL/TLS termination, load balancing |
+| Authentication | JWT + bcrypt | node packages | Secure auth tokens and password hashing |
+| Language Locales | JSON | en, de, es, fr, it, tr, zh | Multi-language support |
 
 ---
 
@@ -138,13 +169,11 @@ cd OpenSDB
 
 ### 2. Create `.env` Configuration File
 
-Create `.env` in the project root:
+Create `.env` in the project root with your configuration:
 
-```bash
-nano .env  # edit with your values
-```
+**Option A: Text editor (recommended for non-programmers)**
 
-Required variables:
+Open the project folder in your file explorer, create a new file named `.env`, and add:
 
 ```dotenv
 # Discord Configuration (obtain from Developer Portal)
@@ -157,34 +186,45 @@ DB_URI=mongodb://mongo:27017/botdb
 
 # Admin UI Credentials
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=choose-a-strong-password
-JWT_SECRET=generate-a-random-jwt-secret
+ADMIN_PASSWORD=your-strong-password-here
+JWT_SECRET=your-random-secret-here
+INTERNAL_SECRET=botInternalSecret123
 
-# Server Configuration
+# Server Configuration  
 ADMIN_UI_PORT=8001
+NODE_ENV=production
 
-# Optional: Metrics API Authentication (Grafana, etc.)
+# Optional: Metrics API Authentication
 METRICS_BASIC_USER=grafana
 METRICS_BASIC_PASS=changeMe!
+
+# Optional: Email/CORS settings
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
 ```
 
-> **⚠️ Security Warning:** Never commit `.env` to version control. Ensure it's in `.gitignore`.
-
-### 3. (Optional) Generate SSL Certificates
-
-For production HTTPS support:
+**Option B: Command line (Mac/Linux)**
 
 ```bash
-cd nginx/certs
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout opensdb.key -out opensdb.crt \
-  -config ../openssl.cnf
-cd ../..
+cat > .env << 'EOF'
+DISCORD_TOKEN=your-bot-token-here
+CLIENT_ID=your-application-id-here
+ALLOWED_GUILD_ID=your-server-id-here
+DB_URI=mongodb://mongo:27017/botdb
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-strong-password-here
+JWT_SECRET=your-random-secret-here
+INTERNAL_SECRET=botInternalSecret123
+ADMIN_UI_PORT=8001
+NODE_ENV=production
+METRICS_BASIC_USER=grafana
+METRICS_BASIC_PASS=changeMe!
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+EOF
 ```
 
-The Nginx config expects: `opensdb.key` and `opensdb.crt`
+> **⚠️ Security Warning:** Never commit `.env` to version control. It's already in `.gitignore`.
 
-### 4. Deploy with Docker Compose
+### 3. Deploy with Docker Compose
 
 ```bash
 # Build and start all services in the background
@@ -194,22 +234,39 @@ docker compose up --build -d
 docker compose ps
 ```
 
-### 5. Register Discord Commands
+All services will start automatically: Discord bot, admin dashboard, MongoDB database, and Nginx reverse proxy.
 
-The bot commands are automatically registered when the bot connects. To manually register:
+### 4. Access the Admin Dashboard
 
-```bash
-node deploy-commands.js
+**Local development (Docker Compose):**
+```
+https://localhost/login.html
+```
+*Note: Browser may show SSL warning (self-signed certificate). This is normal for local development. Click "Advanced" → "Proceed".*
+
+**Remote server:**
+```
+http://YOUR-SERVER-IP/login.html         (first time setup)
+https://YOUR-SERVER-IP/login.html        (after SSL setup)
 ```
 
-This must be run once after setup (it uses `DISCORD_TOKEN`, `CLIENT_ID`, `ALLOWED_GUILD_ID` from `.env`).
+**Login with:**
+- Username: value of `ADMIN_USERNAME` from `.env`
+- Password: value of `ADMIN_PASSWORD` from `.env`
 
-### 6. Access the Admin Dashboard
+### 5. Verify Bot is Ready
 
-- **HTTP:** `http://SERVER-IP:8001/login.html`
-- **HTTPS:** `https://SERVER-IP/login.html`
+Wait 10-15 seconds for all services to initialize, then check:
 
-Login with credentials from your `.env` file (`ADMIN_USERNAME`, `ADMIN_PASSWORD`).
+```bash
+# View bot startup logs
+docker compose logs bot --tail 20
+
+# Verify all services are running
+docker compose ps
+```
+
+You should see all 4 services (bot, web, nginx, mongo) in the **Up** status. Discord slash commands will automatically register when the bot connects to your server for the first time.
 
 ---
 
@@ -217,30 +274,69 @@ Login with credentials from your `.env` file (`ADMIN_USERNAME`, `ADMIN_PASSWORD`
 
 ### Environment Variables
 
-| Variable | Purpose | Example | Required |
-|----------|---------|---------|----------|
-| `DISCORD_TOKEN` | Bot authentication token | `AaBbCcDdEeFfGgHhIiJjKk...` | ✅ |
-| `CLIENT_ID` | Discord application ID | `1234567890987654321` | ✅ |
-| `ALLOWED_GUILD_ID` | Restrict bot to one server | `1234567890987654321` | ✅ |
-| `DB_URI` | MongoDB connection string | `mongodb://mongo:27017/botdb` | ✅ |
-| `ADMIN_USERNAME` | Dashboard login username | `admin` | ✅ |
-| `ADMIN_PASSWORD` | Dashboard login password | `MyS3curePass!` | ✅ |
-| `JWT_SECRET` | JWT signing secret (long random string) | `AaBbCcDdEeFfGgHhIiJjKk...` | ✅ |
-| `ADMIN_UI_PORT` | Dashboard port (inside container) | `8001` | Optional (default: 8001) |
-| `METRICS_BASIC_USER` | Metrics API auth username | `grafana` | Optional |
-| `METRICS_BASIC_PASS` | Metrics API auth password | `changeMe!` | Optional |
+| Variable | Purpose | Required | Example |
+|----------|---------|----------|---------|
+| `DISCORD_TOKEN` | Bot authentication token from Developer Portal | ✅ | `ABCDEFGHIJKLMNOPQRSTUVWXYZ.ZYXWU...` |
+| `CLIENT_ID` | Discord application ID | ✅ | `12345678998765432131` |
+| `ALLOWED_GUILD_ID` | Restrict bot to one Discord server | ✅ | `12345678998765432131` |
+| `DB_URI` | MongoDB connection string | ✅ | `mongodb://mongo:27017/botdb` |
+| `ADMIN_USERNAME` | Dashboard login username | ✅ | `admin` |
+| `ADMIN_PASSWORD` | Dashboard login password (16+ chars recommended) | ✅ | `MyS3curePass123!` |
+| `JWT_SECRET` | JWT signing secret (random 32+ chars) | ✅ | Generate with command below |
+| `INTERNAL_SECRET` | Shared secret between bot and admin (random) | ✅ | `botInternalSecret123` |
+| `NODE_ENV` | Environment mode | Optional | `production` |
+| `ADMIN_UI_PORT` | Dashboard port inside container | Optional | `8001` |
 
-### Bot Setup in Discord
+### Generating Secure Secrets
+
+For production deployments, generate strong random secrets:
+
+**On Mac/Linux:**
+```bash
+# Generate JWT_SECRET and INTERNAL_SECRET
+openssl rand -base64 32  # Run twice, use output for each secret
+```
+
+**On Windows (PowerShell):**
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { [byte](Get-Random -Max 256) }))
+# Run twice for both secrets
+```
+
+### Discord Bot Setup
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a New Application
-3. Go to "Bot" → Click "Add Bot"
-4. Under TOKEN, click "Copy" and paste into `DISCORD_TOKEN` in `.env`
-5. Go to "OAuth2" → "URL Generator"
-   - Scopes: `bot`
-   - Permissions: `Administrator` (or scope: `applications.commands`, `send_messages`, `manage_roles`, `manage_channels`)
-6. Copy the generated URL and use it to invite the bot to your server
-7. Copy your **Guild ID** (right-click server → Copy Server ID) → paste into `ALLOWED_GUILD_ID`
+2. Click **"New Application"** and name it
+3. Go to **"Bot"** tab → Click **"Add Bot"**
+4. Under **"TOKEN"** → Click **"Copy"** and paste into `DISCORD_TOKEN` in `.env`
+5. Go to **"OAuth2"** tab → Click **"URL Generator"**
+   - Check scope: **`bot`**
+   - Check permissions: **`Administrator`**
+   - Copy the generated URL
+6. Open the URL in browser to invite bot to your server
+7. In Discord, enable Developer Mode (Settings → Advanced → Developer Mode)
+8. Right-click your server name → **"Copy Server ID"** → paste into `ALLOWED_GUILD_ID`
+
+### Production SSL/HTTPS Setup (Optional)
+
+For HTTPS support on production servers:
+
+```bash
+cd nginx/certs
+
+# Generate self-signed certificate (valid 1 year)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout opensdb.key -out opensdb.crt \
+  -config ../openssl.cnf
+
+cd ../..
+
+# Rebuild containers to apply new certificates
+docker compose down
+docker compose up --build -d
+```
+
+**Note:** Self-signed certificates work for testing but show browser warnings. For production, purchase proper certificates from a Certificate Authority.
 
 ---
 
@@ -314,9 +410,9 @@ Display the current server language setting.
 - **Permissions:** Everyone
 
 #### `/language set <lang>`
-Change the server's language (affects all bot responses and messages).
+Change the server's language (affects all bot responses and messages instantly).
 - **Permissions:** Administrator, Server Owner, Team Role
-- **Options:** `en` (English), `de` (German)
+- **Options:** `en` (English), `de` (German), `es` (Spanish), `fr` (French), `it` (Italian), `tr` (Turkish), `zh` (Chinese Simplified)
 - **Effect:** Updates all localized messages in real-time
 
 ### Ticket System
@@ -336,7 +432,14 @@ Create a ticket panel with a button for students to open support or verification
 
 ## Admin Dashboard
 
-The admin dashboard is a modern, production-ready React-based web interface that provides secure access to user management and analytics. Access it at the configured `ADMIN_UI_PORT` (default: 8001) under `/login`.
+The admin dashboard is a modern, production-ready React-based web interface built with Vite that provides secure, real-time access to user management and analytics. Access it at the configured `ADMIN_UI_PORT` (default: 8001) under `/login`.
+
+### Key Highlights
+
+- **Real-time Updates** – WebSocket integration for live user and warning data without page refresh
+- **Modern UI** – Built with React 18 and Tailwind CSS for a responsive, intuitive interface
+- **Fast Performance** – Optimized with Vite for instant page loads and smooth interactions
+- **Secure Access** – JWT-based authentication with automatic 1-hour session expiry
 
 ### Features
 
@@ -346,12 +449,11 @@ The admin dashboard is a modern, production-ready React-based web interface that
 - **HTTPS Ready:** Works with Nginx reverse proxy and SSL certificates
 
 #### User Management
-- **User List Panel:** 
-  - Scrollable list of verified users
-  - Debounced search by Discord tag, ID, first name, or last name
-  - Visual warning count badge for quick overview
-  - Click to select and view details
-  
+- **Real-time User List** – WebSocket-powered list that updates instantly when new users are verified
+- **Live Search** – Debounced search by Discord tag, ID, first name, or last name with instant results
+- **Visual Warning Badges** – Quick overview of warning counts for each user
+- **Click to View Details** – Select any user to display full profile information
+
 - **User Detail Panel:**
   - User profile information (Discord tag, ID, real name, verification date)
   - **Comments Section:** View and edit user comments with save/cancel
@@ -360,6 +462,7 @@ The admin dashboard is a modern, production-ready React-based web interface that
     - Issued by (admin/moderator name)
     - Exact timestamp of warning
   - **Delete Warnings:** Remove specific warnings with confirmation modal
+  - **Real-time Sync** – Changes broadcast to all connected admin sessions
 
 #### Data Management
 - **Export CSV:** Download all verified users with warnings as JSON array
@@ -371,12 +474,14 @@ The admin dashboard is a modern, production-ready React-based web interface that
   - Preserves existing verification dates if not specified
 
 #### Analytics Dashboard
-- **User Growth Chart:** Cumulative user registration over time (line chart)
-- **Warning Activity Chart:** Warnings issued by day (bar chart)
+- **User Growth Chart** – Interactive line chart showing cumulative user registration over time (default: last 90 days)
+- **Warning Activity Chart** – Bar chart displaying warnings issued by day to identify moderation trends
 - **Summary Metrics:**
   - Total registered users
-  - Users added this month
-  - Warnings issued this month
+  - New users added this month
+  - Total warnings issued this month
+  - Real-time metric updates via WebSocket
+- **Date Range Selection** – Customizable time windows for focused analysis
 
 ### Technology Stack
 
@@ -401,19 +506,22 @@ The admin dashboard is built with modern, professional-grade tools:
 | `/api/update-comment/:discordId` | PUT | JWT | Update user comment |
 | `/api/export-users` | GET | JWT | Download CSV of all users |
 | `/api/import-users` | POST | JWT | Upload and import CSV file |
-| `/api/metrics/users-per-day.json` | GET | BasicAuth | User registration metrics (JSON) |
-| `/api/analytics/warnings-per-day` | GET | JWT | Warning activity metrics (JSON) |
+| `/api/dashboard/users-growth` | GET | JWT | User registration metrics (JSON) |
+| `/api/dashboard/warnings-activity` | GET | JWT | Warning activity metrics (JSON) |
+| `/api/metrics/users-per-day.json` | GET | BasicAuth | User registration metrics (Grafana) |
 | `/logout` | GET | Any | Clear session and logout |
+| **WebSocket** `/ws` | WS | JWT | Real-time updates (user changes, warnings, verifications) |
 
 ### Dashboard Workflow
 
 1. **Login:** Access `/login` and authenticate with admin credentials
-2. **View Users:** Browse verified users in the left panel, search as needed
-3. **Select User:** Click a user to view their full profile and history
+2. **View Users:** Browse verified users in the left panel with real-time search
+3. **Select User:** Click a user to view their full profile and complete history
 4. **Manage Warnings:** View warning cards and delete as needed (confirmation required)
-5. **Edit Comments:** Add contextual notes (accommodations, issues, follow-ups)
-6. **Analytics:** Check user growth and moderation trends on dedicated dashboard
+5. **Edit Comments:** Add contextual notes (accommodations, issues, follow-ups) with instant save
+6. **Analytics:** Check user growth trends and moderation activity on dedicated analytics page
 7. **Import/Export:** Manage bulk data operations for backup or data migration
+8. **Real-time Sync:** Multiple admin sessions stay synchronized via WebSocket; changes appear instantly
 
 ---
 
@@ -452,14 +560,22 @@ Ticket messages are automatically tracked and updated when server language chang
 
 ## Localization
 
-OpenSDB supports multiple languages. Built-in: **English** and **German**.
+OpenSDB supports multiple languages with real-time language switching. Built-in: **English, German, Spanish, French, Italian, Turkish, and Chinese (Simplified)**.
 
 ### Current Language Setting
 
 Each server has its own language setting (stored in MongoDB).
 
 - **Default:** English
-- **Change Command:** `/language set de` or `/language set en`
+- **Change Command:** `/language set [lang]`
+- **Supported Languages:**
+  - `en` – English
+  - `de` – Deutsch (German)
+  - `es` – Español (Spanish)
+  - `fr` – Français (French)
+  - `it` – Italiano (Italian)
+  - `tr` – Türkçe (Turkish)
+  - `zh` – 简体中文 (Chinese Simplified)
 
 ### Adding New Languages
 
@@ -486,37 +602,63 @@ Use placeholders: `{userName}`, `{reason}`, etc.
 
 ---
 
-## Developing Locally
+## Advanced: Developing Locally
+
+**Recommended for developers only.** For normal deployment, use Docker Compose (see Quick Start).
 
 ### Prerequisites for Local Development
 
-- **Node.js 18+:** [nodejs.org](https://nodejs.org/)
-- **MongoDB 7+:** [mongodb.com/try](https://www.mongodb.com/try) or via Docker
-- **Git**
+- **Node.js 20+** – [Download](https://nodejs.org/)
+- **MongoDB 7+** – [Community Edition](https://www.mongodb.com/try/download/community) or run via Docker
+- **Git** – [Download](https://git-scm.com/)
 
-### Setup
+### Quick Local Setup (using Docker for MongoDB)
+
+For fastest local development, run only MongoDB in Docker:
 
 ```bash
 # 1. Clone and install
 git clone https://github.com/MoritzKlasen/OpenSDB.git
 cd OpenSDB
 npm install
+cd frontend && npm install && cd ..
 
-# 2. Create .env (same as production)
-nano .env
+# 2. Start only MongoDB in Docker
+docker run -d --name opensdb-mongo -p 27017:27017 mongo:7
 
-# 3. Start MongoDB locally (optional, if not using Docker)
-# On Linux (Debian/Ubuntu):
-sudo apt-get install -y mongodb
-sudo systemctl start mongodb
-sudo systemctl enable mongodb
+# 3. Create .env file
+# Create a new .env file with:
+# DB_URI=mongodb://localhost:27017/botdb
+# Plus other required variables (DISCORD_TOKEN, CLIENT_ID, etc.)
 
-# 4. Run the bot
+# 4. Run services locally (in separate terminals)
+# Terminal 1: Bot
 node src/index.js
 
-# 5. In another terminal, run the admin UI
+# Terminal 2: Admin UI server
 node src/admin-server.js
-# Dashboard available at http://localhost:8001
+# Dashboard: http://localhost:8001
+
+# To stop:
+# - Press Ctrl+C in both terminals
+# - docker stop opensdb-mongo
+# - docker rm opensdb-mongo
+```
+
+### Troubleshooting Local Setup
+
+**MongoDB connection fails:**
+```bash
+# Check if MongoDB container is running
+docker ps | grep mongo
+# If not, restart it
+docker start opensdb-mongo
+```
+
+**Port already in use:**
+```bash
+# Use different port for Bot or MongoDB
+DB_URI=mongodb://localhost:27018/botdb  # different port
 ```
 
 ### Project Structure
@@ -583,108 +725,202 @@ OpenSDB/
 
 ---
 
+## Logging and Monitoring
+
+OpenSDB includes comprehensive logging and monitoring capabilities for tracking application activity, debugging issues, and auditing security events.
+
+### Log Files
+
+The application maintains three types of logs (stored in `/tmp/logs` inside the container):
+
+- **app.log** – General application activity, API requests, server events
+- **security.log** – Security audit trail, login attempts, authentication failures
+- **error.log** – Errors and exceptions
+
+All logs are in JSON format for easy parsing and integration with log aggregation services.
+
+### Monitoring Endpoints
+
+Access logs and application health through REST endpoints:
+
+```bash
+# Health check (no auth required)
+GET /api/monitoring/health
+
+# Security events (admin only)
+GET /api/monitoring/security-events?hours=24
+
+# Error logs (admin only)
+GET /api/monitoring/errors?hours=24
+```
+
+### Environment Validation
+
+On startup, the application validates all required environment variables and checks for weak defaults in production. This prevents accidental deployment with test credentials.
+
+**Production requirement:** Generate strong secrets using:
+```bash
+openssl rand -base64 32
+```
+
+### Log Access
+
+```bash
+# View logs from running container
+docker exec opensdb-web-1 cat /tmp/logs/app.log
+docker exec opensdb-web-1 cat /tmp/logs/security.log
+
+# Backup logs before container restart
+docker cp opensdb-web-1:/tmp/logs logs-backup-$(date +%s)
+```
+
+For full documentation, see [LOGGING_AND_MONITORING.md](LOGGING_AND_MONITORING.md).
+
+---
+
+
 ## Troubleshooting
 
-### Bot Connectivity
+### Common Issues
 
-**Bot not responding to commands:**
-1. Verify bot is online: `docker compose ps` (bot service running)
-2. Check logs: `docker compose logs bot --tail 20`
-3. Ensure bot has permissions in your server: Settings → Integrations → Bot
-4. Verify `DISCORD_TOKEN`, `CLIENT_ID`, `ALLOWED_GUILD_ID` in `.env`
+#### Bot not responding to commands
+1. **Verify services are running:**
+   ```bash
+   docker compose ps
+   ```
+   All 4 services (bot, web, nginx, mongo) should show **Status: Up**.
 
-**"Invalid Token" errors:**
-- Copy token from Discord Dev Portal (not application ID)
-- Regenerate token if exposed
+2. **Check bot permissions:**
+   - In Discord Server Settings → Integrations → OpenSDB
+   - Ensure the bot has **Administrator** or at least **Manage Roles** permission
 
-### Database Issues
+3. **Verify environment variables:**
+   ```bash
+   # Check .env file for correct values
+   cat .env | grep DISCORD_TOKEN
+   cat .env | grep CLIENT_ID
+   cat .env | grep ALLOWED_GUILD_ID
+   ```
 
-**MongoDB connection fails:**
+4. **View bot logs:**
+   ```bash
+   docker compose logs bot --tail 50
+   ```
+
+#### Dashboard won't load
+1. **Check web service:**
+   ```bash
+   docker compose ps
+   ```
+
+2. **View web server logs:**
+   ```bash
+   docker compose logs web --tail 50
+   ```
+
+3. **Test dashboard directly:**
+   - Local: `http://localhost/login.html`
+   - Remote: `http://YOUR-SERVER-IP/login.html`
+
+4. **Clear browser cache:**
+   - Press Ctrl+Shift+Delete (or Cmd+Shift+Delete on Mac)
+   - Clear all cookies and cache for the domain
+
+#### "Invalid Token" error in Discord
+- Copy the **TOKEN**, not the Application ID
+- Generate a new token if the current one was exposed
+- Allow 5-10 seconds for changes to take effect
+
+#### Login fails on dashboard
+- Clear browser cookies
+- Verify `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env`
+- Restart services: `docker compose restart web`
+
+#### MongoDB connection errors
 ```bash
-docker compose logs mongo
-docker compose exec mongo mongosh  # Test connection
+# View MongoDB logs
+docker compose logs mongo --tail 20
+
+# Restart MongoDB
+docker compose restart mongo
 ```
 
-**Lost data:**
-- Data persists in Docker volume: `db:/data/db`
-- To backup: `docker compose exec mongo mongodump --out /tmp/backup`
-
-### Admin Dashboard
-
-**Can't access dashboard:**
-- Check if web service is running: `docker compose ps web`
-- Try: `docker compose logs web`
-- Verify `ADMIN_UI_PORT` matches in `.env`
-- Default URL: `http://localhost:8001` (local) or `http://IP:8001` (remote)
-
-**Login fails:**
-- Verify `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` match login attempt
-- Check JWT_SECRET is set and consistent
-- Clear browser cookies: Settings → Privacy → Cookies → Clear all
-
-### SSL/HTTPS Issues
-
-**Certificate problems:**
+#### Port already in use
 ```bash
-# Regenerate certificates
+# Check which process is using a port
+lsof -i :80    # or :443, :8001, etc (macOS/Linux)
+netstat -an | findstr :80  # Windows
+
+# Stop the conflicting process or change ports in docker-compose.yml
+```
+
+#### Regenerate SSL certificates
+```bash
+# Remove old certificates
 rm -rf nginx/certs/*
+
+# Generate new certificate
 cd nginx/certs
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout opensdb.key -out opensdb.crt -config ../openssl.cnf
+  -keyout opensdb.key -out opensdb.crt \
+  -config ../openssl.cnf
 cd ../..
-docker compose restart nginx
+
+# Restart services
+docker compose down
+docker compose up --build -d
 ```
 
-**Mixed content warnings:**
-- Ensure `.env` doesn't have `http://` URLs
-- Nginx config should redirect HTTP → HTTPS
+### Restarting Services
 
-### Port Conflicts
-
-**"Address already in use":**
+**Restart all services:**
 ```bash
-# Find process using port
-lsof -i :8001  # macOS/Linux
-netstat -ano | findstr :8001  # Windows
-
-# Kill process or change port in docker-compose.yml
+docker compose restart
 ```
 
-**Ports required (can be changed in config):**
-- `80` – HTTP (Nginx)
-- `443` – HTTPS (Nginx)
-- `8001` – Admin UI (can be modified)
-- `27017` – MongoDB (internal only)
-
-### Performance & Resource Limits
-
-Check resource usage:
+**Stop all services (to save resources):**
 ```bash
-docker stats
+docker compose down
 ```
 
-Adjust limits in `docker-compose.yml`:
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: 256M    # Increase if bot is slow
-      cpus: "0.50"    # Increase if hitting CPU limit
-```
-
-### Logs & Debugging
-
-**View logs in real-time:**
+**Restart specific service:**
 ```bash
-docker compose logs -f bot      # Bot logs
-docker compose logs -f web      # Admin UI logs
-docker compose logs -f nginx    # Web server logs
-docker compose logs -f mongo    # Database logs
-docker compose logs -f          # All services
+docker compose restart bot   # or: web, mongo, nginx
 ```
 
-**Enable verbose logging:**
-Add `NODE_ENV=development` to `.env` (some modules log more)
+### Checking Logs
+
+**View logs from all services:**
+```bash
+docker compose logs --tail 20        # Last 20 lines
+docker compose logs -f               # Follow in real-time (Ctrl+C to exit)
+```
+
+**View specific service logs:**
+```bash
+docker compose logs bot --tail 50    # Bot logs
+docker compose logs web --tail 50    # Web dashboard
+docker compose logs mongo --tail 50  # Database
+docker compose logs nginx --tail 50  # Reverse proxy
+```
+
+### Backing Up Data
+
+**Backup database:**
+```bash
+# Create backup directory
+mkdir -p backups
+
+# Export MongoDB data
+docker compose exec mongo mongodump --out /tmp/dump
+docker cp opensdb-mongo-1:/tmp/dump ./backups/mongodb-$(date +%s)
+```
+
+**Restore from backup:**
+```bash
+docker cp ./backups/mongodb-[timestamp]/dump opensdb-mongo-1:/tmp/
+docker compose exec mongo mongorestore /tmp/dump
+```
 
 ---
 
@@ -773,4 +1009,4 @@ OpenSDB is **open source** under the ISC License. Modify and use freely for educ
 ---
 
 Made with ❤️ by **McScheleba**  
-Last Updated: January 2026
+Last Updated: February 2026

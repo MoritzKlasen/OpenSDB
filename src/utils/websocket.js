@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
+const { logger } = require('./logger');
 
 let wss = null;
 const clients = new Set();
@@ -18,44 +19,65 @@ function initWebSocket(server) {
     const token = cookies.token;
 
     if (!token) {
-      ws.close(4001, 'Unauthorized');
+      logger.security('websocket_auth_rejected', {
+        reason: 'no token in cookies',
+        headers: req.headers
+      });
+      ws.close(4001, 'Unauthorized - no token');
       return;
     }
 
     try {
       jwt.verify(token, JWT_SECRET);
+      clients.add(ws);
+      logger.ws('client_authenticated', { total: clients.size });
+
+      ws.on('close', () => {
+        clients.delete(ws);
+        logger.ws('client_disconnected', { total: clients.size });
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error', { error: error.message });
+        clients.delete(ws);
+      });
     } catch (err) {
-      ws.close(4001, 'Unauthorized');
+      logger.security('websocket_auth_rejected', {
+        reason: 'invalid token',
+        error: err.message
+      });
+      ws.close(4001, 'Unauthorized - invalid token');
       return;
     }
-
-    clients.add(ws);
-    console.log(`✅ WebSocket client connected. (${clients.size} total)`);
-
-    ws.on('close', () => {
-      clients.delete(ws);
-      console.log(`❌ WebSocket client disconnected. (${clients.size} total)`);
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      clients.delete(ws);
-    });
   });
+
+  logger.info('WebSocket server initialized on /ws');
 }
 
 /**
  * Broadcast event to all connected clients
  */
 function broadcast(event, data) {
-  if (!wss) return;
+  if (!wss) {
+    logger.warn('WebSocket server not initialized, cannot broadcast', { event });
+    return;
+  }
 
   const message = JSON.stringify({ event, data });
+  let sent = 0;
+
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+      try {
+        client.send(message);
+        sent++;
+      } catch (err) {
+        logger.error('Failed to send message to client', { error: err.message });
+      }
     }
   });
+
+  logger.ws('broadcast_sent', { event, clients_total: clients.size, clients_sent: sent });
 }
 
 /**
@@ -63,10 +85,12 @@ function broadcast(event, data) {
  */
 function parseCookies(cookieHeader) {
   const cookies = {};
+  if (!cookieHeader) return cookies;
+  
   cookieHeader.split(';').forEach(cookie => {
     const [name, value] = cookie.split('=');
     if (name && value) {
-      cookies[name.trim()] = value.trim();
+      cookies[name.trim()] = decodeURIComponent(value.trim());
     }
   });
   return cookies;

@@ -39,7 +39,6 @@ const AnalyticsPage = () => {
         setUserGrowthData(response.data)
       } catch (err) {
         setUserError('Failed to load user growth data')
-        console.error(err)
       } finally {
         setIsLoadingUsers(false)
       }
@@ -59,7 +58,6 @@ const AnalyticsPage = () => {
         setWarningActivityData(response.data)
       } catch (err) {
         setWarningError('Failed to load warning activity data')
-        console.error(err)
       } finally {
         setIsLoadingWarnings(false)
       }

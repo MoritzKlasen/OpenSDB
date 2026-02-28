@@ -45,7 +45,6 @@ export const useMutationWithRefetch = (mutationFn, onSuccess) => {
         }
         return result
       } catch (error) {
-        console.error('Mutation error:', error)
         throw error
       }
     },

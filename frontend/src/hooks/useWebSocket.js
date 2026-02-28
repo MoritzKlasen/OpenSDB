@@ -2,50 +2,70 @@ import { useEffect, useRef, useCallback } from 'react'
 
 export const useWebSocket = (onMessage) => {
   const wsRef = useRef(null)
+  const reconnectTimeoutRef = useRef(null)
+  const onMessageRef = useRef(onMessage)
+
+  // Update ref without triggering re-renders
+  useEffect(() => {
+    onMessageRef.current = onMessage
+  }, [onMessage])
 
   useEffect(() => {
-    // Determine WebSocket URL based on current location
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws`
+    const connect = () => {
+      // Determine WebSocket URL based on current location
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${window.location.host}/ws`
 
-    const ws = new WebSocket(wsUrl)
+      const ws = new WebSocket(wsUrl)
 
-    ws.onopen = () => {
-      console.log('✅ WebSocket connected')
-    }
-
-    ws.onmessage = (event) => {
-      try {
-        const { event: eventType, data } = JSON.parse(event.data)
-        if (onMessage) {
-          onMessage(eventType, data)
+      ws.onopen = () => {
+        // Clear any pending reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
+          reconnectTimeoutRef.current = null
         }
-      } catch (err) {
-        console.error('WebSocket message parse error:', err)
       }
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+          const { event: eventType, data } = message
+          
+          if (onMessageRef.current) {
+            onMessageRef.current(eventType, data)
+          }
+        } catch (err) {
+          // Silent fail for malformed messages
+        }
+      }
+
+      ws.onerror = (error) => {
+        // Handle WebSocket errors silently
+      }
+
+      ws.onclose = (event) => {
+        // Only attempt to reconnect if not a normal close or unauthorized
+        if (event.code !== 1000 && event.code !== 4001) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect()
+          }, 3000)
+        }
+      }
+
+      wsRef.current = ws
     }
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-
-    ws.onclose = () => {
-      console.log('❌ WebSocket disconnected')
-      // Attempt to reconnect after 3 seconds
-      setTimeout(() => {
-        console.log('🔄 Attempting to reconnect WebSocket...')
-        // Recursively call useEffect by updating dependency
-      }, 3000)
-    }
-
-    wsRef.current = ws
+    connect()
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close()
+        wsRef.current.close(1000, 'Component unmounting')
       }
     }
-  }, [onMessage])
+  }, [])
 
   return wsRef.current
 }

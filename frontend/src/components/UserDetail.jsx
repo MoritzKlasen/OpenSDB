@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { userApi } from '../utils/api'
 import { Button, Card, Input, Modal, Loading, Error } from './UI'
 import WarningCard from './WarningCard'
@@ -12,6 +12,13 @@ const UserDetail = ({ user, onUserUpdate }) => {
   const [isDeletingWarning, setIsDeletingWarning] = useState(false)
   const [error, setError] = useState(null)
 
+  // Update local comment when user prop changes (e.g., from WebSocket broadcast)
+  useEffect(() => {
+    if (!isCommentEditing) {
+      setLocalComment(user.comment || '')
+    }
+  }, [user.comment, isCommentEditing])
+
   const handleSaveComment = async () => {
     setIsCommentSaving(true)
     setError(null)
@@ -21,7 +28,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
       setIsCommentEditing(false)
     } catch (err) {
       setError('Failed to save comment')
-      console.error(err)
     } finally {
       setIsCommentSaving(false)
     }
@@ -42,7 +48,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
       setWarningToDelete(null)
     } catch (err) {
       setError('Failed to delete warning')
-      console.error(err)
     } finally {
       setIsDeletingWarning(false)
     }
