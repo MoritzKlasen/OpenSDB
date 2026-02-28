@@ -336,31 +336,60 @@ Create a ticket panel with a button for students to open support or verification
 
 ## Admin Dashboard
 
+The admin dashboard is a modern, production-ready React-based web interface that provides secure access to user management and analytics. Access it at the configured `ADMIN_UI_PORT` (default: 8001) under `/login`.
+
 ### Features
 
-The web UI at `/dashboard` provides:
+#### Authentication
+- **Secure Login:** Username and password authentication with JWT tokens
+- **Session Management:** 1-hour token expiry with automatic logout
+- **HTTPS Ready:** Works with Nginx reverse proxy and SSL certificates
 
-#### User Management Table
-- **Search:** Filter by Discord tag, first name, or last name
-- **View All Verified Students:** Full list with verification numbers and dates
-- **Edit Comments:** Click comment to edit inline
-- **Delete Warnings:** Remove specific warnings with confirmation
-- **Warning History:** View all warnings per student with issuer and date
+#### User Management
+- **User List Panel:** 
+  - Scrollable list of verified users
+  - Debounced search by Discord tag, ID, first name, or last name
+  - Visual warning count badge for quick overview
+  - Click to select and view details
+  
+- **User Detail Panel:**
+  - User profile information (Discord tag, ID, real name, verification date)
+  - **Comments Section:** View and edit user comments with save/cancel
+  - **Warning History:** Structured warning cards showing:
+    - Reason for warning
+    - Issued by (admin/moderator name)
+    - Exact timestamp of warning
+  - **Delete Warnings:** Remove specific warnings with confirmation modal
 
-#### Data Import/Export
-- **Export CSV:** Download all verified students and warnings
-- **Import CSV:** Bulk import student data (upsert by Discord ID)
-- **CSV Columns:** `verificationNumber`, `discordTag`, `discordId`, `firstName`, `lastName`, `comment`, `warnings` (JSON), `verifiedAt`
+#### Data Management
+- **Export CSV:** Download all verified users with warnings as JSON array
+  - Columns: `verificationNumber`, `discordTag`, `discordId`, `firstName`, `lastName`, `comment`, `warnings`, `verifiedAt`
+  - Excel-compatible with UTF-8 BOM
+  
+- **Import CSV:** Bulk upload and upsert user data
+  - Matches by `discordId` for updates
+  - Preserves existing verification dates if not specified
 
-#### Utilities
-- **Search Bar:** Real-time filtering
-- **Dark Mode Toggle:** User preference stored in localStorage
-- **Logout:** Clear session and return to login
+#### Analytics Dashboard
+- **User Growth Chart:** Cumulative user registration over time (line chart)
+- **Warning Activity Chart:** Warnings issued by day (bar chart)
+- **Summary Metrics:**
+  - Total registered users
+  - Users added this month
+  - Warnings issued this month
 
-#### Security
-- **JWT Authentication:** Token-based session (1 hour expiry)
-- **HTTPS Ready:** Works with Nginx reverse proxy and SSL
-- **HttpOnly Cookies:** Tokens stored securely, not accessible to JavaScript
+### Technology Stack
+
+The admin dashboard is built with modern, professional-grade tools:
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Frontend | React 18 | Component-based UI framework |
+| Styling | Tailwind CSS | Utility-first CSS framework |
+| Charts | Recharts | Interactive data visualization |
+| HTTP Client | Axios | API communication with credentials support |
+| Build Tool | Vite | Fast frontend development and production builds |
+| Routing | React Router v6 | Client-side navigation |
 
 ### API Endpoints
 
@@ -368,11 +397,23 @@ The web UI at `/dashboard` provides:
 |----------|--------|------|---------|
 | `/api/login` | POST | None | Authenticate with username/password |
 | `/api/verified-users` | GET | JWT | Fetch all verified users |
-| `/api/remove-warning/:discordId/:index` | DELETE | JWT | Delete specific warning |
+| `/api/remove-warning/:discordId/:index` | DELETE | JWT | Delete specific warning by index |
 | `/api/update-comment/:discordId` | PUT | JWT | Update user comment |
 | `/api/export-users` | GET | JWT | Download CSV of all users |
-| `/api/import-users` | POST | JWT | Upload and import CSV |
-| `/api/metrics/users-per-day` | GET | BasicAuth | Cumulative verification metrics (JSON/CSV) |
+| `/api/import-users` | POST | JWT | Upload and import CSV file |
+| `/api/metrics/users-per-day.json` | GET | BasicAuth | User registration metrics (JSON) |
+| `/api/analytics/warnings-per-day` | GET | JWT | Warning activity metrics (JSON) |
+| `/logout` | GET | Any | Clear session and logout |
+
+### Dashboard Workflow
+
+1. **Login:** Access `/login` and authenticate with admin credentials
+2. **View Users:** Browse verified users in the left panel, search as needed
+3. **Select User:** Click a user to view their full profile and history
+4. **Manage Warnings:** View warning cards and delete as needed (confirmation required)
+5. **Edit Comments:** Add contextual notes (accommodations, issues, follow-ups)
+6. **Analytics:** Check user growth and moderation trends on dedicated dashboard
+7. **Import/Export:** Manage bulk data operations for backup or data migration
 
 ---
 

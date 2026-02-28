@@ -16,6 +16,22 @@ const { t } = require("../utils/i18n");
 const ServerSettings = require('../database/models/ServerSettings');
 const VerifiedUser   = require('../database/models/VerifiedUser');
 
+// Helper to notify admin server of changes
+async function notifyAdminServer(type) {
+  try {
+    const response = await fetch('http://web:8001/api/internal/notify-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    });
+    if (!response.ok) {
+      console.warn(`⚠️ Failed to notify admin server: ${response.status}`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not notify admin server:', err.message);
+  }
+}
+
 function buildDisabledRowsFrom(message) {
   if (!message?.components?.length) return [];
   return message.components.map(row => {
@@ -269,6 +285,10 @@ module.exports = async (client, interaction) => {
           date:     new Date()
         });
         await verified.save();
+        
+        // Notify admin server of the warning
+        await notifyAdminServer('warning');
+        
         try { await target.send(await t(interaction.guildId, "warnings.dmMessage", { word: bannedWord })); } catch {}
         return interaction.reply({ content: await t(interaction.guildId, "warnings.issued", { user: `${target.tag}` }), flags: 0 });
       } catch (err) {

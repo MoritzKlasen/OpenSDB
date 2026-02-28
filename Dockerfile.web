@@ -2,14 +2,23 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# nur deps installieren
+# Copy root package files
 COPY package*.json ./
+
+# Install backend dependencies only for production
 RUN npm ci --only=production
 
-# Rest rüberkopieren
-COPY src ./src
-COPY src/admin-ui ./admin-ui
+# Copy frontend
+COPY frontend ./frontend
 
-EXPOSE 3001
+# Install and build frontend
+WORKDIR /app/frontend
+RUN npm ci && npm run build
+
+# Copy backend source
+WORKDIR /app
+COPY src ./src
+
+EXPOSE 8001
 
 CMD ["node", "src/admin-server.js"]
