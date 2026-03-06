@@ -25,22 +25,6 @@ async function notifyAdminServerHelper(type) {
   return notifyAdminServer(type, INTERNAL_SECRET);
 }
 
-// Helper to notify admin server of changes
-async function notifyAdminServer(type) {
-  try {
-    const response = await fetch('http://web:8001/api/internal/notify-change', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type })
-    });
-    if (!response.ok) {
-      console.warn(`⚠️ Failed to notify admin server: ${response.status}`);
-    }
-  } catch (err) {
-    console.warn('⚠️ Could not notify admin server:', err.message);
-  }
-}
-
 function buildDisabledRowsFrom(message) {
   if (!message?.components?.length) return [];
   return message.components.map(row => {
