@@ -17,7 +17,7 @@ const UserList = () => {
     try {
       const response = await userApi.getAll()
       setUsers(response.data)
-      
+
       // Update selected user with fresh data if one is selected
       setSelectedUser(prevSelected => {
         if (!prevSelected) {
@@ -87,6 +87,7 @@ const UserList = () => {
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
             />
           </div>
 
@@ -102,11 +103,10 @@ const UserList = () => {
                 <button
                   key={user._id}
                   onClick={() => handleUserSelect(user)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedUser?._id === user._id
+                  className={`w-full text-left p-3 rounded-lg transition-colors ${selectedUser?._id === user._id
                       ? 'bg-blue-600'
                       : 'bg-slate-800 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   <div className="font-medium text-sm text-slate-100">
                     {user.discordTag}
