@@ -55,6 +55,7 @@ const LoginPage = () => {
               autoFocus
               required
               disabled={isLoading}
+              className="w-full"
             />
           </div>
 
@@ -69,6 +70,7 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={isLoading}
+              className="w-full"
             />
           </div>
 
