@@ -8,7 +8,8 @@
     "missingPermission": "You don't have permission to do that.",
     "generic": "Something went wrong.",
     "noPermission": "❌ No permission.",
-    "executionError": "⚠️ Error during execution!"
+    "executionError": "⚠️ Error during execution!",
+    "commandError": "⚠️ An error occurred while executing this command."
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "Verify"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ Ticket successfully created: {channel}",
     "openedTitleSupport": "📨 Support Ticket Opened",
     "openedTitleVerify": "📨 Verification Ticket Opened",
@@ -47,7 +48,9 @@
     "noUser": "❌ No verified user found.",
     "noPermission": "❌ No permission.",
     "set": "✅ Comment for {user} has been set:\n> {text}",
-    "notVerified": "❌ {user} is not verified."
+    "notVerified": "❌ {user} is not verified.",
+    "modalTitle": "Comment on Incident",
+    "modalLabel": "Comment Text"
   },
   "verify": {
     "noPermission": "❌ No permission.",
@@ -68,7 +71,8 @@
     "firstName": "First name",
     "lastName": "Last name",
     "commentTitle": "📝 Comment",
-    "warningsTitle": "⚠️ Recent warnings"
+    "warningsTitle": "⚠️ Recent warnings",
+    "warningEntry": "**{index}.** {reason} *(by {issuer}, {date})*"
   },
   "warn": {
     "noPermission": "❌ No permission.",
@@ -87,7 +91,13 @@
   "setrole": {
     "noPermission": "❌ No Permission.",
     "noRolesSpecified": "⚠️ Please specify at least one role to update.",
-    "updated": "✅ Updated roles:\n{roles}"
+    "updated": "✅ Updated roles:\n{roles}",
+    "teamrole": "Teamrole",
+    "verifiedRole": "Verified Role",
+    "onjoinRole": "On-Join-Role"
+  },
+  "antiscam": {
+    "noPermission": "❌ No permission."
   },
   "bannedWords": {
     "detected": "🚨 Banned word detected",
@@ -97,6 +107,57 @@
     "word": "Word",
     "warn": "Warn",
     "comment": "Comment"
+  },
+  "scamKeywords": {
+    "high": [
+      "claim now",
+      "limited offer",
+      "free nitro",
+      "free boost",
+      "free discord",
+      "casino bonus",
+      "crypto reward",
+      "instant money",
+      "free crypto",
+      "verify account",
+      "confirm identity",
+      "update payment",
+      "suspicious login",
+      "unusual activity",
+      "account suspended",
+      "verify your account"
+    ],
+    "medium": [
+      "click here",
+      "join server",
+      "click link",
+      "check this",
+      "check this out",
+      "giveaway",
+      "winner",
+      "congratulations",
+      "you won",
+      "claim prize"
+    ],
+    "singleWord": [
+      "urgent",
+      "verify",
+      "confirm",
+      "claim",
+      "free",
+      "prize",
+      "reward",
+      "bonus",
+      "winner",
+      "congratulations",
+      "alert",
+      "warning",
+      "deleted",
+      "suspended",
+      "account",
+      "nitro",
+      "boost",
+      "crypto"
+    ]
   }
 }
-

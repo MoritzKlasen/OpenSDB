@@ -2,19 +2,19 @@ const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const { logger } = require('./logger');
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
 let wss = null;
 const clients = new Set();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
-/**
- * Initialize WebSocket server attached to HTTP server
- */
 function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: '/ws' });
 
   wss.on('connection', (ws, req) => {
-    // Verify auth token from cookies
     const cookies = parseCookies(req.headers.cookie || '');
     const token = cookies.token;
 
@@ -54,9 +54,6 @@ function initWebSocket(server) {
   logger.info('WebSocket server initialized on /ws');
 }
 
-/**
- * Broadcast event to all connected clients
- */
 function broadcast(event, data) {
   if (!wss) {
     logger.warn('WebSocket server not initialized, cannot broadcast', { event });
@@ -80,9 +77,6 @@ function broadcast(event, data) {
   logger.ws('broadcast_sent', { event, clients_total: clients.size, clients_sent: sent });
 }
 
-/**
- * Parse cookies from header string
- */
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;

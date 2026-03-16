@@ -3,9 +3,6 @@ const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 const { z } = require('zod');
 
-/**
- * Helmet security headers middleware
- */
 function getHelmetMiddleware() {
   return helmet({
     contentSecurityPolicy: {
@@ -31,9 +28,6 @@ function getHelmetMiddleware() {
   });
 }
 
-/**
- * Rate limiting: Slow brute force attacks
- */
 const createLoginLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -45,9 +39,6 @@ const createLoginLimiter = () =>
     skip: (req) => process.env.NODE_ENV === 'development',
   });
 
-/**
- * Rate limiting: General API protection
- */
 const createApiLimiter = () =>
   rateLimit({
     windowMs: 60 * 1000, // 1 minute
@@ -58,11 +49,12 @@ const createApiLimiter = () =>
     trustProxy: true,
   });
 
-/**
- * CORS middleware - restrict to trusted origins
- */
 function corsMiddleware(req, res, next) {
-  const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000').split(',');
+  if (!process.env.CORS_ORIGINS) {
+    throw new Error('CORS_ORIGINS environment variable is required');
+  }
+  
+  const allowedOrigins = process.env.CORS_ORIGINS.split(',');
   const origin = req.headers.origin;
 
   if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
@@ -79,30 +71,6 @@ function corsMiddleware(req, res, next) {
   next();
 }
 
-/**
- * Input validation schema errors
- */
-function validateInput(schema) {
-  return (req, res, next) => {
-    try {
-      const validated = schema.parse(req.body);
-      req.body = validated;
-      next();
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          error: 'Invalid input',
-          issues: err.errors,
-        });
-      }
-      return res.status(400).json({ error: 'Bad request' });
-    }
-  };
-}
-
-/**
- * Request signing for internal APIs
- */
 function stringifyForSigning(obj) {
   return JSON.stringify(Object.keys(obj).sort().reduce((result, key) => {
     result[key] = obj[key];
@@ -126,9 +94,6 @@ function verifyRequestSignature(payload, signature, secret) {
   );
 }
 
-/**
- * Middleware to verify signed internal requests
- */
 function verifyInternalRequest(secret, logger = null) {
   return (req, res, next) => {
     const signature = req.headers['x-signature'];
@@ -140,7 +105,6 @@ function verifyInternalRequest(secret, logger = null) {
       return res.status(403).json({ error: 'Missing signature' });
     }
 
-    // Prevent replay attacks (request must be within 5 minutes)
     const requestTime = parseInt(timestamp, 10);
     const now = Date.now();
     if (Math.abs(now - requestTime) > 5 * 60 * 1000) {
@@ -163,25 +127,12 @@ function verifyInternalRequest(secret, logger = null) {
   };
 }
 
-/**
- * Sanitize user input to prevent injection
- */
-function sanitizeInput(input) {
-  if (typeof input !== 'string') return input;
-  return input
-    .replace(/[<>]/g, '') // Remove angle brackets
-    .trim()
-    .slice(0, 1000); // Limit length
-}
-
 module.exports = {
   getHelmetMiddleware,
   createLoginLimiter,
   createApiLimiter,
   corsMiddleware,
-  validateInput,
   generateRequestSignature,
   verifyRequestSignature,
   verifyInternalRequest,
-  sanitizeInput,
 };

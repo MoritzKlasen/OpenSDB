@@ -44,7 +44,6 @@ const DashboardPage = () => {
       const response = await userApi.importCsv(file)
       setError(null)
       alert(`Successfully imported ${response.data.imported} users`)
-      // Optionally refresh the user list
     } catch (err) {
       setError('Failed to import CSV')
     } finally {
@@ -58,7 +57,6 @@ const DashboardPage = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Toolbar */}
         <div className="flex gap-2 flex-wrap">
           <Button
             variant="secondary"
@@ -87,7 +85,6 @@ const DashboardPage = () => {
 
         {error && <Error message={error} />}
 
-        {/* User List */}
         <UserList />
       </div>
     </Layout>

@@ -3,9 +3,13 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { logger } = require('../utils/logger');
 require('dotenv').config();
 
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,45 +27,64 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const settings = await ServerSettings.findOne() || {};
-    const teamRoleId = settings.teamRoleId;
-    const isOwner = interaction.user.id === interaction.guild.ownerId;
-    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+    try {
+      const settings = await ServerSettings.findOne() || {};
+      const teamRoleId = settings.teamRoleId;
+      const isOwner = interaction.user.id === interaction.guild.ownerId;
+      const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
-      return interaction.reply({ content: await t(interaction.guildId, 'warn.noPermission'), flags: 64 });
-    }
+      if (!isOwner && !isTeam) {
+        return interaction.reply({ content: await t(interaction.guildId, 'warn.noPermission'), flags: 64 });
+      }
 
-    const user = interaction.options.getUser('user');
-    const reason = interaction.options.getString('reason');
+      const user = interaction.options.getUser('user');
+      const reason = interaction.options.getString('reason');
 
-    const verified = await VerifiedUser.findOne({ discordId: user.id });
+      const verified = await VerifiedUser.findOne({ discordId: user.id });
 
-    if (!verified) {
+      if (!verified) {
+        return interaction.reply({
+          content: await t(interaction.guildId, 'warn.notVerified', { user: user.tag }),
+          flags: 64
+        });
+      }
+
+      if (!Array.isArray(verified.warnings)) {
+        verified.warnings = [];
+      }
+
+      verified.warnings.push({
+        reason,
+        issuedBy: interaction.user.id,
+        date: new Date()
+      });
+
+      await verified.save();
+
+      logger.security('User warned', {
+        guildId: interaction.guildId,
+        targetUserId: user.id,
+        issuedBy: interaction.user.id,
+        reason,
+      });
+
+      await notifyAdminServer('warning', INTERNAL_SECRET);
+
       return interaction.reply({
-        content: await t(interaction.guildId, 'warn.notVerified', { user: user.tag }),
+        content: await t(interaction.guildId, 'warn.success', { user: user.tag, issuer: interaction.user.tag, reason }),
+        flags: 0
+      });
+    } catch (error) {
+      logger.error('Error issuing warning', {
+        guildId: interaction.guildId,
+        targetUserId: interaction.options.getUser('user')?.id,
+        issuedBy: interaction.user.id,
+        error: error.message,
+      });
+      await interaction.reply({
+        content: await t(interaction.guildId, 'errors.commandError'),
         flags: 64
       });
     }
-
-    if (!Array.isArray(verified.warnings)) {
-      verified.warnings = [];
-    }
-
-    verified.warnings.push({
-      reason,
-      issuedBy: interaction.user.id,
-      date: new Date()
-    });
-
-    await verified.save();
-
-    // Notify admin server of the change
-    await notifyAdminServer('warning', INTERNAL_SECRET);
-
-    return interaction.reply({
-      content: await t(interaction.guildId, 'warn.success', { user: user.tag, issuer: interaction.user.tag, reason }),
-      flags: 0
-    });
   }
 };

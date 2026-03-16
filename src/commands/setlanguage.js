@@ -1,8 +1,11 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const ServerSettings = require("../database/models/ServerSettings");
 const { t, setGuildLanguageCache, SUPPORTED } = require("../utils/i18n");
+const { logger } = require("../utils/logger");
 
 const { updateGuildLocalizedMessages } = require("../utils/updateLocalizedMessages");
+
+const LANGUAGE_NAMES = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
 
 async function canManageLanguage(interaction) {
   if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return true;
@@ -59,8 +62,7 @@ module.exports = {
       ).lean();
 
       const lang = settings.language || "en";
-      const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
-      const languageName = languageNames[lang] || "English";
+      const languageName = LANGUAGE_NAMES[lang] || "English";
 
       return interaction.reply({
         content: await t(guildId, "language.current", { languageName, lang }),
@@ -79,31 +81,55 @@ module.exports = {
       const oldLang = currentSettings?.language || "en";
 
       if (oldLang === newLang) {
-        const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
-        const languageName = languageNames[newLang] || "English";
+        const languageName = LANGUAGE_NAMES[newLang] || "English";
         return interaction.reply({
           content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),
           flags: 64
         });
       }
 
-      await ServerSettings.updateOne(
-        { guildId },
-        { $set: { language: newLang } },
-        { upsert: true }
-      );
+      try {
+        await ServerSettings.updateOne(
+          { guildId },
+          { $set: { language: newLang } },
+          { upsert: true }
+        );
 
-      setGuildLanguageCache(guildId, newLang);
+        setGuildLanguageCache(guildId, newLang);
 
-      const languageNames = { de: "German", en: "English", es: "Spanish", fr: "French", it: "Italian", tr: "Turkish", zh: "Chinese Simplified" };
-      const languageName = languageNames[newLang] || "English";
-      await interaction.reply({
-        content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),
-        flags: 64
-      });
+        logger.security('Server language changed', {
+          guildId,
+          changedBy: interaction.user.id,
+          oldLanguage: oldLang,
+          newLanguage: newLang,
+        });
 
-      updateGuildLocalizedMessages(interaction.client, guildId, { limit: 200, delayMs: 350 })
-        .catch(() => {});
+        const languageName = LANGUAGE_NAMES[newLang] || "English";
+        await interaction.reply({
+          content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),
+          flags: 64
+        });
+
+        updateGuildLocalizedMessages(interaction.client, guildId, { limit: 200, delayMs: 350 })
+          .catch((err) => {
+            logger.warn('Failed to update localized messages after language change', {
+              guildId,
+              newLanguage: newLang,
+              error: err.message,
+            });
+          });
+      } catch (error) {
+        logger.error('Error setting guild language', {
+          guildId,
+          changedBy: interaction.user.id,
+          newLanguage: newLang,
+          error: error.message,
+        });
+        await interaction.reply({
+          content: 'An error occurred while setting the language.',
+          flags: 64
+        });
+      }
     }
   }
 };

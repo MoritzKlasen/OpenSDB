@@ -7,21 +7,17 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Create isolated axios instance for auth check (no interceptors)
         const authCheckClient = axios.create({
           baseURL: '',
           withCredentials: true,
         })
-        
-        // Try to access a protected endpoint to verify authentication
+
         await authCheckClient.get('/api/verified-users')
         setIsAuthenticated(true)
       } catch (error) {
-        // Any error (including 401) means not authenticated
         setIsAuthenticated(false)
       } finally {
         setIsLoading(false)
@@ -42,9 +38,7 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true,
       })
       await logoutClient.get('/logout')
-    } catch (err) {
-      // Logout error - silently fail
-    }
+    } catch (err) { }
     setIsAuthenticated(false)
   }
 

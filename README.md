@@ -16,13 +16,14 @@ A comprehensive, open-source self-hosted Discord bot for managing school communi
 6. [Configuration Guide](#configuration-guide)
 7. [Slash Commands Reference](#slash-commands-reference)
 8. [Admin Dashboard](#admin-dashboard)
-9. [Ticket System](#ticket-system)
-10. [Localization](#localization)
-11. [Developing Locally](#developing-locally)
-12. [Logging and Monitoring](#logging-and-monitoring)
-13. [Troubleshooting](#troubleshooting)
-14. [Security Considerations](#security-considerations)
-15. [Contributing](#contributing)
+9. [Anti-Scam Detection System](#anti-scam-detection-system)
+10. [Ticket System](#ticket-system)
+11. [Localization](#localization)
+12. [Developing Locally](#developing-locally)
+13. [Logging and Monitoring](#logging-and-monitoring)
+14. [Troubleshooting](#troubleshooting)
+15. [Security Considerations](#security-considerations)
+16. [Contributing](#contributing)
 
 ---
 
@@ -54,6 +55,7 @@ The entire system runs in Docker containers for easy deployment and scaling, wit
 - **Warning System** – Issue, track, and delete warnings per student
 - **Admin Notifications** – Get real-time alerts in a dedicated admin channel with quick action buttons
 - **Comment Prompts** – Add notes directly from ban notifications
+- **Anti-Scam Detection** – Dual-engine scam detection (rule-based + AI) with multilingual keyword matching, link analysis, behavioral anomaly detection, image scanning, auto-delete, and auto-timeout
 
 ### Real-time Admin Dashboard
 - **WebSocket Integration** – Live dashboard updates without page refreshes
@@ -76,6 +78,7 @@ The entire system runs in Docker containers for easy deployment and scaling, wit
 - **Real-time Admin Dashboard** – Modern React frontend with WebSocket support for live user and warning updates
 - **Interactive Analytics** – Charts for user growth trends and warning activity patterns
 - **Secure Admin UI** – JWT-authenticated web dashboard with HTTPS/SSL support and CORS protection
+- **AI-Powered Scam Detection** – Multi-provider AI support (OpenAI, Ollama, OpenRouter, Anthropic) with vision model routing for image analysis
 
 ---
 
@@ -240,14 +243,14 @@ All services will start automatically: Discord bot, admin dashboard, MongoDB dat
 
 **Local development (Docker Compose):**
 ```
-https://localhost/login.html
+https://localhost/login
 ```
 *Note: Browser may show SSL warning (self-signed certificate). This is normal for local development. Click "Advanced" → "Proceed".*
 
 **Remote server:**
 ```
-http://YOUR-SERVER-IP/login.html         (first time setup)
-https://YOUR-SERVER-IP/login.html        (after SSL setup)
+http://YOUR-SERVER-IP/login         (first time setup)
+https://YOUR-SERVER-IP/login        (after SSL setup)
 ```
 
 **Login with:**
@@ -286,6 +289,9 @@ You should see all 4 services (bot, web, nginx, mongo) in the **Up** status. Dis
 | `INTERNAL_SECRET` | Shared secret between bot and admin (random) | ✅ | `botInternalSecret123` |
 | `NODE_ENV` | Environment mode | Optional | `production` |
 | `ADMIN_UI_PORT` | Dashboard port inside container | Optional | `8001` |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | Optional | `https://yourdomain.com` |
+| `METRICS_BASIC_USER` | Metrics API basic auth username | Optional | `grafana` |
+| `METRICS_BASIC_PASS` | Metrics API basic auth password | Optional | `changeMe!` |
 
 ### Generating Secure Secrets
 
@@ -428,11 +434,59 @@ Create a ticket panel with a button for students to open support or verification
   - Closed tickets remain visible to team only
   - Messages are language-tracked for automatic translation
 
+### Anti-Scam Management
+
+#### `/antiscam enable` / `/antiscam disable`
+Enable or disable the anti-scam detection system for the server.
+- **Permissions:** Administrator, Server Owner, Team Role
+
+#### `/antiscam mode <type>`
+Set the detection engine.
+- **Options:** `default` (rule-based) or `ai` (AI-powered with fallback to default)
+
+#### `/antiscam sensitivity <level>`
+Set detection sensitivity.
+- **Options:** `low` (score ≥60), `medium` (score ≥40), `high` (score ≥20)
+
+#### `/antiscam alert-channel <channel>`
+Set the channel where scam detection alerts are posted.
+
+#### `/antiscam auto-delete <enabled>`
+Toggle automatic deletion of detected scam messages.
+
+#### `/antiscam auto-timeout <enabled> [duration]`
+Toggle automatic timeout for users posting scam content.
+- **Duration:** 1–40320 minutes (default: 60)
+
+#### `/antiscam whitelist-user <user>`
+Exempt a user from scam detection.
+
+#### `/antiscam whitelist-domain <domain>`
+Whitelist a domain from link analysis.
+
+#### `/antiscam ai-configure <provider> <model> <baseurl> [apikey] [timeout]`
+Configure a single AI provider for scam analysis.
+- **Providers:** `openai`, `ollama`, `openrouter`, `anthropic`
+
+#### `/antiscam ai-configure-multimodel`
+Configure separate text and vision AI models for enhanced detection (e.g., text analysis with one model, image analysis with another).
+- **Options:** `text-provider`, `text-model`, `text-baseurl`, `vision-provider`, `vision-model`, `vision-baseurl`, plus optional API keys and timeouts
+
+#### `/antiscam ai-test`
+Test the configured AI provider connection and verify it's working.
+
+#### `/antiscam stats [period]`
+Show detection statistics.
+- **Periods:** `24h`, `7d`, `30d`, `all`
+
+#### `/antiscam status`
+Display the current anti-scam configuration, detection mode, sensitivity, AI health status, and whitelist entries.
+
 ---
 
 ## Admin Dashboard
 
-The admin dashboard is a modern, production-ready React-based web interface built with Vite that provides secure, real-time access to user management and analytics. Access it at the configured `ADMIN_UI_PORT` (default: 8001) under `/login`.
+The admin dashboard is a modern, production-ready React-based web interface built with Vite that provides secure, real-time access to user management and analytics. Access it via the Nginx reverse proxy at `/login`.
 
 ### Key Highlights
 
@@ -508,7 +562,9 @@ The admin dashboard is built with modern, professional-grade tools:
 | `/api/import-users` | POST | JWT | Upload and import CSV file |
 | `/api/dashboard/users-growth` | GET | JWT | User registration metrics (JSON) |
 | `/api/dashboard/warnings-activity` | GET | JWT | Warning activity metrics (JSON) |
+| `/api/analytics/warnings-per-day` | GET | JWT | Warnings per day analytics |
 | `/api/metrics/users-per-day.json` | GET | BasicAuth | User registration metrics (Grafana) |
+| `/api/internal/notify-change` | POST | HMAC | Internal bot→admin notification |
 | `/logout` | GET | Any | Clear session and logout |
 | **WebSocket** `/ws` | WS | JWT | Real-time updates (user changes, warnings, verifications) |
 
@@ -522,6 +578,88 @@ The admin dashboard is built with modern, professional-grade tools:
 6. **Analytics:** Check user growth trends and moderation activity on dedicated analytics page
 7. **Import/Export:** Manage bulk data operations for backup or data migration
 8. **Real-time Sync:** Multiple admin sessions stay synchronized via WebSocket; changes appear instantly
+
+---
+
+## Anti-Scam Detection System
+
+OpenSDB includes a comprehensive dual-engine scam detection system that monitors messages in real-time for phishing attempts, spam, and malicious content.
+
+### Detection Engines
+
+#### Default (Rule-Based) Engine
+The built-in detection engine uses multiple heuristics scored by weighted risk:
+- **Suspicious Domain Detection** – Identifies phishing TLDs, known scam domains, and URL shorteners
+- **Punycode/IDN Homograph Attack Detection** – Catches visually similar domains designed to deceive
+- **Multilingual Keyword Matching** – High-risk, medium-risk, and single-word categories loaded from locale files
+- **Content Hashing & Deduplication** – MD5-based detection of duplicate/spam messages across channels
+- **Image Hash Deduplication** – Identifies repeated image attachments
+- **Fuzzy String Comparison** – Levenshtein distance matching (>0.8 similarity threshold) to catch slight message variations
+- **Behavioral Anomaly Detection** – Flags new accounts, first messages with links, activity spikes, and cross-channel posting
+- **Excessive Capitalization & Special Character Detection**
+
+#### AI Detection Engine
+Optional AI-powered analysis with multi-provider support:
+- **Supported Providers:** OpenAI, Ollama (self-hosted), OpenRouter, Anthropic/Claude, plus generic fallback
+- **Multi-Model Routing** – Automatically uses text model for text messages and vision model for images
+- **Vision Model Support** – Analyzes images from Discord CDN (QR codes, fake promotions, etc.)
+- **Structured Classification** – `likely scam`, `suspicious`, or `likely safe` with confidence scoring (0–100)
+- **Automatic Fallback** – Falls back to the default engine if AI is unavailable or fails
+- **Health Check System** – Monitors provider availability
+- **Custom Provider Registration** – Extensible provider registry for additional AI services
+
+### Risk Scoring
+
+Both engines produce a combined risk score (0–100) from weighted components:
+- **Spam Score** – Duplicate/repetition indicators
+- **Pattern Score** – Keyword and text pattern matches
+- **Link Score** – Suspicious URLs and domains
+- **Anomaly Score** – Behavioral signals
+
+| Risk Level | Score Range | Color |
+|------------|-------------|-------|
+| LOW | 0–39 | Green |
+| MEDIUM | 40–59 | Yellow |
+| HIGH | 60–79 | Orange |
+| CRITICAL | 80–100 | Red |
+
+### Automated Actions
+
+- **Admin Alerts** – Rich embeds posted to the configured alert channel with spam count, detection mode, risk level, reasons, extracted links, and AI analysis details
+- **Alert Action Buttons** – View Message, Delete All, Timeout 1h, Timeout 24h, Dismiss
+- **Auto-Delete** – Automatically removes detected scam messages (configurable)
+- **Auto-Timeout** – Temporarily mutes users posting scam content (configurable duration: 1–40320 minutes)
+- **Spam Staging** – Groups identical messages by user and content hash; alerts after threshold (3 duplicates, or 1 for previously-flagged content)
+- **Detection Caching** – 5-minute TTL cache prevents redundant analysis of the same content
+
+### Database Tracking
+
+Every detection event is logged to the `ScamDetectionEvent` collection with full context:
+- Message content, channel, user, and guild identifiers
+- Detection mode used and whether fallback was triggered
+- AI metadata (provider, model, classification, confidence, reason)
+- Risk score, risk level, detection reasons, extracted links/domains
+- Action taken (none/flagged/deleted/timedout) and alert status
+
+User behavioral data is tracked in the `UserActivity` collection for anomaly detection.
+
+### Quick Setup
+
+```bash
+# Enable anti-scam with default detection
+/antiscam enable
+/antiscam alert-channel #scam-alerts
+/antiscam sensitivity medium
+
+# Optional: Enable AI mode with Ollama (self-hosted)
+/antiscam mode ai
+/antiscam ai-configure provider:ollama model:llama3 baseurl:http://localhost:11434
+/antiscam ai-test
+
+# Optional: Enable auto-actions
+/antiscam auto-delete enabled:True
+/antiscam auto-timeout enabled:True duration:60
+```
 
 ---
 
@@ -669,14 +807,15 @@ OpenSDB/
 │   ├── index.js              # Bot entry point
 │   ├── admin-server.js       # Web UI server
 │   ├── loadCommands.js       # Command loader
-│   ├── deploy-commands.js    # Slash command registration
 │   ├── commands/             # Slash command definitions
+│   │   ├── antiscam.js       # Anti-scam config (15 subcommands)
 │   │   ├── verify.js
 │   │   ├── warn.js
 │   │   ├── ticketpanel.js
 │   │   └── ...
 │   ├── events/               # Discord event handlers
 │   │   ├── handleInteractions.js  # Button/modal/command logic
+│   │   ├── handleAntiScam.js      # Scam detection + alerts
 │   │   ├── handleBannedWords.js   # Message filtering
 │   │   └── guildMemberAdd.js      # Auto-role on join
 │   ├── database/
@@ -685,22 +824,48 @@ OpenSDB/
 │   │       ├── VerifiedUser.js
 │   │       ├── ServerSettings.js
 │   │       ├── BannedWord.js
-│   │       └── LocalizedMessage.js
+│   │       ├── LocalizedMessage.js
+│   │       ├── ScamDetectionEvent.js
+│   │       └── UserActivity.js
 │   ├── utils/
+│   │   ├── botNotifier.js    # HMAC-signed internal notifications
+│   │   ├── envValidator.js   # Zod-based env validation
 │   │   ├── i18n.js           # Translation helper
 │   │   ├── localizedSend.js  # Send + track messages
+│   │   ├── logger.js         # Structured JSON logging
+│   │   ├── security.js       # Helmet, rate limiting, CORS
 │   │   ├── ticketPanelRenderer.js
-│   │   └── updateLocalizedMessages.js
+│   │   ├── updateLocalizedMessages.js
+│   │   ├── websocket.js      # JWT-authenticated WebSocket server
+│   │   └── scamDetection/    # Anti-scam engines
+│   │       ├── aiDetectionEngine.js      # AI provider integration
+│   │       ├── defaultDetectionEngine.js # Rule-based heuristics
+│   │       └── scamKeywords.js           # Multilingual keyword loader
 │   ├── admin-ui/
-│   │   ├── login.html        # Login page
-│   │   ├── dashboard.html    # Main dashboard
+│   │   ├── login.html        # Legacy login page
+│   │   ├── dashboard.html    # Legacy dashboard
 │   │   └── assets/
-│   │       ├── dashboard.js  # Dashboard frontend logic
-│   │       ├── style.css     # Styling
-│   │       └── favicon.png
+│   │       ├── dashboard.js
+│   │       └── style.css
 │   └── locales/
 │       ├── en.json           # English translations
-│       └── de.json           # German translations
+│       ├── de.json           # German translations
+│       ├── es.json           # Spanish translations
+│       ├── fr.json           # French translations
+│       ├── it.json           # Italian translations
+│       ├── tr.json           # Turkish translations
+│       └── zh.json           # Chinese (Simplified) translations
+├── frontend/                 # React admin dashboard
+│   ├── src/
+│   │   ├── App.jsx           # Router and layout
+│   │   ├── components/       # Reusable UI components
+│   │   ├── context/          # Auth context provider
+│   │   ├── hooks/            # WebSocket and auto-refresh hooks
+│   │   ├── pages/            # Login, Dashboard, Analytics pages
+│   │   └── utils/            # API client and logger
+│   ├── package.json
+│   └── vite.config.js
+├── deploy-commands.js        # Manual command registration (debugging)
 ├── docker-compose.yml        # Service orchestration
 ├── Dockerfile.bot            # Bot container
 ├── Dockerfile.web            # Web UI container
@@ -710,7 +875,7 @@ OpenSDB/
 │   ├── openssl.cnf           # Certificate generation config
 │   └── certs/                # (Git-ignored) SSL certificates
 ├── package.json              # Dependencies
-├── .env                       # (Git-ignored) Configuration
+├── .env                      # (Git-ignored) Configuration
 └── README.md
 
 ```
@@ -719,8 +884,9 @@ OpenSDB/
 
 - **Commands:** `/src/commands/*.js` – Add new slash commands here
 - **Events:** `/src/events/*.js` – Modify bot behavior
-- **Locales:** `/src/locales/*.json` – Add/edit translations
-- **Styles:** `/src/admin-ui/assets/style.css` – Dashboard appearance
+- **Scam Detection:** `/src/utils/scamDetection/*.js` – Customize detection engines and keywords
+- **Locales:** `/src/locales/*.json` – Add/edit translations (including scam keywords)
+- **Frontend:** `/frontend/src/` – React dashboard components, pages, and hooks
 - **Database Models:** `/src/database/models/*.js` – Extend data schema
 
 ---
@@ -819,8 +985,8 @@ For full documentation, see [LOGGING_AND_MONITORING.md](LOGGING_AND_MONITORING.m
    ```
 
 3. **Test dashboard directly:**
-   - Local: `http://localhost/login.html`
-   - Remote: `http://YOUR-SERVER-IP/login.html`
+   - Local: `http://localhost/login`
+   - Remote: `http://YOUR-SERVER-IP/login`
 
 4. **Clear browser cache:**
    - Press Ctrl+Shift+Delete (or Cmd+Shift+Delete on Mac)
@@ -936,9 +1102,14 @@ docker compose exec mongo mongorestore /tmp/dump
 ### Network Security
 
 - **HTTPS/SSL:** Use self-signed certificates for development, proper CA certificates for production
-- **Nginx Reverse Proxy:** Handles TLS termination
-- **Docker Network:** Services communicate over internal bridge network
+- **Nginx Reverse Proxy:** Handles TLS termination with security headers and gzip
+- **Docker Network:** Services communicate over internal bridge network with custom subnet
 - **Port Exposure:** Only expose ports 80/443; keep MongoDB port 27017 internal
+- **Container Hardening:** Read-only filesystems, `cap_drop: ALL`, `no-new-privileges`, tmpfs mounts
+- **HMAC Request Signing:** Internal bot→admin API calls use HMAC signatures with replay protection
+- **Rate Limiting:** Login attempts (5/15min), general API requests (100/min)
+- **Helmet Security Headers:** Content Security Policy, XSS protection, and more
+- **Input Validation:** Zod schema validation for environment variables and API inputs
 
 ### Bot Permissions
 
@@ -981,7 +1152,8 @@ docker compose exec mongo mongorestore /tmp/dump
 
 ### Areas for Contribution
 
-- 🌍 **New Language Support:** Add locales (e.g., French, Spanish)
+- 🌍 **New Language Support:** Add additional locales beyond the 7 built-in languages
+- 🤖 **AI Providers:** Add new scam detection AI provider integrations
 - 🎨 **UI Improvements:** Enhance dashboard design/UX
 - 🔧 **Bug Fixes:** Report and fix issues
 - 📖 **Documentation:** Improve guides and examples

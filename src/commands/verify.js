@@ -3,9 +3,13 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { logger } = require('../utils/logger');
 require('dotenv').config();
 
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -66,14 +70,13 @@ module.exports = {
     });
     await newUser.save();
 
-    // Notify admin server of new verification
     await notifyAdminServer('verification', INTERNAL_SECRET);
 
     let member;
     try {
       member = await interaction.guild.members.fetch(user.id);
     } catch (err) {
-      console.warn(`Could not fetch GuildMember for ${user.tag}:`, err?.message);
+      logger.warn(`Could not fetch GuildMember for ${user.tag}`, { error: err?.message });
       return interaction.reply({ content: await t(interaction.guildId, 'verify.memberNotFound', { user: user.tag }), flags: 64 });
     }
 
@@ -82,7 +85,7 @@ module.exports = {
         await member.roles.add(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`Could not assign verifiedRole to ${user.tag}:`, err?.message);
+      logger.warn(`Could not assign verifiedRole to ${user.tag}`, { error: err?.message });
     }
 
     try {
@@ -90,7 +93,7 @@ module.exports = {
         await member.roles.remove(onJoinRoleId);
       }
     } catch (err) {
-      console.warn(`Could not remove onJoinRole from ${user.tag}:`, err?.message);
+      logger.warn(`Could not remove onJoinRole from ${user.tag}`, { error: err?.message });
     }
 
     await interaction.reply({

@@ -1,9 +1,6 @@
 const crypto = require('crypto');
 const { logger } = require('./logger');
 
-/**
- * Stringify object with sorted keys for consistent signatures
- */
 function stringifyForSigning(obj) {
   return JSON.stringify(Object.keys(obj).sort().reduce((result, key) => {
     result[key] = obj[key];
@@ -11,9 +8,6 @@ function stringifyForSigning(obj) {
   }, {}));
 }
 
-/**
- * Generate HMAC signature for request
- */
 function generateRequestSignature(payload, secret) {
   const timestamp = Date.now();
   const signaturePayload = { type: payload.type, timestamp };
@@ -26,9 +20,6 @@ function generateRequestSignature(payload, secret) {
   return { signature, timestamp };
 }
 
-/**
- * Notify admin server of changes with signature
- */
 async function notifyAdminServer(type, secret) {
   try {
     const payload = { type };

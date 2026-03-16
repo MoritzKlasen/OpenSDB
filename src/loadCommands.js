@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { logger } = require('./utils/logger');
 
 function loadCommands(client) {
   const commandsPath = path.join(__dirname, 'commands');
@@ -9,9 +10,9 @@ function loadCommands(client) {
     const command = require(path.join(commandsPath, file));
     if ('data' in command && 'execute' in command) {
       client.commands.set(command.data.name, command);
-      console.log(`Command loaded: ${command.data.name}`);
+      logger.info(`Command loaded: ${command.data.name}`);
     } else {
-      console.warn(`Invalid command format in file: ${file}`);
+      logger.warn(`Invalid command format in file: ${file}`);
     }
   }
 }
