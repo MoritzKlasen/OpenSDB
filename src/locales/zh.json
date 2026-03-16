@@ -8,7 +8,8 @@
     "missingPermission": "你没有权限这样做。",
     "generic": "发生了错误。",
     "noPermission": "❌ 无权限。",
-    "executionError": "⚠️ 执行过程中出错！"
+    "executionError": "⚠️ 执行过程中出错！",
+    "commandError": "⚠️ 执行此命令时发生错误。"
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "验证"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ 工单已成功创建：{channel}",
     "openedTitleSupport": "📨 支持工单已打开",
     "openedTitleVerify": "📨 验证工单已打开",
@@ -47,7 +48,9 @@
     "noUser": "❌ 未找到已验证的用户。",
     "noPermission": "❌ 无权限。",
     "set": "✅ 已为 {user} 设置评论：\n> {text}",
-    "notVerified": "❌ {user} 未验证。"
+    "notVerified": "❌ {user} 未验证。",
+    "modalTitle": "事件评论",
+    "modalLabel": "评论内容"
   },
   "verify": {
     "noPermission": "❌ 无权限。",
@@ -68,7 +71,8 @@
     "firstName": "名字",
     "lastName": "姓氏",
     "commentTitle": "📝 评论",
-    "warningsTitle": "⚠️ 最近警告"
+    "warningsTitle": "⚠️ 最近警告",
+    "warningEntry": "**{index}.** {reason} *(由 {issuer}，{date})*"
   },
   "warn": {
     "noPermission": "❌ 无权限。",
@@ -87,7 +91,13 @@
   "setrole": {
     "noPermission": "❌ 无权限。",
     "noRolesSpecified": "⚠️ 请指定至少一个要更新的角色。",
-    "updated": "✅ 角色已更新：\n{roles}"
+    "updated": "✅ 角色已更新：\n{roles}",
+    "teamrole": "团队角色",
+    "verifiedRole": "已验证角色",
+    "onjoinRole": "加入角色"
+  },
+  "antiscam": {
+    "noPermission": "❌ 无权限。"
   },
   "bannedWords": {
     "detected": "🚨 检测到禁用词",
@@ -97,5 +107,44 @@
     "word": "词",
     "warn": "警告",
     "comment": "评论"
+  },
+  "scamKeywords": {
+    "high": [
+      "立即领取",
+      "限时优惠",
+      "免费nitro",
+      "免费boost",
+      "验证账户",
+      "确认身份",
+      "更新支付",
+      "可疑活动",
+      "账户被禁用"
+    ],
+    "medium": [
+      "点击此处",
+      "加入服务器",
+      "点击链接",
+      "抽奖",
+      "获胜者",
+      "恭喜",
+      "你赢了"
+    ],
+    "singleWord": [
+      "紧急",
+      "验证",
+      "确认",
+      "领取",
+      "免费",
+      "奖品",
+      "奖励",
+      "奖金",
+      "获胜者",
+      "警告",
+      "警惕",
+      "已删除",
+      "已禁用",
+      "账户",
+      "加密"
+    ]
   }
 }

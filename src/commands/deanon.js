@@ -51,14 +51,19 @@ module.exports = {
           .reverse()
           .map(async (warn, i) => {
             const date = new Date(warn.date).toLocaleDateString('en-US');
-            let issuerTag = 'Unkown';
+            let issuerTag = 'Unknown';
 
             try {
               const issuer = await interaction.client.users.fetch(warn.issuedBy);
               issuerTag = issuer.tag;
             } catch {}
 
-            return `**${i + 1}.** ${warn.reason} *(von ${issuerTag}, ${date})*`;
+            return await t(interaction.guildId, 'deanon.warningEntry', {
+              index: i + 1,
+              reason: warn.reason,
+              issuer: issuerTag,
+              date
+            });
           })
       );
 

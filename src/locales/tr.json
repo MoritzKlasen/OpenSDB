@@ -8,7 +8,8 @@
     "missingPermission": "Bunu yapmak için izniniz yok.",
     "generic": "Bir şeyler yanlış gitti.",
     "noPermission": "❌ İzin yok.",
-    "executionError": "⚠️ Yürütme sırasında hata!"
+    "executionError": "⚠️ Yürütme sırasında hata!",
+    "commandError": "⚠️ Bu komut yürütülürken bir hata oluştu."
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "Doğrula"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ Bilet başarıyla oluşturuldu: {channel}",
     "openedTitleSupport": "📨 Destek Bileti Açıldı",
     "openedTitleVerify": "📨 Doğrulama Bileti Açıldı",
@@ -47,7 +48,9 @@
     "noUser": "❌ Doğrulanmış kullanıcı bulunamadı.",
     "noPermission": "❌ İzin yok.",
     "set": "✅ {user} için yorum ayarlandı:\n> {text}",
-    "notVerified": "❌ {user} doğrulanmamış."
+    "notVerified": "❌ {user} doğrulanmamış.",
+    "modalTitle": "Olay Hakkında Yorum",
+    "modalLabel": "Yorum Metni"
   },
   "verify": {
     "noPermission": "❌ İzin yok.",
@@ -68,7 +71,8 @@
     "firstName": "Ad",
     "lastName": "Soyadı",
     "commentTitle": "📝 Yorum",
-    "warningsTitle": "⚠️ Son uyarılar"
+    "warningsTitle": "⚠️ Son uyarılar",
+    "warningEntry": "**{index}.** {reason} *({issuer} tarafından, {date})*"
   },
   "warn": {
     "noPermission": "❌ İzin yok.",
@@ -87,7 +91,13 @@
   "setrole": {
     "noPermission": "❌ İzin yok.",
     "noRolesSpecified": "⚠️ Lütfen güncellenecek en az bir rol belirtin.",
-    "updated": "✅ Roller güncellendi:\n{roles}"
+    "updated": "✅ Roller güncellendi:\n{roles}",
+    "teamrole": "Takım rolü",
+    "verifiedRole": "Doğrulanmış rolü",
+    "onjoinRole": "Katılım rolü"
+  },
+  "antiscam": {
+    "noPermission": "❌ İzin yok."
   },
   "bannedWords": {
     "detected": "🚨 Yasaklı kelime algılandı",
@@ -97,5 +107,44 @@
     "word": "Kelime",
     "warn": "Uyar",
     "comment": "Yorum"
+  },
+  "scamKeywords": {
+    "high": [
+      "şimdi talep et",
+      "sınırlı teklif",
+      "ücretsiz nitro",
+      "ücretsiz boost",
+      "hesabınızı doğrulayın",
+      "kimliği onaylayın",
+      "ödemeyi güncelleyin",
+      "şüpheli aktivite",
+      "hesap askıya alındı",
+      "hesabınızı doğrulayın"
+    ],
+    "medium": [
+      "buraya tıklayın",
+      "sunucuya katılın",
+      "bağlantıya tıklayın",
+      "çekiliş",
+      "kazanan",
+      "tebrikler",
+      "kazandın"
+    ],
+    "singleWord": [
+      "acil",
+      "doğrulayın",
+      "onaylayın",
+      "talep edin",
+      "ücretsiz",
+      "ödül",
+      "ödeme",
+      "bonus",
+      "kazanan",
+      "uyarı",
+      "silindi",
+      "askıya alındı",
+      "hesap",
+      "kripto"
+    ]
   }
 }

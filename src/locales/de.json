@@ -8,7 +8,8 @@
     "missingPermission": "Du hast dafür keine Berechtigung.",
     "generic": "Etwas ist schiefgelaufen.",
     "noPermission": "❌ Keine Berechtigung.",
-    "executionError": "⚠️ Fehler bei der Ausführung!"
+    "executionError": "⚠️ Fehler bei der Ausführung!",
+    "commandError": "⚠️ Beim Ausführen dieses Befehls ist ein Fehler aufgetreten."
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "Verifizieren"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ Ticket erfolgreich erstellt: {channel}",
     "openedTitleSupport": "📨 Support-Ticket eröffnet",
     "openedTitleVerify": "📨 Verifizierungs-Ticket eröffnet",
@@ -68,7 +69,8 @@
     "firstName": "Vorname",
     "lastName": "Nachname",
     "commentTitle": "📝 Kommentar",
-    "warningsTitle": "⚠️ Letzte Verwarnungen"
+    "warningsTitle": "⚠️ Letzte Verwarnungen",
+    "warningEntry": "**{index}.** {reason} *(von {issuer}, {date})*"
   },
   "warn": {
     "noPermission": "❌ Keine Berechtigung.",
@@ -87,7 +89,13 @@
   "setrole": {
     "noPermission": "❌ Keine Berechtigung.",
     "noRolesSpecified": "⚠️ Bitte geben Sie mindestens eine Rolle an.",
-    "updated": "✅ Rollen aktualisiert:\n{roles}"
+    "updated": "✅ Rollen aktualisiert:\n{roles}",
+    "teamrole": "Teamrolle",
+    "verifiedRole": "Verifizierte Rolle",
+    "onjoinRole": "Beitrittsrolle"
+  },
+  "antiscam": {
+    "noPermission": "❌ Keine Berechtigung."
   },
   "bannedWords": {
     "detected": "🚨 Verbotenes Wort erkannt",
@@ -97,5 +105,48 @@
     "word": "Wort",
     "warn": "Verwarnen",
     "comment": "Kommentar"
+  },
+  "scamKeywords": {
+    "high": [
+      "jetzt einfordern",
+      "begrenztes angebot",
+      "kostenlos nitro",
+      "kostenlos boost",
+      "account verifizieren",
+      "identität bestätigen",
+      "zahlung aktualisieren",
+      "verdächtige anmeldung",
+      "ungewöhnliche aktivität",
+      "account gesperrt",
+      "verifiziere deinen account"
+    ],
+    "medium": [
+      "hier klicken",
+      "server beitreten",
+      "diesen link klicken",
+      "schau dir das an",
+      "gewinnspiel",
+      "gewinner",
+      "gratuliere",
+      "du hast gewonnen",
+      "gewinn einfordern"
+    ],
+    "singleWord": [
+      "dringend",
+      "verifizieren",
+      "bestätigen",
+      "einfordern",
+      "kostenlos",
+      "gewinn",
+      "belohnung",
+      "bonus",
+      "gewinner",
+      "glückwunsch",
+      "warnung",
+      "gelöscht",
+      "gesperrt",
+      "konto",
+      "kryptowährung"
+    ]
   }
 }

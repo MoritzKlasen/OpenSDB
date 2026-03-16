@@ -1,5 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
+const { logger } = require('../utils/logger');
 
 module.exports = {
   name: 'guildMemberAdd',
@@ -21,7 +22,7 @@ module.exports = {
 
       await member.roles.add(role, 'Auto-Assign OnJoinRole');
     } catch (err) {
-      console.error('OnJoinRole Zuweisung fehlgeschlagen:', err);
+      logger.warn('Failed to assign on-join role', { memberId: member.id, error: err.message });
     }
   }
 };

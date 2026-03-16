@@ -5,21 +5,18 @@ export const useWebSocket = (onMessage) => {
   const reconnectTimeoutRef = useRef(null)
   const onMessageRef = useRef(onMessage)
 
-  // Update ref without triggering re-renders
   useEffect(() => {
     onMessageRef.current = onMessage
   }, [onMessage])
 
   useEffect(() => {
     const connect = () => {
-      // Determine WebSocket URL based on current location
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       const wsUrl = `${protocol}//${window.location.host}/ws`
 
       const ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
-        // Clear any pending reconnect timeout
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current)
           reconnectTimeoutRef.current = null
@@ -34,17 +31,12 @@ export const useWebSocket = (onMessage) => {
           if (onMessageRef.current) {
             onMessageRef.current(eventType, data)
           }
-        } catch (err) {
-          // Silent fail for malformed messages
-        }
+        } catch (err) {}
       }
 
-      ws.onerror = (error) => {
-        // Handle WebSocket errors silently
-      }
+      ws.onerror = (error) => {}
 
       ws.onclose = (event) => {
-        // Only attempt to reconnect if not a normal close or unauthorized
         if (event.code !== 1000 && event.code !== 4001) {
           reconnectTimeoutRef.current = setTimeout(() => {
             connect()

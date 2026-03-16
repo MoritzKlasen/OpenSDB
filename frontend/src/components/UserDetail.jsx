@@ -12,7 +12,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
   const [isDeletingWarning, setIsDeletingWarning] = useState(false)
   const [error, setError] = useState(null)
 
-  // Update local comment when user prop changes (e.g., from WebSocket broadcast)
   useEffect(() => {
     if (!isCommentEditing) {
       setLocalComment(user.comment || '')
@@ -65,7 +64,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
 
   return (
     <div className="space-y-6">
-      {/* User Info Card */}
       <Card>
         <div className="card-header">
           <h2 className="text-lg font-bold text-slate-100">User Information</h2>
@@ -98,7 +96,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
         </div>
       </Card>
 
-      {/* Comment Section */}
       <Card>
         <div className="card-header">
           <h2 className="text-lg font-bold text-slate-100">Comment</h2>
@@ -153,7 +150,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
         )}
       </Card>
 
-      {/* Warnings Section */}
       {user.warnings && user.warnings.length > 0 ? (
         <Card>
           <div className="card-header">
@@ -183,7 +179,6 @@ const UserDetail = ({ user, onUserUpdate }) => {
         </Card>
       )}
 
-      {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={!!warningToDelete}
         title="Delete Warning"

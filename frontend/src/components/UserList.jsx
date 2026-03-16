@@ -18,7 +18,6 @@ const UserList = () => {
       const response = await userApi.getAll()
       setUsers(response.data)
 
-      // Update selected user with fresh data if one is selected
       setSelectedUser(prevSelected => {
         if (!prevSelected) {
           return null
@@ -33,15 +32,12 @@ const UserList = () => {
     }
   }, [])
 
-  // Initial load
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
 
-  // WebSocket listener for real-time updates
   const handleWebSocketMessage = useCallback((eventType, data) => {
     if (eventType === 'users-updated') {
-      // Refetch users when any update happens
       loadUsers()
     }
   }, [loadUsers])
@@ -63,15 +59,12 @@ const UserList = () => {
   }
 
   const handleUserUpdate = (updatedUser) => {
-    // Update user in list
     setUsers(users.map(u => u._id === updatedUser._id ? updatedUser : u))
-    // Update selected user
     setSelectedUser(updatedUser)
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* User List Panel */}
       <div className="lg:col-span-1">
         <Card className="flex flex-col h-full">
           <div className="card-header flex justify-between items-start">
@@ -104,8 +97,8 @@ const UserList = () => {
                   key={user._id}
                   onClick={() => handleUserSelect(user)}
                   className={`w-full text-left p-3 rounded-lg transition-colors ${selectedUser?._id === user._id
-                      ? 'bg-blue-600'
-                      : 'bg-slate-800 hover:bg-slate-700'
+                    ? 'bg-blue-600'
+                    : 'bg-slate-800 hover:bg-slate-700'
                     }`}
                 >
                   <div className="font-medium text-sm text-slate-100">
@@ -126,7 +119,6 @@ const UserList = () => {
         </Card>
       </div>
 
-      {/* User Detail Panel */}
       <div className="lg:col-span-2">
         {selectedUser ? (
           <UserDetail user={selectedUser} onUserUpdate={handleUserUpdate} />

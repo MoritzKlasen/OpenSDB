@@ -1,6 +1,7 @@
 const LocalizedMessage = require("../database/models/LocalizedMessage");
 const { renderTicketPanel } = require("./ticketPanelRenderer");
 const { t } = require("./i18n");
+const { logger } = require("./logger");
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Colors } = require("discord.js");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -34,7 +35,6 @@ async function updateGuildLocalizedMessages(client, guildId, { limit = 200, dela
           categoryId: doc.vars.categoryId
         });
 
-        // Apply custom overrides if they exist
         if (doc.overrides?.title || doc.overrides?.description) {
           const embed = EmbedBuilder.from(payload.embeds[0]);
           if (doc.overrides.title) embed.setTitle(doc.overrides.title);
@@ -103,6 +103,13 @@ async function updateGuildLocalizedMessages(client, guildId, { limit = 200, dela
       updated++;
       await sleep(delayMs);
     } catch (e) {
+      logger.warn('Failed to update localized message', {
+        guildId,
+        messageId: doc.messageId,
+        channelId: doc.channelId,
+        key: doc.key,
+        error: e.message,
+      });
       failed++;
     }
   }

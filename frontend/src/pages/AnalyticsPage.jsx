@@ -31,7 +31,7 @@ const AnalyticsPage = () => {
       try {
         const to = new Date()
         const from = new Date()
-        from.setDate(from.getDate() - 90) // Last 90 days
+        from.setDate(from.getDate() - 90)
         const response = await analyticsApi.getUsersGrowth(
           from.toISOString(),
           to.toISOString()
@@ -50,7 +50,7 @@ const AnalyticsPage = () => {
       try {
         const to = new Date()
         const from = new Date()
-        from.setDate(from.getDate() - 90) // Last 90 days
+        from.setDate(from.getDate() - 90)
         const response = await analyticsApi.getWarningsActivity(
           from.toISOString(),
           to.toISOString()
@@ -66,15 +66,12 @@ const AnalyticsPage = () => {
     await Promise.all([fetchUserGrowth(), fetchWarningActivity()])
   }, [])
 
-  // Initial load
   useEffect(() => {
     loadAnalytics()
   }, [loadAnalytics])
 
-  // WebSocket listener for real-time updates
   const handleWebSocketMessage = useCallback((eventType, data) => {
     if (eventType === 'analytics-updated') {
-      // Refetch analytics when data changes
       loadAnalytics()
     }
   }, [loadAnalytics])
@@ -96,7 +93,6 @@ const AnalyticsPage = () => {
           <p className="text-slate-400">Monitor user growth and moderation activity • Real-time updates via WebSocket</p>
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <div className="text-center">
@@ -115,8 +111,8 @@ const AnalyticsPage = () => {
               <p className="text-3xl font-bold text-green-400">
                 {userGrowthData
                   ? userGrowthData
-                      .slice(-30)
-                      .reduce((sum, d) => sum + d.daily, 0)
+                    .slice(-30)
+                    .reduce((sum, d) => sum + d.daily, 0)
                   : '—'}
               </p>
             </div>
@@ -128,15 +124,14 @@ const AnalyticsPage = () => {
               <p className="text-3xl font-bold text-yellow-400">
                 {warningActivityData
                   ? warningActivityData
-                      .slice(-30)
-                      .reduce((sum, d) => sum + d.count, 0)
+                    .slice(-30)
+                    .reduce((sum, d) => sum + d.count, 0)
                   : '—'}
               </p>
             </div>
           </Card>
         </div>
 
-        {/* User Growth Chart */}
         <Card>
           <div className="card-header">
             <h3 className="text-lg font-bold text-slate-100">User Growth</h3>
@@ -180,7 +175,6 @@ const AnalyticsPage = () => {
           )}
         </Card>
 
-        {/* Warning Activity Chart */}
         <Card>
           <div className="card-header">
             <h3 className="text-lg font-bold text-slate-100">Warning Activity</h3>

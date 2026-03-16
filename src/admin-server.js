@@ -11,13 +11,11 @@ const {
   createLoginLimiter,
   createApiLimiter,
   corsMiddleware,
-  verifyInternalRequest,
-  sanitizeInput
+  verifyInternalRequest
 } = require('./utils/security');
 const { logger, requestLogger, getSecurityEvents, getErrorLogs } = require('./utils/logger');
 const { validateEnvironment } = require('./utils/envValidator');
 
-// Validate environment variables first
 validateEnvironment();
 
 require('dotenv').config();
@@ -30,12 +28,21 @@ const csv = require('csvtojson');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const app = express();
-const PORT = process.env.ADMIN_UI_PORT || 8001; 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+if (!process.env.ADMIN_UI_PORT) {
+  throw new Error('ADMIN_UI_PORT environment variable is required');
+}
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
 
-// Trust proxy - required for rate-limiting and X-Forwarded-For headers from Nginx
+const app = express();
+const PORT = process.env.ADMIN_UI_PORT;
+const JWT_SECRET = process.env.JWT_SECRET;
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
+
 app.set('trust proxy', 1);
 
 logger.info('Starting OpenSDB Admin Server');
@@ -55,18 +62,14 @@ mongoose.connect(process.env.DB_URI, {
 app.use(express.json());
 app.use(cookieParser());
 
-// Logging middleware
 app.use(requestLogger);
 
-// Security middleware
 app.use(getHelmetMiddleware());
 app.use(corsMiddleware);
 app.use(createApiLimiter());
 
-// Serve old assets for backward compatibility
 app.use('/assets', express.static(path.join(__dirname, 'admin-ui', 'assets')));
 
-// Serve React frontend from dist (built files)
 const frontendPath = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendPath));
 
@@ -95,7 +98,15 @@ function basicAuth(user, pass) {
     next();
   };
 }
-const metricsBasic = basicAuth(process.env.METRICS_BASIC_USER || "grafana", process.env.METRICS_BASIC_PASS || "changeMe!");
+
+if (!process.env.METRICS_BASIC_USER) {
+  throw new Error('METRICS_BASIC_USER environment variable is required');
+}
+if (!process.env.METRICS_BASIC_PASS) {
+  throw new Error('METRICS_BASIC_PASS environment variable is required');
+}
+
+const metricsBasic = basicAuth(process.env.METRICS_BASIC_USER, process.env.METRICS_BASIC_PASS);
 
 app.post('/api/login', createLoginLimiter(), (req, res) => {
   const { username, password } = req.body;
@@ -147,7 +158,6 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// Internal endpoint for bot to notify of changes (requires signed request)
 app.post('/api/internal/notify-change', verifyInternalRequest(INTERNAL_SECRET, logger), (req, res) => {
   const { type } = req.body;
 
@@ -157,11 +167,9 @@ app.post('/api/internal/notify-change', verifyInternalRequest(INTERNAL_SECRET, l
       message: `${type} update triggered by bot`,
       source: 'internal_api'
     });
-    logger.info(`Broadcasting ${type} update to all connected clients...`);
     broadcast('users-updated', { type });
     broadcast('analytics-updated', { type });
   } else if (type === 'analytics') {
-    logger.info(`Broadcasting analytics update...`);
     broadcast('analytics-updated', { type });
   }
 
@@ -195,7 +203,6 @@ app.delete('/api/remove-warning/:discordId/:index', authMiddleware, async (req, 
     }
     user.warnings.splice(index, 1);
     await user.save();
-    // Broadcast updates to all clients
     broadcast('users-updated', { discordId });
     broadcast('analytics-updated', { type: 'warning-deleted' });
     res.json({ success: true });
@@ -313,7 +320,7 @@ app.get(
       res.set('Cache-Control', 'public, max-age=60');
       return res.json(data);
     } catch (err) {
-      console.error('Metrics error:', err);
+      logger.error('Metrics error', { error: err.message });
       return res.status(500).json({ error: 'Internal error' });
     }
   }
@@ -383,7 +390,6 @@ app.post(
         imported++;
       }
 
-      // Broadcast data refresh to all clients
       broadcast('users-updated', { type: 'import' });
       broadcast('analytics-updated', { type: 'import' });
       res.json({ success: true, imported });
@@ -405,7 +411,6 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
     }
     user.comment = comment;
     await user.save();
-    // Broadcast updates to all clients
     broadcast('users-updated', { discordId });
     broadcast('analytics-updated', { type: 'user-updated' });
     res.json({ success: true });
@@ -462,12 +467,12 @@ app.get('/api/analytics/warnings-per-day', authMiddleware, async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    console.error('Analytics error:', err);
+    logger.error('Analytics error', { error: err.message });
     res.status(500).json({ error: 'Internal error' });
   }
 });
 
-// Dashboard-specific analytics endpoints (JWT protected)
+
 app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
   try {
     let from = req.query.from ? new Date(req.query.from) : new Date('2024-01-01');
@@ -572,25 +577,19 @@ app.get('/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// ==========================================
-// Monitoring & Debugging Endpoints
-// ==========================================
 
-// Get security events (admin only)
 app.get('/api/monitoring/security-events', authMiddleware, (req, res) => {
   const hours = parseInt(req.query.hours || '24', 10);
   const events = getSecurityEvents(hours);
   res.json({ events, count: events.length });
 });
 
-// Get error logs (admin only)
 app.get('/api/monitoring/errors', authMiddleware, (req, res) => {
   const hours = parseInt(req.query.hours || '24', 10);
   const errors = getErrorLogs(hours);
   res.json({ errors, count: errors.length });
 });
 
-// Health check (no auth required)
 app.get('/api/monitoring/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -600,13 +599,11 @@ app.get('/api/monitoring/health', (req, res) => {
   });
 });
 
-// SPA catch-all: serve React app's index.html for non-API routes
+
 app.get(/.*/, (req, res) => {
-  // Skip if it's an API route (already handled above)
   if (req.path.startsWith('/api/') || req.path === '/logout') {
     return res.status(404).json({ error: 'Not found' });
   }
-  // Serve index.html for all other routes (React routing)
   const indexPath = path.join(frontendPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {

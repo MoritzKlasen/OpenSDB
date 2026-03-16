@@ -12,15 +12,19 @@ const {
 } = require('discord.js');
 
 const LocalizedMessage = require('../database/models/LocalizedMessage');
+const ScamDetectionEvent = require('../database/models/ScamDetectionEvent');
 const { t } = require("../utils/i18n");
 const ServerSettings = require('../database/models/ServerSettings');
 const VerifiedUser   = require('../database/models/VerifiedUser');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { logger } = require('../utils/logger');
 require('dotenv').config();
 
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
-// Helper to notify admin server of changes
 async function notifyAdminServerHelper(type) {
   return notifyAdminServer(type, INTERNAL_SECRET);
 }
@@ -65,12 +69,12 @@ function topicGetFlag(topic, key) {
 async function resolveOpenerIdFromOverwrites(channel, teamRoleId) {
   const overwrites = channel.permissionOverwrites.cache;
   for (const po of overwrites.values()) {
-    if (po.type === 1) { // 1 = Member (user) overwrite
+    if (po.type === 1) { 
       const allowsView = po.allow?.has?.('ViewChannel');
       if (allowsView) {
         if (teamRoleId) {
           const member = await channel.guild.members.fetch(po.id).catch(() => null);
-          if (member?.roles.cache.has(teamRoleId)) continue; // skip team members
+          if (member?.roles.cache.has(teamRoleId)) continue; 
         }
         return po.id;
       }
@@ -86,7 +90,11 @@ module.exports = async (client, interaction) => {
     try {
       await command.execute(interaction);
     } catch (err) {
-      console.error(err);
+      logger.error('Error executing command', {
+        guildId: interaction.guildId,
+        command: interaction.commandName,
+        error: err.message,
+      });
       await interaction.reply({ content: await t(interaction.guildId, "errors.executionError"), flags: 64 });
     }
   }
@@ -158,7 +166,6 @@ module.exports = async (client, interaction) => {
         ]
       });
 
-      // Tracking the localized message for language refresh
       await LocalizedMessage.updateOne(
         { guildId: interaction.guildId, messageId: ticketMsg.id },
         {
@@ -168,8 +175,8 @@ module.exports = async (client, interaction) => {
             messageId: ticketMsg.id,
             key: "ticket.opened",
             vars: {
-              type: ticketType,              // support|verify
-              userMention: `${interaction.user}` // so we can re-render later
+              type: ticketType,
+              userMention: `${interaction.user}` 
             }
           }
         },
@@ -229,7 +236,7 @@ module.exports = async (client, interaction) => {
           }).catch(() => {});
         }
       } catch (e) {
-        console.warn('Permission lock error:', e);
+        logger.warn('Failed to update channel permissions', { channelId: channel.id, error: e.message });
       }
 
       try {
@@ -239,7 +246,7 @@ module.exports = async (client, interaction) => {
           await channel.setName(`🔒-${channel.name.replace(/^🔒-/, '')}`).catch(() => {});
         }
       } catch (e) {
-        console.warn('Topic/name update error:', e);
+        logger.warn('Failed to update channel topic/name', { channelId: channel.id, error: e.message });
       }
 
       const closedEmbed = new EmbedBuilder()
@@ -255,7 +262,6 @@ module.exports = async (client, interaction) => {
           await interaction.reply({ embeds: [closedEmbed] });
         }
       } catch (e) {
-        console.warn('Button disable/update error:', e);
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp({ content: await t(interaction.guildId, "errors.generic"), flags: 64 });
         } else {
@@ -279,13 +285,18 @@ module.exports = async (client, interaction) => {
         });
         await verified.save();
         
-        // Notify admin server of the warning
         await notifyAdminServerHelper('warning');
         
         try { await target.send(await t(interaction.guildId, "warnings.dmMessage", { word: bannedWord })); } catch {}
         return interaction.reply({ content: await t(interaction.guildId, "warnings.issued", { user: `${target.tag}` }), flags: 0 });
       } catch (err) {
-        console.error(err);
+        logger.error('Error issuing warning', {
+          guildId: interaction.guildId,
+          userId: interaction.user.id,
+          targetId: userId,
+          bannedWord,
+          error: err.message,
+        });
         return interaction.reply({ content: await t(interaction.guildId, "warnings.error"), flags: 64 });
       }
     }
@@ -293,17 +304,219 @@ module.exports = async (client, interaction) => {
     if (action === 'comment') {
       const modal = new ModalBuilder()
         .setCustomId(`commentmodal_${userId}`)
-        .setTitle('Comment on Incident')
+        .setTitle(await t(interaction.guildId, 'comments.modalTitle'))
         .addComponents(
           new ActionRowBuilder().addComponents(
             new TextInputBuilder()
               .setCustomId('comment')
-              .setLabel('Comment Text')
+              .setLabel(await t(interaction.guildId, 'comments.modalLabel'))
               .setStyle(TextInputStyle.Paragraph)
               .setRequired(true)
           )
         );
       return interaction.showModal(modal);
+    }
+
+    if (interaction.customId.startsWith('scam_')) {
+      const parts = interaction.customId.split('_');
+      const [scamPrefix, action, ...params] = parts;
+      
+      try {
+        if (action === 'delete') {
+          const alertMessageId = params[0];
+          
+          const { getAlertMessageData, cleanupDeletedAlert } = require('./handleAntiScam');
+          const alertData = getAlertMessageData(alertMessageId);
+          
+          if (!alertData) {
+            return await interaction.reply({
+              content: '❌ Alert data not found. Messages may have already been deleted or alert expired.',
+              flags: 64
+            });
+          }
+          
+          const { messages } = alertData;
+          
+          let deletedCount = 0;
+          let failedCount = 0;
+          
+          for (const msg of messages) {
+            try {
+              const channel = await interaction.guild?.channels.fetch(msg.channelId).catch(() => null);
+              if (!channel?.isTextBased()) {
+                failedCount++;
+                continue;
+              }
+              
+              const message = await channel.messages.fetch(msg.messageId).catch(() => null);
+              if (message) {
+                await message.delete();
+                deletedCount++;
+              } else {
+                failedCount++;
+              }
+            } catch (err) {
+              logger.error('Failed to delete spam message', {
+                messageId: msg.messageId,
+                channelId: msg.channelId,
+                error: err.message
+              });
+              failedCount++;
+            }
+          }
+          
+          const resultMessage = deletedCount > 0 
+            ? `✅ Deleted ${deletedCount} message${deletedCount > 1 ? 's' : ''}.${failedCount > 0 ? ` (${failedCount} already deleted)` : ''}`
+            : '❌ All messages were already deleted or not found.';
+          
+          await interaction.reply({
+            content: resultMessage,
+            flags: 64
+          });
+          
+          logger.security('Messages deleted via scam alert', {
+            guildId: interaction.guildId,
+            deletedCount,
+            failedCount,
+            deletedBy: interaction.user.id
+          });
+          
+          if (deletedCount > 0) {
+            cleanupDeletedAlert(alertMessageId);
+          }
+          
+          try {
+            if (interaction.message?.components?.length >= 2) {
+              const row1Components = interaction.message.components[0].components;
+              const row2Components = interaction.message.components[1].components;
+              
+              const newRow1 = new ActionRowBuilder();
+              row1Components.forEach(c => {
+                if (c.style === ButtonStyle.Link) {
+                  newRow1.addComponents(
+                    new ButtonBuilder()
+                      .setCustomId('scam_view_disabled')
+                      .setLabel('View Message')
+                      .setStyle(ButtonStyle.Secondary)
+                      .setDisabled(true)
+                  );
+                } else if (c.customId?.startsWith('scam_delete')) {
+                  newRow1.addComponents(
+                    new ButtonBuilder()
+                      .setCustomId(c.customId)
+                      .setLabel(c.label)
+                      .setStyle(c.style)
+                      .setDisabled(true)
+                  );
+                } else {
+                  newRow1.addComponents(
+                    new ButtonBuilder()
+                      .setCustomId(c.customId)
+                      .setLabel(c.label)
+                      .setStyle(c.style)
+                  );
+                }
+              });
+              
+              const newRow2 = new ActionRowBuilder();
+              row2Components.forEach(c => {
+                if (c.customId?.startsWith('scam_dismiss')) {
+                  newRow2.addComponents(
+                    new ButtonBuilder()
+                      .setCustomId(c.customId)
+                      .setLabel(c.label)
+                      .setStyle(c.style)
+                      .setDisabled(true)
+                  );
+                } else {
+                  newRow2.addComponents(
+                    new ButtonBuilder()
+                      .setCustomId(c.customId)
+                      .setLabel(c.label)
+                      .setStyle(c.style)
+                  );
+                }
+              });
+              
+              await interaction.message.edit({ components: [newRow1, newRow2] }).catch(() => {});
+            }
+          } catch (err) {}
+          
+          return;
+        }
+        
+        if (action === 'timeout') {
+          const userId = params[0];
+          const duration = parseInt(params[1]) || 60;
+          
+          try {
+            const member = await interaction.guild.members.fetch(userId).catch(() => null);
+            if (!member) {
+              return await interaction.reply({
+                content: '❌ User not found or no longer in server.',
+                flags: 64
+              });
+            }
+            
+            await member.timeout(
+              duration * 60 * 1000,
+              'Scam/spam activity (admin action)'
+            );
+            
+            await interaction.reply({
+              content: `✅ User timed out for ${duration} minutes.`,
+              flags: 64
+            });
+            
+            logger.security('User timed out via scam alert', {
+              guildId: interaction.guildId,
+              userId,
+              duration,
+              actionBy: interaction.user.id
+            });
+          } catch (error) {
+            logger.error('Failed to timeout user', {
+              userId,
+              error: error.message
+            });
+            await interaction.reply({
+              content: '❌ Failed to timeout user. They may have higher permissions.',
+              flags: 64
+            });
+          }
+          return;
+        }
+        
+        if (action === 'dismiss') {
+          const messageId = params[0];
+          
+          await interaction.message.delete().catch(() => null);
+          
+          await ScamDetectionEvent.findOneAndUpdate(
+            { messageId },
+            { 
+              dismissed: true,
+              dismissedAt: new Date(),
+              dismissedBy: interaction.user.id
+            }
+          ).catch(() => null);
+          
+          return;
+        }
+      } catch (error) {
+        logger.error('Error handling anti-scam action', {
+          guildId: interaction.guildId,
+          action,
+          error: error.message
+        });
+        
+        if (!interaction.replied && !interaction.deferred) {
+          return await interaction.reply({
+            content: '❌ An error occurred while performing this action.',
+            flags: 64
+          });
+        }
+      }
     }
   }
 

@@ -8,6 +8,7 @@ const {
 const BannedWord = require('../database/models/BannedWord');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { logger } = require('../utils/logger');
 
 module.exports = async function handleBannedWords(client, message) {
   if (message.author.bot) return;
@@ -51,7 +52,11 @@ module.exports = async function handleBannedWords(client, message) {
           components: [row]
         });
       } catch (err) {
-        console.error('Error sending to the admin channel:', err);
+        logger.warn('Failed to send banned word alert to admin channel', {
+          guildId: message.guildId,
+          bannedWord: banned,
+          error: err.message,
+        });
       }
 
       break;

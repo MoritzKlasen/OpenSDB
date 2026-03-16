@@ -8,7 +8,8 @@
     "missingPermission": "Vous n'avez pas la permission de faire cela.",
     "generic": "Une erreur s'est produite.",
     "noPermission": "❌ Pas de permission.",
-    "executionError": "⚠️ Erreur lors de l'exécution !"
+    "executionError": "⚠️ Erreur lors de l'exécution !",
+    "commandError": "⚠️ Une erreur est survenue lors de l'exécution de cette commande."
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "Vérifier"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ Ticket créé avec succès : {channel}",
     "openedTitleSupport": "📨 Ticket de support ouvert",
     "openedTitleVerify": "📨 Ticket de vérification ouvert",
@@ -47,7 +48,9 @@
     "noUser": "❌ Aucun utilisateur vérifié trouvé.",
     "noPermission": "❌ Pas de permission.",
     "set": "✅ Le commentaire pour {user} a été défini :\n> {text}",
-    "notVerified": "❌ {user} n'est pas vérifié."
+    "notVerified": "❌ {user} n'est pas vérifié.",
+    "modalTitle": "Commenter l'incident",
+    "modalLabel": "Texte du commentaire"
   },
   "verify": {
     "noPermission": "❌ Pas de permission.",
@@ -68,7 +71,8 @@
     "firstName": "Prénom",
     "lastName": "Nom de famille",
     "commentTitle": "📝 Commentaire",
-    "warningsTitle": "⚠️ Avertissements récents"
+    "warningsTitle": "⚠️ Avertissements récents",
+    "warningEntry": "**{index}.** {reason} *(par {issuer}, {date})*"
   },
   "warn": {
     "noPermission": "❌ Pas de permission.",
@@ -87,7 +91,13 @@
   "setrole": {
     "noPermission": "❌ Pas de permission.",
     "noRolesSpecified": "⚠️ Veuillez spécifier au moins un rôle à mettre à jour.",
-    "updated": "✅ Rôles mis à jour :\n{roles}"
+    "updated": "✅ Rôles mis à jour :\n{roles}",
+    "teamrole": "Rôle équipe",
+    "verifiedRole": "Rôle vérifié",
+    "onjoinRole": "Rôle à l'arrivée"
+  },
+  "antiscam": {
+    "noPermission": "❌ Pas de permission."
   },
   "bannedWords": {
     "detected": "🚨 Mot interdit détecté",
@@ -97,5 +107,45 @@
     "word": "Mot",
     "warn": "Avertir",
     "comment": "Commentaire"
+  },
+  "scamKeywords": {
+    "high": [
+      "réclame maintenant",
+      "offre limitée",
+      "nitro gratuit",
+      "boost gratuit",
+      "vérifiez votre compte",
+      "confirmez l'identité",
+      "mettez à jour le paiement",
+      "activité suspecte",
+      "compte suspendu",
+      "vérifiez votre compte"
+    ],
+    "medium": [
+      "cliquez ici",
+      "rejoignez le serveur",
+      "cliquez sur le lien",
+      "concours",
+      "gagnant",
+      "félicitations",
+      "vous avez gagné"
+    ],
+    "singleWord": [
+      "urgent",
+      "vérifiez",
+      "confirmez",
+      "réclamez",
+      "gratuit",
+      "prix",
+      "récompense",
+      "bonus",
+      "gagnant",
+      "alerte",
+      "avertissement",
+      "supprimé",
+      "suspendu",
+      "compte",
+      "crypto"
+    ]
   }
 }

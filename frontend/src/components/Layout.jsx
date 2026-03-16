@@ -17,7 +17,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-slate-950">
-      {/* Header */}
       <header className="bg-slate-900 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
@@ -28,21 +27,19 @@ const Layout = ({ children }) => {
           <nav className="flex items-center gap-4">
             <button
               onClick={() => navigate('/dashboard')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                isActive('/dashboard')
+              className={`px-4 py-2 rounded-lg transition-colors ${isActive('/dashboard')
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-300 hover:bg-slate-800'
-              }`}
+                }`}
             >
               Users
             </button>
             <button
               onClick={() => navigate('/analytics')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                isActive('/analytics')
+              className={`px-4 py-2 rounded-lg transition-colors ${isActive('/analytics')
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-300 hover:bg-slate-800'
-              }`}
+                }`}
             >
               Analytics
             </button>
@@ -57,7 +54,6 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {children}
       </main>

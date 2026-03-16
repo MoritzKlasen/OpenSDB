@@ -20,8 +20,6 @@ const LoginPage = () => {
     try {
       const response = await authApi.login(username, password)
       if (response.data.success) {
-        // Backend has set httpOnly cookie with JWT
-        // Just update auth state
         login()
         navigate('/dashboard')
       }

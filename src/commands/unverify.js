@@ -3,9 +3,13 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { logger } = require('../utils/logger');
 require('dotenv').config();
 
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || 'change-me-in-production';
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -50,10 +54,9 @@ module.exports = {
         await member.roles.remove(verifiedRoleId);
       }
     } catch (err) {
-      console.warn(`Could not remove verified role from ${user.tag}:`, err.message);
+      logger.warn(`Could not remove verified role from ${user.tag}`, { error: err.message });
     }
 
-    // Notify admin server of unverification
     await notifyAdminServer('unverify', INTERNAL_SECRET);
 
     await interaction.reply({

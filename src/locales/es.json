@@ -8,7 +8,8 @@
     "missingPermission": "No tienes permiso para hacer eso.",
     "generic": "Algo salió mal.",
     "noPermission": "❌ Sin permiso.",
-    "executionError": "⚠️ ¡Error durante la ejecución!"
+    "executionError": "⚠️ ¡Error durante la ejecución!",
+    "commandError": "⚠️ Ocurrió un error al ejecutar este comando."
   },
   "ticketPanel": {
     "support": {
@@ -22,7 +23,7 @@
       "button": "Verificar"
     }
   },
-  "tickets": { 
+  "tickets": {
     "created": "✅ Ticket creado exitosamente: {channel}",
     "openedTitleSupport": "📨 Ticket de soporte abierto",
     "openedTitleVerify": "📨 Ticket de verificación abierto",
@@ -47,7 +48,9 @@
     "noUser": "❌ No se encontró usuario verificado.",
     "noPermission": "❌ Sin permiso.",
     "set": "✅ Comentario para {user} ha sido establecido:\n> {text}",
-    "notVerified": "❌ {user} no está verificado."
+    "notVerified": "❌ {user} no está verificado.",
+    "modalTitle": "Comentario sobre el incidente",
+    "modalLabel": "Texto del comentario"
   },
   "verify": {
     "noPermission": "❌ Sin permiso.",
@@ -68,7 +71,8 @@
     "firstName": "Nombre",
     "lastName": "Apellido",
     "commentTitle": "📝 Comentario",
-    "warningsTitle": "⚠️ Advertencias recientes"
+    "warningsTitle": "⚠️ Advertencias recientes",
+    "warningEntry": "**{index}.** {reason} *(por {issuer}, {date})*"
   },
   "warn": {
     "noPermission": "❌ Sin permiso.",
@@ -87,7 +91,13 @@
   "setrole": {
     "noPermission": "❌ Sin permiso.",
     "noRolesSpecified": "⚠️ Por favor especifica al menos un rol a actualizar.",
-    "updated": "✅ Roles actualizados:\n{roles}"
+    "updated": "✅ Roles actualizados:\n{roles}",
+    "teamrole": "Rol de equipo",
+    "verifiedRole": "Rol verificado",
+    "onjoinRole": "Rol al unirse"
+  },
+  "antiscam": {
+    "noPermission": "❌ Sin permiso."
   },
   "bannedWords": {
     "detected": "🚨 Palabra prohibida detectada",
@@ -97,5 +107,46 @@
     "word": "Palabra",
     "warn": "Advertir",
     "comment": "Comentario"
+  },
+  "scamKeywords": {
+    "high": [
+      "reclama ahora",
+      "oferta limitada",
+      "nitro gratis",
+      "boost gratis",
+      "verifica tu cuenta",
+      "confirma identidad",
+      "actualiza pago",
+      "actividad sospechosa",
+      "cuenta suspendida",
+      "verifica tu cuenta"
+    ],
+    "medium": [
+      "haz clic aquí",
+      "únete al servidor",
+      "haz clic en el enlace",
+      "sorteo",
+      "ganador",
+      "felicidades",
+      "ganaste",
+      "reclama tu premio"
+    ],
+    "singleWord": [
+      "urgente",
+      "verifica",
+      "confirma",
+      "reclama",
+      "gratis",
+      "premio",
+      "recompensa",
+      "bonus",
+      "ganador",
+      "alerta",
+      "advertencia",
+      "eliminado",
+      "suspendido",
+      "cuenta",
+      "criptomoneda"
+    ]
   }
 }
