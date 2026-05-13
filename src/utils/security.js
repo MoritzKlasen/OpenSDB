@@ -4,28 +4,32 @@ const crypto = require('crypto');
 const { z } = require('zod');
 
 function getHelmetMiddleware() {
-  return helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'nonce-" + crypto.randomBytes(16).toString('hex') + "'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
-        frameSrc: ["'none'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        childSrc: ["'none'"],
+  return (req, res, next) => {
+    const nonce = crypto.randomBytes(16).toString('hex');
+    res.locals.cspNonce = nonce;
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", `'nonce-${nonce}'`],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          childSrc: ["'none'"],
+        },
       },
-    },
-    crossOriginEmbedderPolicy: false,
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-  });
+      crossOriginEmbedderPolicy: false,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    })(req, res, next);
+  };
 }
 
 const createLoginLimiter = () =>
@@ -54,13 +58,13 @@ function corsMiddleware(req, res, next) {
     throw new Error('CORS_ORIGINS environment variable is required');
   }
   
-  const allowedOrigins = process.env.CORS_ORIGINS.split(',');
+  const allowedOrigins = process.env.CORS_ORIGINS.split(',').filter(o => o !== '*');
   const origin = req.headers.origin;
 
-  if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 

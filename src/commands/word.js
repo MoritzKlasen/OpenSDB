@@ -3,6 +3,7 @@ const BannedWord = require('../database/models/BannedWord');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
+const { notifyAdminServer } = require('../utils/botNotifier');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,7 +31,7 @@ module.exports = {
       const guildOwnerId = interaction.guild.ownerId;
       const userId = interaction.user.id;
       
-      const settings = await ServerSettings.findOne();
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
       const teamRoleId = settings?.teamRoleId;
 
       const isOwner = userId === guildOwnerId;
@@ -52,6 +53,11 @@ module.exports = {
           userId: interaction.user.id,
           word,
         });
+        try {
+          await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+        } catch (notifyErr) {
+          logger.error('Failed to notify admin server', { error: notifyErr.message });
+        }
         return interaction.reply(await t(interaction.guildId, 'banned.wordAdded', { word }));
       }
 
@@ -62,6 +68,11 @@ module.exports = {
           userId: interaction.user.id,
           word,
         });
+        try {
+          await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+        } catch (notifyErr) {
+          logger.error('Failed to notify admin server', { error: notifyErr.message });
+        }
         return interaction.reply(await t(interaction.guildId, 'banned.wordRemoved', { word }));
       }
     } catch (error) {

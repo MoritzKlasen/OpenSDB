@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const ServerSettings = require("../database/models/ServerSettings");
 const { t, setGuildLanguageCache, SUPPORTED } = require("../utils/i18n");
 const { logger } = require("../utils/logger");
+const { notifyAdminServer } = require("../utils/botNotifier");
 
 const { updateGuildLocalizedMessages } = require("../utils/updateLocalizedMessages");
 
@@ -103,6 +104,17 @@ module.exports = {
           oldLanguage: oldLang,
           newLanguage: newLang,
         });
+
+        try {
+          await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+        } catch (error) {
+          logger.warn('Failed to notify admin server after language change', {
+            guildId,
+            changedBy: interaction.user.id,
+            newLanguage: newLang,
+            error: error.message,
+          });
+        }
 
         const languageName = LANGUAGE_NAMES[newLang] || "English";
         await interaction.reply({

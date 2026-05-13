@@ -15,6 +15,17 @@ function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: '/ws' });
 
   wss.on('connection', (ws, req) => {
+    // Verify origin
+    const origin = req.headers.origin;
+    if (origin && process.env.CORS_ORIGINS) {
+      const allowedOrigins = process.env.CORS_ORIGINS.split(',').filter(o => o !== '*');
+      if (!allowedOrigins.includes(origin)) {
+        logger.security('websocket_origin_rejected', { origin });
+        ws.close(4003, 'Invalid origin');
+        return;
+      }
+    }
+
     const cookies = parseCookies(req.headers.cookie || '');
     const token = cookies.token;
 
@@ -29,8 +40,11 @@ function initWebSocket(server) {
 
     try {
       jwt.verify(token, JWT_SECRET);
+      ws.isAlive = true;
       clients.add(ws);
       logger.ws('client_authenticated', { total: clients.size });
+
+      ws.on('pong', () => { ws.isAlive = true; });
 
       ws.on('close', () => {
         clients.delete(ws);
@@ -52,6 +66,20 @@ function initWebSocket(server) {
   });
 
   logger.info('WebSocket server initialized on /ws');
+
+  // Ping clients every 30s to detect stale connections
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach(ws => {
+      if (!ws.isAlive) {
+        clients.delete(ws);
+        return ws.terminate();
+      }
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, 30000);
+
+  wss.on('close', () => clearInterval(pingInterval));
 }
 
 function broadcast(event, data) {
@@ -82,9 +110,17 @@ function parseCookies(cookieHeader) {
   if (!cookieHeader) return cookies;
   
   cookieHeader.split(';').forEach(cookie => {
-    const [name, value] = cookie.split('=');
-    if (name && value) {
-      cookies[name.trim()] = decodeURIComponent(value.trim());
+    const eqIndex = cookie.indexOf('=');
+    if (eqIndex > 0) {
+      const name = cookie.slice(0, eqIndex).trim();
+      const value = cookie.slice(eqIndex + 1).trim();
+      if (name) {
+        try {
+          cookies[name] = decodeURIComponent(value);
+        } catch {
+          cookies[name] = value;
+        }
+      }
     }
   });
   return cookies;

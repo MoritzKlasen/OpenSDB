@@ -82,6 +82,7 @@ services:
 volumes:
   db:
 
+
 networks:
   internal:
     driver: bridge

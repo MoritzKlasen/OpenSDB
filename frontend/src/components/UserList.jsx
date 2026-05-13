@@ -3,6 +3,7 @@ import { userApi } from '../utils/api'
 import { Button, Input, Card, Loading, Empty, Error, Badge } from './UI'
 import UserDetail from './UserDetail'
 import { useWebSocket } from '../hooks/useWebSocket'
+import Icon from './Icon'
 
 const UserList = () => {
   const [users, setUsers] = useState([])
@@ -34,6 +35,8 @@ const UserList = () => {
 
   useEffect(() => {
     loadUsers()
+    const interval = setInterval(loadUsers, 15000)
+    return () => clearInterval(interval)
   }, [loadUsers])
 
   const handleWebSocketMessage = useCallback((eventType, data) => {
@@ -66,7 +69,7 @@ const UserList = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1">
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col max-h-[calc(100vh-200px)]">
           <div className="card-header flex justify-between items-start">
             <div>
               <h2 className="text-lg font-bold text-slate-100">Users</h2>

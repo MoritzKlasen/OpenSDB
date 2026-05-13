@@ -1,21 +1,11 @@
 const crypto = require('crypto');
 const { logger } = require('./logger');
-
-function stringifyForSigning(obj) {
-  return JSON.stringify(Object.keys(obj).sort().reduce((result, key) => {
-    result[key] = obj[key];
-    return result;
-  }, {}));
-}
+const { generateRequestSignature: _genSig } = require('./security');
 
 function generateRequestSignature(payload, secret) {
   const timestamp = Date.now();
   const signaturePayload = { type: payload.type, timestamp };
-  const payloadString = stringifyForSigning(signaturePayload);
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(payloadString)
-    .digest('hex');
+  const signature = _genSig(signaturePayload, secret);
 
   return { signature, timestamp };
 }

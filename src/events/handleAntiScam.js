@@ -11,6 +11,24 @@ const DefaultDetectionEngine = require('../utils/scamDetection/defaultDetectionE
 const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
+const { notifyAdminServer } = require('../utils/botNotifier');
+
+function hasValidAIConfiguration(config) {
+  const hasSingleModel = !!(
+    config.aiSettings?.provider &&
+    config.aiSettings?.model &&
+    config.aiSettings?.apiKey
+  );
+  const hasMultiModel = !!(
+    config.aiSettings?.textModel?.provider &&
+    config.aiSettings?.textModel?.model &&
+    config.aiSettings?.textModel?.apiKey &&
+    config.aiSettings?.visionModel?.provider &&
+    config.aiSettings?.visionModel?.model &&
+    config.aiSettings?.visionModel?.apiKey
+  );
+  return hasSingleModel || hasMultiModel;
+}
 
 const defaultEngine = new DefaultDetectionEngine();
 const aiEngine = new AIDetectionEngine();
@@ -199,7 +217,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         suspiciousMessageStaging.delete(groupKey);
       }
       
-      await processAutoActions(message, existingAlert.detectionResult, config);
+      await processAutoActions(message, existingAlert.detectionResult, config, existingAlert.alertMessageId);
       return;
     }
     
@@ -299,7 +317,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           riskScore: finalDetectionResult.riskScore,
         });
       } else {
-        if (config.mode === 'ai' && config.aiSettings?.enabled) {
+        if (config.mode === 'ai' && hasValidAIConfiguration(config)) {
           try {
             logger.info('Running AI detection for spam analysis', {
               guildId: message.guildId,
@@ -436,6 +454,60 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         alertMessageId: alertMessage.id,
       });
 
+      // Log the scam detection event to database
+      try {
+        await ScamDetectionEvent.create({
+          guildId: staging.firstMessage.guildId,
+          userId: staging.firstMessage.author.id,
+          messageId: staging.firstMessage.id,
+          channelId: staging.firstMessage.channelId,
+          messageContent: staging.firstMessage.content?.substring(0, 500),
+          
+          modeUsed: finalDetectionResult.modeUsed || 'default',
+          fallbackTriggered: finalDetectionResult.fallbackTriggered || false,
+          fallbackReason: finalDetectionResult.fallbackReason,
+          aiProvider: finalDetectionResult.aiProvider,
+          aiModel: finalDetectionResult.aiModel,
+          aiClassification: finalDetectionResult.aiClassification,
+          aiConfidence: finalDetectionResult.aiConfidence,
+          aiReason: finalDetectionResult.aiReason,
+          
+          detectionReasons: finalDetectionResult.reasons || [],
+          extractedLinks: finalDetectionResult.links || [],
+          extractedDomains: finalDetectionResult.domains || [],
+          
+          riskScore: finalDetectionResult.riskScore,
+          riskLevel: finalDetectionResult.riskLevel || 'MEDIUM',
+          
+          actionTaken: 'flagged',
+          alertSent: true,
+          alertMessageId: alertMessage.id,
+          
+          detectedAt: new Date(),
+        });
+        
+        logger.info('Scam detection event logged to database', {
+          guildId: staging.firstMessage.guildId,
+          userId: staging.firstMessage.author.id,
+          riskScore: finalDetectionResult.riskScore,
+        });
+        
+        // Notify admin server to broadcast analytics update via WebSocket
+        try {
+          await notifyAdminServer('scam-alert', process.env.INTERNAL_SECRET);
+        } catch (notifyError) {
+          logger.error('Failed to notify admin server about scam detection event', {
+            guildId: staging.firstMessage.guildId,
+            error: notifyError.message,
+          });
+        }
+      } catch (dbError) {
+        logger.error('Failed to log scam detection event', {
+          guildId: staging.firstMessage.guildId,
+          error: dbError.message,
+        });
+      }
+
       alertMessageStorage.set(alertMessage.id, {
         messages: staging.messages.map(m => ({ messageId: m.messageId, channelId: m.channelId })),
         userId: staging.firstMessage.author.id,
@@ -463,7 +535,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         guildId: message.guildId,
         userId: message.author.id,
         count: staging.count,
-        aiMode: config.aiSettings?.enabled,
+        aiMode: config.mode === 'ai',
         riskScore: finalDetectionResult.riskScore
       });
       
@@ -480,7 +552,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         }
       }, ALERT_UPDATE_WINDOW + 5000);
       
-        await processAutoActions(message, finalDetectionResult, config);
+        await processAutoActions(message, finalDetectionResult, config, alertMessage.id);
       } catch (alertError) {
         logger.error('Error during alert creation', {
           guildId: message.guildId,
@@ -499,7 +571,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
   }
 }
 
-async function processAutoActions(message, detectionResult, config) {
+async function processAutoActions(message, detectionResult, config, alertMessageId) {
   const thresholdMap = {
     low: 60,
     medium: 40,
@@ -509,10 +581,15 @@ async function processAutoActions(message, detectionResult, config) {
   const autoActionThreshold = alertThreshold + 10;
   
   const shouldTakeAutoAction = detectionResult.riskScore >= autoActionThreshold;
+  let actionTaken = 'flagged';
+  let actionReason = null;
+  let timeoutDuration = null;
 
   if (shouldTakeAutoAction && config.autoDelete) {
     try {
       await message.delete();
+      actionTaken = 'deleted';
+      actionReason = 'Auto-deletion enabled and risk score above threshold';
       logger.security('Auto-deleted scam message', {
         guildId: message.guildId,
         userId: message.author.id,
@@ -533,6 +610,9 @@ async function processAutoActions(message, detectionResult, config) {
         config.autoTimeoutDuration * 60 * 1000,
         'Suspected scam/spam activity'
       );
+      actionTaken = 'timedout';
+      timeoutDuration = config.autoTimeoutDuration;
+      actionReason = `Auto-timeout enabled and risk score above threshold (${config.autoTimeoutDuration} minutes)`;
       logger.security('Auto-timed out user for scam activity', {
         guildId: message.guildId,
         userId: message.author.id,
@@ -541,6 +621,29 @@ async function processAutoActions(message, detectionResult, config) {
     } catch (error) {
       logger.error('Failed to timeout user', {
         userId: message.author.id,
+        error: error.message,
+      });
+    }
+  }
+  
+  // Update the ScamDetectionEvent with auto-action details
+  if (alertMessageId && (actionTaken !== 'flagged' || actionReason)) {
+    try {
+      await ScamDetectionEvent.findOneAndUpdate(
+        { alertMessageId: alertMessageId },
+        {
+          actionTaken,
+          actionReason,
+          timeoutDuration,
+        }
+      );
+      logger.debug('Updated scam detection event with auto-action details', {
+        alertMessageId,
+        actionTaken,
+      });
+    } catch (error) {
+      logger.error('Failed to update scam detection event with auto-actions', {
+        alertMessageId,
         error: error.message,
       });
     }

@@ -7,6 +7,7 @@ const { logger } = require('./utils/logger');
 const handleBannedWords = require('./events/handleBannedWords');
 const handleInteractions = require('./events/handleInteractions');
 const handleAntiScam = require('./events/handleAntiScam');
+const guildMemberAdd = require('./events/guildMemberAdd');
 
 const client = new Client({
   intents: [
@@ -79,8 +80,16 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageCreate', async (message) => {
-  await handleBannedWords(client, message);
-  await handleAntiScam(client, message);
+  try {
+    await handleBannedWords(client, message);
+    await handleAntiScam(client, message);
+  } catch (err) {
+    logger.error('Message handler error', { messageId: message?.id, error: err.message });
+  }
+});
+
+client.on('guildMemberAdd', async (member) => {
+  await guildMemberAdd.execute(member);
 });
 
 client.login(process.env.DISCORD_TOKEN);

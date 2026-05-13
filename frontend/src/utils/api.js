@@ -5,6 +5,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',
+  },
 })
 
 export const authApi = {
@@ -38,6 +41,18 @@ export const analyticsApi = {
     api.get('/api/dashboard/warnings-activity', {
       params: { from, to },
     }),
+  getAlertsActivity: (from, to) =>
+    api.get('/api/dashboard/alerts-activity', {
+      params: { from, to },
+    }),
+}
+
+export const settingsApi = {
+  getServerSettings: () => api.get('/api/settings/server'),
+  updateServerSettings: (updates) => api.put('/api/settings/server', updates),
+  getBannedWords: () => api.get('/api/settings/banned-words'),
+  addBannedWord: (word) => api.post('/api/settings/banned-words', { word }),
+  removeBannedWord: (word) => api.delete(`/api/settings/banned-words/${encodeURIComponent(word)}`),
 }
 
 export default api

@@ -35,7 +35,7 @@ module.exports = {
       .setColor('Blurple')
       .setTimestamp();
 
-    const settings = await ServerSettings.findOne();
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const isOwner = interaction.user.id === interaction.guild.ownerId;
     const isTeam = settings?.teamRoleId && interaction.member.roles.cache.has(settings.teamRoleId);
     const isPrivileged = isOwner || isTeam;

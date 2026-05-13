@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
@@ -32,7 +32,7 @@ module.exports = {
     const guildOwnerId = interaction.guild.ownerId;
     const userId = interaction.user.id;
 
-    const settings = await ServerSettings.findOne();
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const teamRoleId      = settings?.teamRoleId;
     const verifiedRoleId  = settings?.verifiedRoleId;
     const onJoinRoleId    = settings?.onJoinRoleId;
@@ -44,34 +44,16 @@ module.exports = {
       return interaction.reply({ content: await t(interaction.guildId, 'verify.noPermission'), flags: 64 });
     }
 
-    if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-      return interaction.reply({ content: await t(interaction.guildId, 'verify.noManageRoles'), flags: 64 });
-    }
-
     const user = interaction.options.getUser('user');
     const first_Name = interaction.options.getString('firstname');
     const last_Name = interaction.options.getString('lastname');
-
-    const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
-    const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
 
     const exists = await VerifiedUser.findOne({ discordId: user.id });
     if (exists) {
       return interaction.reply({ content: await t(interaction.guildId, 'verify.alreadyVerified', { user: user.tag }), flags: 64 });
     }
 
-    const newUser = new VerifiedUser({
-      verificationNumber: newVerificationNumber,
-      discordTag: user.tag,
-      discordId: user.id,
-      firstName: first_Name,
-      lastName: last_Name,
-      verifiedAt: new Date()
-    });
-    await newUser.save();
-
-    await notifyAdminServer('verification', INTERNAL_SECRET);
-
+    // Pre-flight: resolve member, bot member, and verified role before touching the DB
     let member;
     try {
       member = await interaction.guild.members.fetch(user.id);
@@ -80,14 +62,77 @@ module.exports = {
       return interaction.reply({ content: await t(interaction.guildId, 'verify.memberNotFound', { user: user.tag }), flags: 64 });
     }
 
+    if (!verifiedRoleId) {
+      return interaction.reply({
+        content: '❌ No verified role configured. Run `/setrole verifiedrole:` first.',
+        flags: 64,
+      });
+    }
+
+    const verifiedRole = interaction.guild.roles.cache.get(verifiedRoleId)
+      ?? await interaction.guild.roles.fetch(verifiedRoleId).catch(() => null);
+
+    if (!verifiedRole) {
+      return interaction.reply({
+        content: '❌ The configured verified role no longer exists. Run `/setrole verifiedrole:` again.',
+        flags: 64,
+      });
+    }
+
+    const me = interaction.guild.members.me
+      ?? await interaction.guild.members.fetchMe().catch(() => null);
+
+    if (me && verifiedRole.position >= me.roles.highest.position) {
+      return interaction.reply({
+        content: `❌ Cannot assign role **${verifiedRole.name}** – it is above the bot's highest role in the hierarchy. Move the bot's role above **${verifiedRole.name}** in Server Settings › Roles, then try again.`,
+        flags: 64,
+      });
+    }
+
+    // All pre-flight checks passed – now create the DB record
+    let newUser;
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const last = await VerifiedUser.findOne().sort({ verificationNumber: -1 });
+      const newVerificationNumber = last ? last.verificationNumber + 1 : 1;
+      try {
+        newUser = await VerifiedUser.create({
+          verificationNumber: newVerificationNumber,
+          discordTag: user.tag,
+          discordId: user.id,
+          firstName: first_Name,
+          lastName: last_Name,
+          verifiedAt: new Date()
+        });
+        break;
+      } catch (err) {
+        if (err.code === 11000 && attempt < MAX_RETRIES - 1) {
+          continue; // Duplicate key — retry with next number
+        }
+        throw err;
+      }
+    }
+
+    if (!newUser) {
+      return interaction.reply({ content: await t(interaction.guildId, 'errors.commandError'), flags: 64 });
+    }
+
+    // Assign verified role
     try {
-      if (verifiedRoleId && !member.roles.cache.has(verifiedRoleId)) {
-        await member.roles.add(verifiedRoleId);
+      if (!member.roles.cache.has(verifiedRoleId)) {
+        await member.roles.add(verifiedRole);
       }
     } catch (err) {
       logger.warn(`Could not assign verifiedRole to ${user.tag}`, { error: err?.message });
+      // Roll back: remove the DB record so the user can be re-verified once the issue is fixed
+      await VerifiedUser.deleteOne({ _id: newUser._id }).catch(() => {});
+      return interaction.reply({
+        content: `❌ Verification aborted – could not assign role **${verifiedRole.name}**: ${err?.message}`,
+        flags: 64,
+      });
     }
 
+    // Remove on-join role if present
     try {
       if (onJoinRoleId && member.roles.cache.has(onJoinRoleId)) {
         await member.roles.remove(onJoinRoleId);
@@ -96,8 +141,10 @@ module.exports = {
       logger.warn(`Could not remove onJoinRole from ${user.tag}`, { error: err?.message });
     }
 
+    await notifyAdminServer('verification', INTERNAL_SECRET);
+
     await interaction.reply({
-      content: await t(interaction.guildId, 'verify.success', { user: user.tag, number: newVerificationNumber, fullName: `${first_Name} ${last_Name}` }),
+      content: await t(interaction.guildId, 'verify.success', { user: user.tag, number: newUser.verificationNumber, fullName: `${first_Name} ${last_Name}` }),
       flags: 0
     });
   }
