@@ -24,7 +24,7 @@ module.exports = {
     const guildOwnerId = interaction.guild.ownerId;
     const userId = interaction.user.id;
 
-    const settings = await ServerSettings.findOne();
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const teamRoleId = settings?.teamRoleId;
     const verifiedRoleId = settings?.verifiedRoleId;
 
@@ -39,23 +39,52 @@ module.exports = {
     }
 
     const user = interaction.options.getUser('user');
-    const result = await VerifiedUser.findOneAndDelete({ discordId: user.id });
 
-    if (!result) {
+    const record = await VerifiedUser.findOne({ discordId: user.id });
+    if (!record) {
       return interaction.reply({
         content: await t(interaction.guildId, 'unverify.notVerified', { user: user.tag }),
         flags: 64
       });
     }
 
-    try {
-      const member = await interaction.guild.members.fetch(user.id);
-      if (verifiedRoleId && member.roles.cache.has(verifiedRoleId)) {
-        await member.roles.remove(verifiedRoleId);
+    // Pre-flight: check role hierarchy before touching the DB
+    if (verifiedRoleId) {
+      let member;
+      try {
+        member = await interaction.guild.members.fetch(user.id);
+      } catch {
+        member = null;
       }
-    } catch (err) {
-      logger.warn(`Could not remove verified role from ${user.tag}`, { error: err.message });
+
+      if (member?.roles.cache.has(verifiedRoleId)) {
+        const verifiedRole = interaction.guild.roles.cache.get(verifiedRoleId)
+          ?? await interaction.guild.roles.fetch(verifiedRoleId).catch(() => null);
+
+        const me = interaction.guild.members.me
+          ?? await interaction.guild.members.fetchMe().catch(() => null);
+
+        if (verifiedRole && me && verifiedRole.position >= me.roles.highest.position) {
+          return interaction.reply({
+            content: `❌ Cannot remove role **${verifiedRole.name}** – it is above the bot's highest role in the hierarchy. Move the bot's role above **${verifiedRole.name}** in Server Settings › Roles, then try again.`,
+            flags: 64,
+          });
+        }
+
+        // Role check passed – remove from Discord
+        try {
+          await member.roles.remove(verifiedRoleId);
+        } catch (err) {
+          logger.warn(`Could not remove verified role from ${user.tag}`, { error: err.message });
+          return interaction.reply({
+            content: `❌ Could not remove role **${verifiedRole?.name ?? verifiedRoleId}**: ${err.message}`,
+            flags: 64,
+          });
+        }
+      }
     }
+
+    await VerifiedUser.deleteOne({ _id: record._id });
 
     await notifyAdminServer('unverify', INTERNAL_SECRET);
 

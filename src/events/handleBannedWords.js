@@ -19,7 +19,7 @@ module.exports = async function handleBannedWords(client, message) {
   for (const entry of bannedWords) {
     const banned = entry.word.toLowerCase();
     if (content.includes(banned)) {
-      const settings = await ServerSettings.findOne();
+      const settings = await ServerSettings.findOne({ guildId: message.guildId });
       if (!settings?.adminChannelId) return;
 
       try {

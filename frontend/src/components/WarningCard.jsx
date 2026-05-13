@@ -1,5 +1,6 @@
 import React from 'react'
 import { Button } from './UI'
+import Icon from './Icon'
 
 const WarningCard = ({ warning, index, onDelete, formatDate }) => {
   return (
@@ -26,7 +27,9 @@ const WarningCard = ({ warning, index, onDelete, formatDate }) => {
           variant="danger"
           size="sm"
           onClick={() => onDelete(index)}
+          className="flex items-center gap-2"
         >
+          <Icon name="trash" className="w-4 h-4" />
           Delete
         </Button>
       </div>

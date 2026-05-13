@@ -28,7 +28,7 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      const settings = await ServerSettings.findOne() || {};
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId }) || {};
       const teamRoleId = settings.teamRoleId;
       const isOwner = interaction.user.id === interaction.guild.ownerId;
       const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);

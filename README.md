@@ -127,7 +127,7 @@ The entire system runs in Docker containers for easy deployment and scaling, wit
 | Component | Technology | Version | Purpose |
 |-----------|-----------|---------|---------|
 | Bot Runtime | Node.js | 20-slim | Discord bot execution |
-| Web UI Runtime | Node.js | 18-alpine | Admin dashboard backend |
+| Web UI Runtime | Node.js | 20-alpine | Admin dashboard backend |
 | Discord Library | discord.js | 14.25+ | Discord bot interactions |
 | Web Framework | Express.js | 5.2+ | REST API and admin UI server |
 | Frontend Framework | React | 18+ | Modern UI components |
@@ -152,7 +152,7 @@ The entire system runs in Docker containers for easy deployment and scaling, wit
 
 ### Optional
 - **OpenSSL** – For generating self-signed HTTPS certificates (macOS/Linux: usually pre-installed)
-- **Node.js 18+** – Only if developing locally without Docker
+- **Node.js** – Only if developing locally without Docker; use the version required by the project's `package.json`/`engines` setting and supported dependencies
 
 ### System Resources
 - **Minimum:** 512MB RAM, 1 CPU core
@@ -174,9 +174,13 @@ cd OpenSDB
 
 Create `.env` in the project root with your configuration:
 
-**Option A: Text editor (recommended for non-programmers)**
+**Option A: Copy the example file (recommended)**
 
-Open the project folder in your file explorer, create a new file named `.env`, and add:
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your values. Alternatively, create it manually:
 
 ```dotenv
 # Discord Configuration (obtain from Developer Portal)
@@ -202,27 +206,17 @@ METRICS_BASIC_USER=grafana
 METRICS_BASIC_PASS=changeMe!
 
 # Optional: Email/CORS settings
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+CORS_ORIGINS=https://yourdomain.com
 ```
+
+> **Note:** `CORS_ORIGINS` must be an explicit list of allowed origins — wildcard `*` is not permitted when credentials are enabled.
 
 **Option B: Command line (Mac/Linux)**
 
 ```bash
-cat > .env << 'EOF'
-DISCORD_TOKEN=your-bot-token-here
-CLIENT_ID=your-application-id-here
-ALLOWED_GUILD_ID=your-server-id-here
-DB_URI=mongodb://mongo:27017/botdb
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-strong-password-here
-JWT_SECRET=your-random-secret-here
-INTERNAL_SECRET=botInternalSecret123
-ADMIN_UI_PORT=8001
-NODE_ENV=production
-METRICS_BASIC_USER=grafana
-METRICS_BASIC_PASS=changeMe!
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
-EOF
+cp .env.example .env
+# Then edit with your preferred editor:
+nano .env
 ```
 
 > **⚠️ Security Warning:** Never commit `.env` to version control. It's already in `.gitignore`.
@@ -285,13 +279,15 @@ You should see all 4 services (bot, web, nginx, mongo) in the **Up** status. Dis
 | `DB_URI` | MongoDB connection string | ✅ | `mongodb://mongo:27017/botdb` |
 | `ADMIN_USERNAME` | Dashboard login username | ✅ | `admin` |
 | `ADMIN_PASSWORD` | Dashboard login password (16+ chars recommended) | ✅ | `MyS3curePass123!` |
+| `ADMIN_PASSWORD_HASH` | Pre-hashed bcrypt password (alternative to plaintext) | Optional | `$2b$10$...` |
 | `JWT_SECRET` | JWT signing secret (random 32+ chars) | ✅ | Generate with command below |
 | `INTERNAL_SECRET` | Shared secret between bot and admin (random) | ✅ | `botInternalSecret123` |
 | `NODE_ENV` | Environment mode | Optional | `production` |
 | `ADMIN_UI_PORT` | Dashboard port inside container | Optional | `8001` |
-| `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | Optional | `https://yourdomain.com` |
-| `METRICS_BASIC_USER` | Metrics API basic auth username | Optional | `grafana` |
-| `METRICS_BASIC_PASS` | Metrics API basic auth password | Optional | `changeMe!` |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated, no wildcards) | Optional | `https://yourdomain.com` |
+| `METRICS_BASIC_USER` | Metrics API basic auth username | ✅ Required | `grafana` |
+| `METRICS_BASIC_PASS` | Metrics API basic auth password | ✅ Required | `changeMe!` |
+| `SERVER_TIMEZONE` | Default timezone for analytics/metrics | Optional | `UTC` |
 
 ### Generating Secure Secrets
 
@@ -524,6 +520,8 @@ The admin dashboard is a modern, production-ready React-based web interface buil
   - Excel-compatible with UTF-8 BOM
   
 - **Import CSV:** Bulk upload and upsert user data
+  - Maximum file size: 5MB, CSV files only
+  - Validates required columns (`discordId`) and Discord ID format
   - Matches by `discordId` for updates
   - Preserves existing verification dates if not specified
 
@@ -557,12 +555,20 @@ The admin dashboard is built with modern, professional-grade tools:
 | `/api/login` | POST | None | Authenticate with username/password |
 | `/api/verified-users` | GET | JWT | Fetch all verified users |
 | `/api/remove-warning/:discordId/:index` | DELETE | JWT | Delete specific warning by index |
-| `/api/update-comment/:discordId` | PUT | JWT | Update user comment |
 | `/api/export-users` | GET | JWT | Download CSV of all users |
 | `/api/import-users` | POST | JWT | Upload and import CSV file |
 | `/api/dashboard/users-growth` | GET | JWT | User registration metrics (JSON) |
 | `/api/dashboard/warnings-activity` | GET | JWT | Warning activity metrics (JSON) |
+| `/api/dashboard/alerts-activity` | GET | JWT | Scam detection alerts activity over time |
 | `/api/analytics/warnings-per-day` | GET | JWT | Warnings per day analytics |
+| `/api/settings/server` | GET | JWT | Fetch complete server settings (roles, channels, language, anti-scam config) |
+| `/api/settings/server` | PUT | JWT | Update server settings (sanitized response) |
+| `/api/settings/banned-words` | GET | JWT | Fetch all banned words as array |
+| `/api/settings/banned-words` | POST | JWT | Add new banned word |
+| `/api/settings/banned-words/:word` | DELETE | JWT | Remove banned word from filter |
+| `/api/monitoring/health` | GET | None | Application health status and uptime |
+| `/api/monitoring/security-events` | GET | JWT | Security audit events (query: ?hours=24) |
+| `/api/monitoring/errors` | GET | JWT | Error logs from past N hours (query: ?hours=24) |
 | `/api/metrics/users-per-day.json` | GET | BasicAuth | User registration metrics (Grafana) |
 | `/api/internal/notify-change` | POST | HMAC | Internal bot→admin notification |
 | `/logout` | GET | Any | Clear session and logout |
@@ -607,6 +613,34 @@ Optional AI-powered analysis with multi-provider support:
 - **Automatic Fallback** – Falls back to the default engine if AI is unavailable or fails
 - **Health Check System** – Monitors provider availability
 - **Custom Provider Registration** – Extensible provider registry for additional AI services
+
+#### AI Multi-Model Configuration
+
+For advanced use cases, configure separate models for text and image analysis:
+
+**Single Model Setup** (uses same model for all content):
+```bash
+/antiscam ai-configure provider:ollama model:llama3 baseurl:http://localhost:11434
+```
+
+**Multi-Model Setup** (optimized for different content types):
+```bash
+# Configure separate text and vision models
+/antiscam ai-configure-multimodel \
+  text-provider:ollama \
+  text-model:llama3 \
+  text-baseurl:http://localhost:11434 \
+  vision-provider:openai \
+  vision-model:gpt-4o \
+  vision-baseurl:https://api.openai.com/v1 \
+  vision-apikey:sk-your-key-here
+```
+
+**Benefits:**
+- **Cost Optimization** – Use cheaper models for text, premium models for vision
+- **Performance Tuning** – Specialized models for each content type
+- **Reliability** – Mix self-hosted and cloud providers
+- **Automatic Routing** – Bot automatically selects appropriate model based on message content
 
 ### Risk Scoring
 
@@ -660,6 +694,51 @@ User behavioral data is tracked in the `UserActivity` collection for anomaly det
 /antiscam auto-delete enabled:True
 /antiscam auto-timeout enabled:True duration:60
 ```
+
+### Advanced Configuration Options
+
+The anti-scam system has many configurable thresholds and behaviors accessible via the `/api/settings/server` endpoint or stored in the `ServerSettings` database model:
+
+| Setting | Description | Default | Configured Via |
+|---------|-------------|---------|----------------|
+| `enabled` | Enable/disable scam detection | `false` | `/antiscam enable/disable` |
+| `mode` | Detection engine (`default` or `ai`) | `default` | `/antiscam mode` |
+| `sensitivity` | Alert threshold (low/medium/high) | `medium` | `/antiscam sensitivity` |
+| `alertChannelId` | Where alerts are posted | `null` | `/antiscam alert-channel` |
+| `autoDelete` | Auto-delete detected scam messages | `false` | `/antiscam auto-delete` |
+| `autoTimeout` | Auto-timeout users posting scams | `false` | `/antiscam auto-timeout` |
+| `autoTimeoutDuration` | Timeout duration in minutes (1-40320) | `60` | `/antiscam auto-timeout` |
+| `minRiskScoreForAlert` | Minimum score to trigger alert | `45` | Database only |
+| `minRiskScoreForAutoAction` | Minimum score for auto-delete/timeout | `80` | Database only |
+| `duplicateMessageThreshold` | Spam threshold (duplicate messages) | `3` | Database only |
+| `duplicateTimeWindow` | Time window for spam detection (minutes) | `2` | Database only |
+| `accountAgeRequirement` | Flag new accounts (days) | `7` | Database only |
+| `firstMessageSuspicion` | Flag first messages with links | `true` | Database only |
+| `trustedUserIds` | User IDs exempt from detection | `[]` | `/antiscam whitelist-user` |
+| `trustedDomains` | Whitelisted domains | `[]` | `/antiscam whitelist-domain` |
+
+**AI-Specific Settings:**
+
+| Setting | Description | Default | Configured Via |
+|---------|-------------|---------|----------------|
+| `aiSettings.enabled` | Enable AI analysis | `false` | `/antiscam mode ai` |
+| `aiSettings.provider` | AI provider name | `null` | `/antiscam ai-configure` |
+| `aiSettings.model` | Primary model identifier | `null` | `/antiscam ai-configure` |
+| `aiSettings.baseUrl` | API endpoint URL | `null` | `/antiscam ai-configure` |
+| `aiSettings.apiKey` | Authentication key | `null` | `/antiscam ai-configure` |
+| `aiSettings.timeout` | Request timeout (ms) | `30000` | `/antiscam ai-configure` |
+| `aiSettings.textModel.*` | Separate text analysis model config | Inherits from main | `/antiscam ai-configure-multimodel` |
+| `aiSettings.visionModel.*` | Separate vision analysis model config | Inherits from main | `/antiscam ai-configure-multimodel` |
+| `aiSettings.notifyAdminsOnFallback` | Alert when AI fails | `true` | Database only |
+| `aiSettings.healthCheckEnabled` | Monitor AI provider health | `true` | Database only |
+| `aiSettings.healthCheckInterval` | Health check frequency (ms) | `3600000` | Database only |
+
+**Sensitivity Mappings:**
+- **low**: Alerts when risk score ≥ 60 (fewer false positives)
+- **medium**: Alerts when risk score ≥ 40 (balanced, recommended)
+- **high**: Alerts when risk score ≥ 20 (more sensitive, more alerts)
+
+**Note:** Settings marked "Database only" require direct MongoDB updates or API calls to `/api/settings/server` (PUT). Most users should only need the slash commands.
 
 ---
 
@@ -841,12 +920,6 @@ OpenSDB/
 │   │       ├── aiDetectionEngine.js      # AI provider integration
 │   │       ├── defaultDetectionEngine.js # Rule-based heuristics
 │   │       └── scamKeywords.js           # Multilingual keyword loader
-│   ├── admin-ui/
-│   │   ├── login.html        # Legacy login page
-│   │   ├── dashboard.html    # Legacy dashboard
-│   │   └── assets/
-│   │       ├── dashboard.js
-│   │       └── style.css
 │   └── locales/
 │       ├── en.json           # English translations
 │       ├── de.json           # German translations
@@ -876,6 +949,7 @@ OpenSDB/
 │   └── certs/                # (Git-ignored) SSL certificates
 ├── package.json              # Dependencies
 ├── .env                      # (Git-ignored) Configuration
+├── .env.example              # Template with all required variables
 └── README.md
 
 ```
@@ -933,14 +1007,13 @@ openssl rand -base64 32
 
 ```bash
 # View logs from running container
-docker exec opensdb-web-1 cat /tmp/logs/app.log
-docker exec opensdb-web-1 cat /tmp/logs/security.log
+docker compose exec web cat /tmp/logs/app.log
+docker compose exec web cat /tmp/logs/security.log
 
 # Backup logs before container restart
-docker cp opensdb-web-1:/tmp/logs logs-backup-$(date +%s)
+mkdir -p logs-backup-$(date +%s)
+docker compose cp web:/tmp/logs logs-backup-$(date +%s)/
 ```
-
-For full documentation, see [LOGGING_AND_MONITORING.md](LOGGING_AND_MONITORING.md).
 
 ---
 
@@ -1014,8 +1087,10 @@ docker compose restart mongo
 #### Port already in use
 ```bash
 # Check which process is using a port
-lsof -i :80    # or :443, :8001, etc (macOS/Linux)
-netstat -an | findstr :80  # Windows
+lsof -i :80    # macOS/Linux with lsof installed
+ss -tulpn | grep :80    # Linux (modern alternative)
+netstat -tulpn | grep :80    # Linux (older systems)
+netstat -an | findstr :80    # Windows
 
 # Stop the conflicting process or change ports in docker-compose.yml
 ```
@@ -1079,12 +1154,12 @@ mkdir -p backups
 
 # Export MongoDB data
 docker compose exec mongo mongodump --out /tmp/dump
-docker cp opensdb-mongo-1:/tmp/dump ./backups/mongodb-$(date +%s)
+docker compose cp mongo:/tmp/dump ./backups/mongodb-$(date +%s)
 ```
 
 **Restore from backup:**
 ```bash
-docker cp ./backups/mongodb-[timestamp]/dump opensdb-mongo-1:/tmp/
+docker compose cp ./backups/mongodb-[timestamp]/dump mongo:/tmp/
 docker compose exec mongo mongorestore /tmp/dump
 ```
 
@@ -1108,8 +1183,12 @@ docker compose exec mongo mongorestore /tmp/dump
 - **Container Hardening:** Read-only filesystems, `cap_drop: ALL`, `no-new-privileges`, tmpfs mounts
 - **HMAC Request Signing:** Internal bot→admin API calls use HMAC signatures with replay protection
 - **Rate Limiting:** Login attempts (5/15min), general API requests (100/min)
-- **Helmet Security Headers:** Content Security Policy, XSS protection, and more
-- **Input Validation:** Zod schema validation for environment variables and API inputs
+- **Helmet Security Headers:** Content Security Policy (per-response nonce), XSS protection, and more
+- **CSRF Protection:** Custom header requirement (`X-Requested-With`) on state-changing API requests
+- **WebSocket Security:** Origin verification against CORS allow list, ping/pong heartbeat with 30-second stale connection timeout
+- **Input Validation:** Zod schema validation for environment variables; Discord ID format validation, comment length limits (500 chars), request body size limits (1MB JSON, 5MB file uploads), and date range caps (max 730 days) on API inputs
+- **Database Resilience:** MongoDB connection retry with exponential backoff (5 attempts)
+- **Docker Health Checks:** Web service monitored via `/api/monitoring/health` endpoint
 
 ### Bot Permissions
 
@@ -1181,4 +1260,4 @@ OpenSDB is **open source** under the ISC License. Modify and use freely for educ
 ---
 
 Made with ❤️ by **McScheleba**  
-Last Updated: February 2026
+Last Updated: March 2026

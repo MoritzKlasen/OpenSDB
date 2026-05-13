@@ -524,16 +524,26 @@ module.exports = async (client, interaction) => {
     interaction.type === InteractionType.ModalSubmit &&
     interaction.customId.startsWith('commentmodal_')
   ) {
-    const userId      = interaction.customId.split('_')[1];
-    const commentText = interaction.fields.getTextInputValue('comment');
-    const result = await VerifiedUser.findOneAndUpdate(
-      { discordId: userId },
-      { comment: commentText },
-      { upsert: false }
-    );
-    if (result) {
-      return interaction.reply({ content: await t(interaction.guildId, "comments.saved"), flags: 0 });
+    try {
+      const userId      = interaction.customId.split('_')[1];
+      const commentText = interaction.fields.getTextInputValue('comment');
+      const result = await VerifiedUser.findOneAndUpdate(
+        { discordId: userId },
+        { comment: commentText },
+        { upsert: false }
+      );
+      if (result) {
+        return interaction.reply({ content: await t(interaction.guildId, "comments.saved"), flags: 0 });
+      }
+      return interaction.reply({ content: await t(interaction.guildId, "comments.noUser"), flags: 64 });
+    } catch (err) {
+      logger.error('Error handling comment modal', {
+        guildId: interaction.guildId,
+        error: err.message,
+      });
+      if (!interaction.replied && !interaction.deferred) {
+        return interaction.reply({ content: await t(interaction.guildId, "errors.executionError"), flags: 64 });
+      }
     }
-    return interaction.reply({ content: await t(interaction.guildId, "comments.noUser"), flags: 64 });
   }
 };

@@ -3,12 +3,25 @@ const ServerSettings = require('../database/models/ServerSettings');
 const ScamDetectionEvent = require('../database/models/ScamDetectionEvent');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
+const { notifyAdminServer } = require('../utils/botNotifier');
+
+async function notifyAdminServerSafely(guildId, changedBy, operation) {
+  try {
+    await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+  } catch (notifyErr) {
+    logger.error('Failed to notify admin server', {
+      guildId,
+      changedBy,
+      operation,
+      error: notifyErr.message,
+    });
+  }
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('antiscam')
     .setDescription('Anti-scam detection system management')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
       subcommand
         .setName('enable')
@@ -345,6 +358,8 @@ async function handleEnable(interaction, guildId) {
     { upsert: true }
   );
 
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'enable');
+
   await interaction.editReply({
     content: '✅ Anti-scam detection is now **enabled**.',
   });
@@ -356,6 +371,8 @@ async function handleDisable(interaction, guildId) {
     { 'scamDetectionConfig.enabled': false },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'disable');
 
   await interaction.editReply({
     content: '❌ Anti-scam detection is now **disabled**.',
@@ -370,6 +387,8 @@ async function handleMode(interaction, guildId) {
     { 'scamDetectionConfig.mode': mode },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'mode');
 
   const modeLabel = mode === 'ai' ? '🤖 AI Detection' : '📋 Default Detection';
   await interaction.editReply({
@@ -391,6 +410,8 @@ async function handleSensitivity(interaction, guildId) {
     { 'scamDetectionConfig.sensitivity': level },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'sensitivity');
 
   const levelLabel =
     level === 'low'
@@ -419,6 +440,8 @@ async function handleAlertChannel(interaction, guildId) {
     { upsert: true }
   );
 
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'alert-channel');
+
   await interaction.editReply({
     content: `✅ Alert channel set to ${channel.toString()}.`,
   });
@@ -432,6 +455,8 @@ async function handleAutoDelete(interaction, guildId) {
     { 'scamDetectionConfig.autoDelete': enabled },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'auto-delete');
 
   await interaction.editReply({
     content: `✅ Auto-delete is now **${enabled ? 'enabled' : 'disabled'}**.`,
@@ -454,6 +479,8 @@ async function handleAutoTimeout(interaction, guildId) {
     },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'auto-timeout');
 
   await interaction.editReply({
     content: `✅ Auto-timeout is now **${enabled ? 'enabled' : 'disabled'}** (${duration} minutes).`,
@@ -487,6 +514,8 @@ async function handleWhitelistUser(interaction, guildId) {
     { 'scamDetectionConfig.trustedUserIds': trustedIds },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'whitelist-user');
 
   await interaction.editReply({
     content: `✅ ${user.tag} has been added to the whitelist.`,
@@ -527,6 +556,8 @@ async function handleWhitelistDomain(interaction, guildId) {
     { 'scamDetectionConfig.trustedDomains': trustedDomains },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'whitelist-domain');
 
   await interaction.editReply({
     content: `✅ \`${domain}\` has been added to the domain whitelist.`,
@@ -574,6 +605,8 @@ async function handleAIConfigure(interaction, guildId) {
     { 'scamDetectionConfig.aiSettings': aiSettings },
     { upsert: true }
   );
+
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'ai-configure');
 
   const apiKeyInfo = apiKey 
     ? `\nAPI Key: ••••••••${apiKey.slice(-4)}`
@@ -683,6 +716,8 @@ async function handleAIConfigureMultiModel(interaction, guildId) {
     { upsert: true, new: true }
   );
 
+  await notifyAdminServerSafely(guildId, interaction.user.id, 'ai-configure-multimodel');
+
   logger.info('Multi-model AI configuration saved to database', {
     guildId,
     textProvider,
@@ -727,11 +762,12 @@ Timeout: ${visionModelConfig.timeout}ms
 
 async function handleAITest(interaction, guildId) {
   const settings = await ServerSettings.findOne({ guildId });
-  const aiSettings = settings?.scamDetectionConfig?.aiSettings;
+  const config = settings?.scamDetectionConfig;
+  const aiSettings = config?.aiSettings;
 
-  if (!aiSettings?.enabled) {
+  if (config?.mode !== 'ai' || !aiSettings) {
     return await interaction.editReply({
-      content: '❌ AI detection is not configured.',
+      content: '❌ AI detection is not enabled. Set detection mode to "AI (Machine Learning)" first.',
     });
   }
 
@@ -932,7 +968,7 @@ async function handleStatus(interaction, guildId) {
   status += `**Whitelisted Users:** ${config.trustedUserIds?.length || 0}\n`;
   status += `**Whitelisted Domains:** ${config.trustedDomains?.length || 0}\n`;
 
-  if (config.aiSettings?.enabled) {
+  if (config.mode === 'ai' && config.aiSettings) {
     status += `\n**AI Settings:**\n`;
     
     if (config.aiSettings.textModel && config.aiSettings.visionModel) {

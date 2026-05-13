@@ -3,6 +3,7 @@ import { userApi } from '../utils/api'
 import Layout from '../components/Layout'
 import { Button, Error } from '../components/UI'
 import UserList from '../components/UserList'
+import Icon from '../components/Icon'
 
 const DashboardPage = () => {
   const fileInputRef = useRef(null)
@@ -63,7 +64,9 @@ const DashboardPage = () => {
             size="sm"
             onClick={handleImportClick}
             disabled={isImporting}
+            className="flex items-center gap-2"
           >
+            <Icon name="upload" className="w-4 h-4" />
             {isImporting ? 'Importing...' : 'Import CSV'}
           </Button>
           <Button
@@ -71,7 +74,9 @@ const DashboardPage = () => {
             size="sm"
             onClick={handleExportCsv}
             disabled={isExporting}
+            className="flex items-center gap-2"
           >
+            <Icon name="download" className="w-4 h-4" />
             {isExporting ? 'Exporting...' : 'Export CSV'}
           </Button>
           <input

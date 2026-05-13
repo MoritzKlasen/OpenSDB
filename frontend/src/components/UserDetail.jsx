@@ -3,6 +3,7 @@ import { userApi } from '../utils/api'
 import { Button, Card, Input, Modal, Loading, Error } from './UI'
 import WarningCard from './WarningCard'
 import ConfirmModal from './ConfirmModal'
+import Icon from './Icon'
 
 const UserDetail = ({ user, onUserUpdate }) => {
   const [localComment, setLocalComment] = useState(user.comment || '')
@@ -118,7 +119,9 @@ const UserDetail = ({ user, onUserUpdate }) => {
                 size="sm"
                 onClick={handleSaveComment}
                 disabled={isCommentSaving}
+                className="flex items-center gap-2"
               >
+                <Icon name="save" className="w-4 h-4" />
                 {isCommentSaving ? 'Saving...' : 'Save'}
               </Button>
               <Button
@@ -129,7 +132,9 @@ const UserDetail = ({ user, onUserUpdate }) => {
                   setIsCommentEditing(false)
                 }}
                 disabled={isCommentSaving}
+                className="flex items-center gap-2"
               >
+                <Icon name="x" className="w-4 h-4" />
                 Cancel
               </Button>
             </div>
@@ -143,7 +148,9 @@ const UserDetail = ({ user, onUserUpdate }) => {
               variant="secondary"
               size="sm"
               onClick={() => setIsCommentEditing(true)}
+              className="flex items-center gap-2"
             >
+              <Icon name="edit" className="w-4 h-4" />
               Edit Comment
             </Button>
           </div>

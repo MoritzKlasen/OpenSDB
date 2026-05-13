@@ -28,7 +28,7 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      const settings = await ServerSettings.findOne() || {};
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId }) || {};
       const teamRoleId = settings.teamRoleId;
       const isOwner = interaction.user.id === interaction.guild.ownerId;
       const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
@@ -39,6 +39,10 @@ module.exports = {
 
       const user = interaction.options.getUser('user');
       const text = interaction.options.getString('text');
+
+      if (text.length > 500) {
+        return interaction.reply({ content: await t(interaction.guildId, 'comments.tooLong') || 'Comment too long (max 500 characters)', flags: 64 });
+      }
 
       const verified = await VerifiedUser.findOne({ discordId: user.id });
 
