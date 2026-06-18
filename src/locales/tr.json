@@ -62,9 +62,11 @@
   "unverify": {
     "noPermission": "❌ İzin yok.",
     "notVerified": "❌ {user} doğrulanmamıştı.",
-    "success": "✅ {user} için doğrulama silindi."
+    "success": "✅ {user} için doğrulama silindi — tüm roller kaldırıldı ve **{role}** geri yüklendi.",
+    "successNoRole": "✅ {user} için doğrulama silindi — tüm roller kaldırıldı."
   },
   "deanon": {
+    "noPermission": "❌ Bu komutu kullanmak için doğrulanmış role sahip olmanız gerekiyor.",
     "notVerified": "❌ {user} doğrulanmamış.",
     "title": "🔍 Doğrulanmış kullanıcı",
     "discord": "Discord",

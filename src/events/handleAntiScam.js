@@ -47,7 +47,7 @@ const ALERT_UPDATE_WINDOW = 60000;
 const DETECTION_CACHE_TTL = 300000; // 5 minutes cache for detection results
 
 async function handleAntiScam(client, message) {
-  if (message.author.bot) return;
+  if (!message.author || message.author.bot) return;
 
   try {
     const settings = await ServerSettings.findOne({ guildId: message.guildId });

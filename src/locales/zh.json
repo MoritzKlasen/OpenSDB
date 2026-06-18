@@ -62,9 +62,11 @@
   "unverify": {
     "noPermission": "❌ 无权限。",
     "notVerified": "❌ {user} 未验证。",
-    "success": "✅ 已删除 {user} 的验证。"
+    "success": "✅ 已删除 {user} 的验证 — 所有身份组已移除，**{role}** 已恢复。",
+    "successNoRole": "✅ 已删除 {user} 的验证 — 所有身份组已移除。"
   },
   "deanon": {
+    "noPermission": "❌ 您需要拥有已验证身份组才能使用此命令。",
     "notVerified": "❌ {user} 未验证。",
     "title": "🔍 已验证用户",
     "discord": "Discord",

@@ -55,4 +55,22 @@ export const settingsApi = {
   removeBannedWord: (word) => api.delete(`/api/settings/banned-words/${encodeURIComponent(word)}`),
 }
 
+export const settingsApi = {
+  getServerSettings: () => api.get('/api/settings/server'),
+  updateServerSettings: (updates) => api.put('/api/settings/server', updates),
+  getBannedWords: () => api.get('/api/settings/banned-words'),
+  addBannedWord: (word) => api.post('/api/settings/banned-words', { word }),
+  removeBannedWord: (word) => api.delete(`/api/settings/banned-words/${encodeURIComponent(word)}`),
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 export default api

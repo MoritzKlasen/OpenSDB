@@ -357,7 +357,8 @@ Verify a student and assign them a verification number and role.
 #### `/unverify <user>`
 Remove verification status and associated roles from a student.
 - **Permissions:** Server Owner, Team Role
-- **Result:** Verified role removed, database record deleted
+- **Result:** All non-managed roles removed, on-join role restored, database record deleted
+- **Note:** This removes **all** roles from the user, including any manually assigned ones unrelated to verification.
 
 ### Warnings & Moderation
 

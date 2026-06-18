@@ -38,9 +38,10 @@ module.exports = {
     const onJoinRoleId    = settings?.onJoinRoleId;
 
     const isOwner = userId === guildOwnerId;
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
     const isTeam  = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
+    if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({ content: await t(interaction.guildId, 'verify.noPermission'), flags: 64 });
     }
 

@@ -308,6 +308,26 @@ app.get('/api/export-users', authMiddleware, async (req, res) => {
   }
 });
 
+function parseDateRange(query, res, maxDays = 730) {
+  const from = query.from ? new Date(query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const to   = query.to   ? new Date(query.to)   : new Date();
+
+  if (isNaN(from) || isNaN(to)) {
+    res.status(400).json({ error: 'Invalid from/to' });
+    return null;
+  }
+
+  const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+  if (rangeDays > maxDays || rangeDays < 0) {
+    res.status(400).json({ error: `Date range must be between 0 and ${maxDays} days` });
+    return null;
+  }
+
+  from.setUTCHours(0, 0, 0, 0);
+  to.setUTCHours(23, 59, 59, 999);
+  return { from, to };
+}
+
 app.get(
   ['/api/metrics/users-per-day', '/api/metrics/users-per-day.csv', '/api/metrics/users-per-day.json'],
   metricsBasic,

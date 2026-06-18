@@ -48,7 +48,9 @@
     "noUser": "❌ Kein verifizierter Benutzer gefunden.",
     "noPermission": "❌ Keine Berechtigung.",
     "set": "✅ Kommentar für {user} wurde gesetzt:\n> {text}",
-    "notVerified": "❌ {user} ist nicht verifiziert."
+    "notVerified": "❌ {user} ist nicht verifiziert.",
+    "modalTitle": "Kommentar zum Vorfall",
+    "modalLabel": "Kommentartext"
   },
   "verify": {
     "noPermission": "❌ Keine Berechtigung.",
@@ -60,9 +62,11 @@
   "unverify": {
     "noPermission": "❌ Keine Berechtigung.",
     "notVerified": "❌ {user} war nicht verifiziert.",
-    "success": "✅ Verifizierung für {user} wurde gelöscht."
+    "success": "✅ Verifizierung für {user} wurde gelöscht — alle Rollen entfernt und **{role}** wiederhergestellt.",
+    "successNoRole": "✅ Verifizierung für {user} wurde gelöscht — alle Rollen entfernt."
   },
   "deanon": {
+    "noPermission": "❌ Du benötigst die verifizierte Rolle, um diesen Befehl zu nutzen.",
     "notVerified": "❌ {user} ist nicht verifiziert.",
     "title": "🔍 Verifizierter Benutzer",
     "discord": "Discord",

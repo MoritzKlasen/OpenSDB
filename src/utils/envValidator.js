@@ -9,7 +9,8 @@ const envSchema = z.object({
   DB_URI: z.string().startsWith('mongodb://', 'DB_URI must be a MongoDB connection string'),
 
   ADMIN_USERNAME: z.string().min(3, 'ADMIN_USERNAME must be at least 3 chars'),
-  ADMIN_PASSWORD: z.string().min(8, 'ADMIN_PASSWORD must be at least 8 chars'),
+  ADMIN_PASSWORD: z.string().min(8, 'ADMIN_PASSWORD must be at least 8 chars').optional(),
+  ADMIN_PASSWORD_HASH: z.string().min(1).optional(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 chars'),
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
   ADMIN_UI_PORT: z.string().min(1, 'ADMIN_UI_PORT must be provided'),
@@ -21,6 +22,14 @@ const envSchema = z.object({
   METRICS_BASIC_PASS: z.string().min(8, 'METRICS_BASIC_PASS must be at least 8 chars'),
 
   DEBUG: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.ADMIN_PASSWORD && !data.ADMIN_PASSWORD_HASH) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Either ADMIN_PASSWORD (min 8 chars) or ADMIN_PASSWORD_HASH must be provided',
+      path: ['ADMIN_PASSWORD'],
+    });
+  }
 });
 
 function validateEnvironment() {

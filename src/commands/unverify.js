@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
@@ -27,11 +27,13 @@ module.exports = {
     const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const teamRoleId = settings?.teamRoleId;
     const verifiedRoleId = settings?.verifiedRoleId;
+    const onJoinRoleId = settings?.onJoinRoleId;
 
     const isOwner = userId === guildOwnerId;
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
+    if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
         content: await t(interaction.guildId, 'unverify.noPermission'),
         flags: 64
@@ -88,8 +90,9 @@ module.exports = {
 
     await notifyAdminServer('unverify', INTERNAL_SECRET);
 
+    const messageKey = onJoinRoleName ? 'unverify.success' : 'unverify.successNoRole';
     await interaction.reply({
-      content: await t(interaction.guildId, 'unverify.success', { user: user.tag }),
+      content: await t(interaction.guildId, messageKey, { user: user.tag, role: onJoinRoleName }),
       flags: 64
     });
   }
