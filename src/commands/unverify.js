@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
@@ -27,11 +27,13 @@ module.exports = {
     const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const teamRoleId = settings?.teamRoleId;
     const verifiedRoleId = settings?.verifiedRoleId;
+    const onJoinRoleId = settings?.onJoinRoleId;
 
     const isOwner = userId === guildOwnerId;
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
+    if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
         content: await t(interaction.guildId, 'unverify.noPermission'),
         flags: 64
@@ -48,39 +50,32 @@ module.exports = {
       });
     }
 
-    // Pre-flight: check role hierarchy before touching the DB
-    if (verifiedRoleId) {
-      let member;
+    // Resolve the on-join role name for the success message (may be null)
+    let onJoinRoleName = null;
+    if (onJoinRoleId) {
+      const onJoinRole = interaction.guild.roles.cache.get(onJoinRoleId)
+        ?? await interaction.guild.roles.fetch(onJoinRoleId).catch(() => null);
+      onJoinRoleName = onJoinRole?.name ?? null;
+    }
+
+    // Replace all non-managed roles with just the on-join role (or none).
+    let member;
+    try {
+      member = await interaction.guild.members.fetch(user.id);
+    } catch {
+      member = null;
+    }
+
+    if (member) {
+      const newRoles = onJoinRoleId ? [onJoinRoleId] : [];
       try {
-        member = await interaction.guild.members.fetch(user.id);
-      } catch {
-        member = null;
-      }
-
-      if (member?.roles.cache.has(verifiedRoleId)) {
-        const verifiedRole = interaction.guild.roles.cache.get(verifiedRoleId)
-          ?? await interaction.guild.roles.fetch(verifiedRoleId).catch(() => null);
-
-        const me = interaction.guild.members.me
-          ?? await interaction.guild.members.fetchMe().catch(() => null);
-
-        if (verifiedRole && me && verifiedRole.position >= me.roles.highest.position) {
-          return interaction.reply({
-            content: `❌ Cannot remove role **${verifiedRole.name}** – it is above the bot's highest role in the hierarchy. Move the bot's role above **${verifiedRole.name}** in Server Settings › Roles, then try again.`,
-            flags: 64,
-          });
-        }
-
-        // Role check passed – remove from Discord
-        try {
-          await member.roles.remove(verifiedRoleId);
-        } catch (err) {
-          logger.warn(`Could not remove verified role from ${user.tag}`, { error: err.message });
-          return interaction.reply({
-            content: `❌ Could not remove role **${verifiedRole?.name ?? verifiedRoleId}**: ${err.message}`,
-            flags: 64,
-          });
-        }
+        await member.roles.set(newRoles);
+      } catch (err) {
+        logger.warn(`Could not reset roles for ${user.tag}`, { error: err.message });
+        return interaction.reply({
+          content: `❌ Could not reset roles for **${user.tag}**: ${err.message}`,
+          flags: 64,
+        });
       }
     }
 
@@ -88,8 +83,9 @@ module.exports = {
 
     await notifyAdminServer('unverify', INTERNAL_SECRET);
 
+    const messageKey = onJoinRoleName ? 'unverify.success' : 'unverify.successNoRole';
     await interaction.reply({
-      content: await t(interaction.guildId, 'unverify.success', { user: user.tag }),
+      content: await t(interaction.guildId, messageKey, { user: user.tag, role: onJoinRoleName }),
       flags: 64
     });
   }

@@ -4,7 +4,8 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  ChannelType
+  ChannelType,
+  PermissionFlagsBits
 } = require("discord.js");
 
 const ServerSettings = require("../database/models/ServerSettings");
@@ -58,9 +59,10 @@ module.exports = {
       const teamRoleId = settings.teamRoleId;
 
       const isOwner = interaction.user.id === interaction.guild?.ownerId;
+      const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
       const isTeam = teamRoleId && (interaction.member?.roles?.cache?.has(teamRoleId) ?? false);
 
-      if (!isOwner && !isTeam) {
+      if (!isOwner && !isAdmin && !isTeam) {
         return interaction.reply({ content: await t(guildId, "errors.noPermission"), flags: 64 });
       }
 

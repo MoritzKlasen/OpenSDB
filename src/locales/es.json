@@ -62,9 +62,11 @@
   "unverify": {
     "noPermission": "❌ Sin permiso.",
     "notVerified": "❌ {user} no fue verificado.",
-    "success": "✅ La verificación de {user} ha sido eliminada."
+    "success": "✅ La verificación de {user} ha sido eliminada — todos los roles retirados y **{role}** restaurado.",
+    "successNoRole": "✅ La verificación de {user} ha sido eliminada — todos los roles retirados."
   },
   "deanon": {
+    "noPermission": "❌ Necesitas el rol verificado para usar este comando.",
     "notVerified": "❌ {user} no está verificado.",
     "title": "🔍 Usuario verificado",
     "discord": "Discord",

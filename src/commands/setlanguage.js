@@ -82,6 +82,10 @@ module.exports = {
       const oldLang = currentSettings?.language || "en";
 
       if (oldLang === newLang) {
+        // DB already has the right value, but the bot's in-memory cache may be
+        // stale (e.g. language was changed via the WebUI since the last cache fill).
+        // Always refresh the cache here so subsequent responses use the correct language.
+        setGuildLanguageCache(guildId, newLang);
         const languageName = LANGUAGE_NAMES[newLang] || "English";
         return interaction.reply({
           content: await t(guildId, "language.setSuccess", { languageName, lang: newLang }),

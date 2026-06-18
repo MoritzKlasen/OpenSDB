@@ -223,7 +223,7 @@ const SettingsPage = () => {
             setTimeout(() => setSuccess(null), 3000)
             refreshSettings()
         } catch (err) {
-            setError('Failed to remove word')
+            setError(err.response?.data?.error || 'Failed to remove word')
         }
     }
 

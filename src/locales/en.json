@@ -62,9 +62,11 @@
   "unverify": {
     "noPermission": "❌ No permission.",
     "notVerified": "❌ {user} was not verified.",
-    "success": "✅ Verification for {user} has been deleted."
+    "success": "✅ Verification for {user} has been deleted — all roles removed and **{role}** restored.",
+    "successNoRole": "✅ Verification for {user} has been deleted — all roles removed."
   },
   "deanon": {
+    "noPermission": "❌ You need the verified role to use this command.",
     "notVerified": "❌ {user} is not verified.",
     "title": "🔍 Verified user",
     "discord": "Discord",

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const BannedWord = require('../database/models/BannedWord');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
@@ -35,9 +35,10 @@ module.exports = {
       const teamRoleId = settings?.teamRoleId;
 
       const isOwner = userId === guildOwnerId;
+      const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
       const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-      if (!isOwner && !isTeam) {
+      if (!isOwner && !isAdmin && !isTeam) {
         return interaction.reply({
           content: await t(interaction.guildId, 'errors.noPermission'),
           flags: 64      });

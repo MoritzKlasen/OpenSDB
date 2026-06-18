@@ -3,6 +3,7 @@ const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('deanon')
@@ -14,6 +15,18 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
+    const isOwner = interaction.user.id === interaction.guild.ownerId;
+    const isTeam = settings?.teamRoleId && interaction.member.roles.cache.has(settings.teamRoleId);
+    const isVerified = settings?.verifiedRoleId && interaction.member.roles.cache.has(settings.verifiedRoleId);
+
+    if (!isVerified && !isOwner && !isTeam) {
+      return interaction.reply({
+        content: await t(interaction.guildId, 'deanon.noPermission'),
+        flags: 64
+      });
+    }
+
     const user = interaction.options.getUser('user');
     const verified = await VerifiedUser.findOne({ discordId: user.id });
 
@@ -35,9 +48,6 @@ module.exports = {
       .setColor('Blurple')
       .setTimestamp();
 
-    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
-    const isOwner = interaction.user.id === interaction.guild.ownerId;
-    const isTeam = settings?.teamRoleId && interaction.member.roles.cache.has(settings.teamRoleId);
     const isPrivileged = isOwner || isTeam;
 
     if (isPrivileged && verified.comment && verified.comment.trim() !== '') {

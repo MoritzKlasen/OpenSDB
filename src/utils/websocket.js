@@ -18,6 +18,18 @@ function initWebSocket(server) {
     // Verify origin
     const origin = req.headers.origin;
     if (origin && process.env.CORS_ORIGINS) {
+      let isValidUrl = false;
+      try {
+        const parsed = new URL(origin);
+        isValidUrl = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        isValidUrl = false;
+      }
+      if (!isValidUrl) {
+        logger.security('websocket_origin_rejected', { origin, reason: 'malformed' });
+        ws.close(4003, 'Invalid origin');
+        return;
+      }
       const allowedOrigins = process.env.CORS_ORIGINS.split(',').filter(o => o !== '*');
       if (!allowedOrigins.includes(origin)) {
         logger.security('websocket_origin_rejected', { origin });

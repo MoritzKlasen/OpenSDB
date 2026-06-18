@@ -13,6 +13,11 @@ const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
 
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
+
 function hasValidAIConfiguration(config) {
   const hasSingleModel = !!(
     config.aiSettings?.provider &&
@@ -47,7 +52,7 @@ const ALERT_UPDATE_WINDOW = 60000;
 const DETECTION_CACHE_TTL = 300000; // 5 minutes cache for detection results
 
 async function handleAntiScam(client, message) {
-  if (message.author.bot) return;
+  if (!message.author || message.author.bot) return;
 
   try {
     const settings = await ServerSettings.findOne({ guildId: message.guildId });
@@ -494,7 +499,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         
         // Notify admin server to broadcast analytics update via WebSocket
         try {
-          await notifyAdminServer('scam-alert', process.env.INTERNAL_SECRET);
+          await notifyAdminServer('scam-alert', INTERNAL_SECRET);
         } catch (notifyError) {
           logger.error('Failed to notify admin server about scam detection event', {
             guildId: staging.firstMessage.guildId,
