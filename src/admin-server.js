@@ -18,8 +18,7 @@ const {
 } = require('./utils/security');
 const { logger, requestLogger, getSecurityEvents, getErrorLogs } = require('./utils/logger');
 const { validateEnvironment } = require('./utils/envValidator');
-const { MAX_MESSAGE_CONTENT_LENGTH } = require('./utils/constants');
-const { SUPPORTED: SUPPORTED_LANGUAGES, setGuildLanguageCache } = require('./utils/i18n');
+const { SUPPORTED: SUPPORTED_LANGUAGES } = require('./utils/i18n');
 
 validateEnvironment();
 
@@ -88,7 +87,7 @@ app.use((req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && req.path.startsWith('/api/')) {
     // Skip for internal API (uses signature-based auth)
     if (req.path === '/api/internal/notify-change') return next();
-    if (req.headers['x-requested-with'] !== 'XMLHttpRequest') {
+    if (!req.headers['x-requested-with']) {
       return res.status(403).json({ error: 'Missing CSRF header' });
     }
   }
@@ -100,10 +99,14 @@ app.use(express.static(frontendPath));
 
 function timingSafeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const key = crypto.randomBytes(32);
-  const hmacA = crypto.createHmac('sha256', key).update(a).digest();
-  const hmacB = crypto.createHmac('sha256', key).update(b).digest();
-  return crypto.timingSafeEqual(hmacA, hmacB);
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Compare against self to keep constant time, then return false
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 function basicAuth(user, pass) {
   return (req, res, next) => {
@@ -331,10 +334,19 @@ app.get(
   async (req, res) => {
     try {
       const defaultTz = process.env.SERVER_TIMEZONE || 'UTC';
-      const tz = req.query.tz || defaultTz;
-      const range = parseDateRange(req.query, res);
-      if (!range) return;
-      const { from, to } = range;
+      const tz   = req.query.tz   || defaultTz;
+      const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const to   = req.query.to   ? new Date(req.query.to)   : new Date();
+      if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+
+      const MAX_RANGE_DAYS = 730;
+      const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+      if (rangeDays > MAX_RANGE_DAYS || rangeDays < 0) {
+        return res.status(400).json({ error: `Date range must be between 0 and ${MAX_RANGE_DAYS} days` });
+      }
+
+      from.setUTCHours(0,0,0,0);
+      to.setUTCHours(23,59,59,999);
 
       const dateField = 'verifiedAt';
 
@@ -487,8 +499,8 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   if (!/^\d{17,20}$/.test(discordId)) {
     return res.status(400).json({ error: 'Invalid Discord ID' });
   }
-  if (typeof comment === 'string' && comment.length > MAX_MESSAGE_CONTENT_LENGTH) {
-    return res.status(400).json({ error: `Comment too long (max ${MAX_MESSAGE_CONTENT_LENGTH} characters)` });
+  if (typeof comment === 'string' && comment.length > 500) {
+    return res.status(400).json({ error: 'Comment too long (max 500 characters)' });
   }
 
   try {
@@ -511,9 +523,14 @@ app.get('/api/analytics/warnings-per-day', authMiddleware, async (req, res) => {
   try {
     const defaultTz = process.env.SERVER_TIMEZONE || 'UTC';
     const tz = req.query.tz || defaultTz;
-    const range = parseDateRange(req.query, res);
-    if (!range) return;
-    const { from, to } = range;
+    const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+    if (rangeDays > 730 || rangeDays < 0) return res.status(400).json({ error: 'Date range too large (max 730 days)' });
+    from.setUTCHours(0, 0, 0, 0);
+    to.setUTCHours(23, 59, 59, 999);
 
     const rows = await VerifiedUser.aggregate([
       {
@@ -560,9 +577,17 @@ app.get('/api/analytics/warnings-per-day', authMiddleware, async (req, res) => {
 
 app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
   try {
-    const range = parseDateRange(req.query, res);
-    if (!range) return;
-    const { from, to } = range;
+    let from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    let to   = req.query.to   ? new Date(req.query.to)   : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+    if (rangeDays > 730 || rangeDays < 0) return res.status(400).json({ error: 'Date range too large (max 730 days)' });
+    
+    from = new Date(from.getTime());
+    to = new Date(to.getTime());
+    from.setUTCHours(0,0,0,0);
+    to.setUTCHours(23,59,59,999);
 
     const dateField = 'verifiedAt';
 
@@ -609,9 +634,14 @@ app.get('/api/dashboard/users-growth', authMiddleware, async (req, res) => {
 
 app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => {
   try {
-    const range = parseDateRange(req.query, res);
-    if (!range) return;
-    const { from, to } = range;
+    let from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    let to = req.query.to ? new Date(req.query.to) : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+    if (rangeDays > 730 || rangeDays < 0) return res.status(400).json({ error: 'Date range too large (max 730 days)' });
+    from.setUTCHours(0, 0, 0, 0);
+    to.setUTCHours(23, 59, 59, 999);
 
     const rows = await VerifiedUser.aggregate([
       {
@@ -658,9 +688,14 @@ app.get('/api/dashboard/warnings-activity', authMiddleware, async (req, res) => 
 // Scam Detection Alerts Activity
 app.get('/api/dashboard/alerts-activity', authMiddleware, async (req, res) => {
   try {
-    const range = parseDateRange(req.query, res);
-    if (!range) return;
-    const { from, to } = range;
+    let from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    let to = req.query.to ? new Date(req.query.to) : new Date();
+    
+    if (isNaN(from) || isNaN(to)) return res.status(400).json({ error: 'Invalid from/to' });
+    const rangeDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+    if (rangeDays > 730 || rangeDays < 0) return res.status(400).json({ error: 'Date range too large (max 730 days)' });
+    from.setUTCHours(0, 0, 0, 0);
+    to.setUTCHours(23, 59, 59, 999);
 
     const rows = await ScamDetectionEvent.aggregate([
       {
@@ -920,11 +955,7 @@ app.put('/api/settings/server', authMiddleware, async (req, res) => {
     }
     
     await settings.save();
-
-    if (updates.language !== undefined && GUILD_ID) {
-      setGuildLanguageCache(GUILD_ID, settings.language);
-    }
-
+    
     logger.security('Server settings updated', {
       ip: req.ip || req.connection.remoteAddress,
       updatedFields: Object.keys(updates),

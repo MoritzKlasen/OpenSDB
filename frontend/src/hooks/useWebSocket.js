@@ -83,9 +83,11 @@ export const useWebSocket = (onMessage) => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
-      const ws = wsRef.current
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'Component unmounting')
+      if (wsRef.current) {
+        const state = wsRef.current.readyState
+        if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+          wsRef.current.close(1000, 'Component unmounting')
+        }
       }
       // If readyState === CONNECTING, onopen will handle the close above.
     }

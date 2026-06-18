@@ -12,12 +12,6 @@ const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
-const { MAX_MESSAGE_CONTENT_LENGTH } = require('../utils/constants');
-
-if (!process.env.INTERNAL_SECRET) {
-  throw new Error('INTERNAL_SECRET environment variable is required');
-}
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 function hasValidAIConfiguration(config) {
   const hasSingleModel = !!(
@@ -467,7 +461,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           userId: staging.firstMessage.author.id,
           messageId: staging.firstMessage.id,
           channelId: staging.firstMessage.channelId,
-          messageContent: staging.firstMessage.content?.substring(0, MAX_MESSAGE_CONTENT_LENGTH),
+          messageContent: staging.firstMessage.content?.substring(0, 500),
           
           modeUsed: finalDetectionResult.modeUsed || 'default',
           fallbackTriggered: finalDetectionResult.fallbackTriggered || false,
@@ -500,7 +494,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         
         // Notify admin server to broadcast analytics update via WebSocket
         try {
-          await notifyAdminServer('scam-alert', INTERNAL_SECRET);
+          await notifyAdminServer('scam-alert', process.env.INTERNAL_SECRET);
         } catch (notifyError) {
           logger.error('Failed to notify admin server about scam detection event', {
             guildId: staging.firstMessage.guildId,

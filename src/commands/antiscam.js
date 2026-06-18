@@ -22,7 +22,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('antiscam')
     .setDescription('Anti-scam detection system management')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(subcommand =>
       subcommand
         .setName('enable')
