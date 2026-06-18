@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const { logger } = require('../utils/logger');
 
+const BACKOFF_BASE_MS = 2000;
+const BACKOFF_MAX_MS = 10000;
+
 async function connectDB(retries = 5) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -10,7 +13,7 @@ async function connectDB(retries = 5) {
     } catch (err) {
       logger.error(`MongoDB connection attempt ${attempt}/${retries} failed`, { error: err.message });
       if (attempt < retries) {
-        const delay = Math.min(2000 * attempt, 10000);
+        const delay = Math.min(BACKOFF_BASE_MS * attempt, BACKOFF_MAX_MS);
         await new Promise(r => setTimeout(r, delay));
       }
     }

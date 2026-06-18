@@ -1,0 +1,3 @@
+const MAX_MESSAGE_CONTENT_LENGTH = 500;
+
+module.exports = { MAX_MESSAGE_CONTENT_LENGTH };

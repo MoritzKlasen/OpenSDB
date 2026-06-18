@@ -200,6 +200,7 @@ const AnalyticsPage = () => {
   )
 
   const filteredUserGrowth = useMemo(() => filterDataByTimeRange(userGrowthData, userGrowthTimeRange), [userGrowthData, userGrowthTimeRange])
+  const calcXAxisInterval = (data) => data?.length > 0 ? Math.max(1, Math.floor(data.length / 12)) : 1
   const filteredWarningActivity = useMemo(() => filterDataByTimeRange(warningActivityData, warningTimeRange), [warningActivityData, warningTimeRange])
   const filteredAlertsActivity = useMemo(() => filterDataByTimeRange(alertsActivityData, alertsTimeRange), [alertsActivityData, alertsTimeRange])
 
@@ -307,7 +308,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={!filteredUserGrowth || filteredUserGrowth.length === 0 ? 0 : Math.max(1, Math.floor(filteredUserGrowth.length / 12))}
+                    interval={calcXAxisInterval(filteredUserGrowth)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -358,11 +359,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={
-                      !filteredWarningActivity || filteredWarningActivity.length === 0
-                        ? 1
-                        : Math.max(1, Math.floor(filteredWarningActivity.length / 12))
-                    }
+                    interval={calcXAxisInterval(filteredWarningActivity)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -410,11 +407,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={
-                      filteredAlertsActivity?.length > 0
-                        ? Math.max(1, Math.floor(filteredAlertsActivity.length / 12))
-                        : 1
-                    }
+                    interval={calcXAxisInterval(filteredAlertsActivity)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip

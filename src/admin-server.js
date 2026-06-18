@@ -18,6 +18,7 @@ const {
 } = require('./utils/security');
 const { logger, requestLogger, getSecurityEvents, getErrorLogs } = require('./utils/logger');
 const { validateEnvironment } = require('./utils/envValidator');
+const { MAX_MESSAGE_CONTENT_LENGTH } = require('./utils/constants');
 const { SUPPORTED: SUPPORTED_LANGUAGES, setGuildLanguageCache } = require('./utils/i18n');
 
 validateEnvironment();
@@ -486,8 +487,8 @@ app.put('/api/update-comment/:discordId', authMiddleware, async (req, res) => {
   if (!/^\d{17,20}$/.test(discordId)) {
     return res.status(400).json({ error: 'Invalid Discord ID' });
   }
-  if (typeof comment === 'string' && comment.length > 500) {
-    return res.status(400).json({ error: 'Comment too long (max 500 characters)' });
+  if (typeof comment === 'string' && comment.length > MAX_MESSAGE_CONTENT_LENGTH) {
+    return res.status(400).json({ error: `Comment too long (max ${MAX_MESSAGE_CONTENT_LENGTH} characters)` });
   }
 
   try {

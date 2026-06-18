@@ -12,6 +12,7 @@ const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { MAX_MESSAGE_CONTENT_LENGTH } = require('../utils/constants');
 
 if (!process.env.INTERNAL_SECRET) {
   throw new Error('INTERNAL_SECRET environment variable is required');
@@ -466,7 +467,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           userId: staging.firstMessage.author.id,
           messageId: staging.firstMessage.id,
           channelId: staging.firstMessage.channelId,
-          messageContent: staging.firstMessage.content?.substring(0, 500),
+          messageContent: staging.firstMessage.content?.substring(0, MAX_MESSAGE_CONTENT_LENGTH),
           
           modeUsed: finalDetectionResult.modeUsed || 'default',
           fallbackTriggered: finalDetectionResult.fallbackTriggered || false,
