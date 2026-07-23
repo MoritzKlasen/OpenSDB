@@ -110,6 +110,33 @@
     "warn": "Avertir",
     "comment": "Commentaire"
   },
+  "ask": {
+    "emptyQuestion": "⚠️ Merci de saisir une question.",
+    "alreadyRunning": "⏳ Une requête est déjà en cours pour toi.",
+    "cooldown": "⏳ Merci d'attendre encore {seconds} secondes avant de redemander.",
+    "unreachable": "❌ Le système d'information est actuellement injoignable.",
+    "timeout": "⌛ La requête au système d'information a pris trop de temps.",
+    "serviceUnavailable": "❌ Le système d'information est temporairement indisponible. Réessaie plus tard.",
+    "invalidResponse": "❌ Le système d'information n'a pas renvoyé de réponse valide.",
+    "unexpectedError": "⚠️ Une erreur inattendue s'est produite lors du traitement de ta question.",
+    "refused": "ℹ️ Les sources disponibles ne contiennent aucune information à ce sujet.",
+    "sourcesLabel": "📚 Sources :",
+    "truncated": "ℹ️ La réponse était trop longue et a été tronquée.",
+    "disabled": "🚫 Le système d'information est désactivé sur ce serveur. Un administrateur peut l'activer."
+  },
+  "setinformationssystem": {
+    "noPermission": "⛔ Vous n'avez pas la permission de modifier le point de terminaison.",
+    "invalidUrl": "⚠️ Ce n'est pas une URL http(s) valide.",
+    "setSuccess": "✅ Point de terminaison du système d'information défini sur {url}.",
+    "showCustom": "🔧 Point de terminaison actuel : {url} (délai {timeout} ms).",
+    "showDefault": "🔧 Aucun point de terminaison personnalisé. Utilisation par défaut : {url} (délai {timeout} ms).",
+    "resetSuccess": "♻️ Point de terminaison réinitialisé par défaut.",
+    "resetNothing": "ℹ️ Aucun point de terminaison personnalisé n'était défini.",
+    "enableSuccess": "✅ Le système d'information (/ask) a été activé.",
+    "disableSuccess": "🚫 Le système d'information (/ask) a été désactivé.",
+    "statusEnabled": "Statut : activé.",
+    "statusDisabled": "Statut : désactivé."
+  },
   "scamKeywords": {
     "high": [
       "réclame maintenant",

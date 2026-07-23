@@ -110,6 +110,33 @@
     "warn": "Warn",
     "comment": "Comment"
   },
+  "ask": {
+    "emptyQuestion": "⚠️ Please enter a question.",
+    "alreadyRunning": "⏳ You already have a request running.",
+    "cooldown": "⏳ Please wait {seconds} more seconds before asking again.",
+    "unreachable": "❌ The information system is currently unreachable.",
+    "timeout": "⌛ The request to the information system took too long.",
+    "serviceUnavailable": "❌ The information system is temporarily unavailable. Please try again later.",
+    "invalidResponse": "❌ The information system did not return a valid answer.",
+    "unexpectedError": "⚠️ An unexpected error occurred while processing your question.",
+    "refused": "ℹ️ The available sources don't contain information about that.",
+    "sourcesLabel": "📚 Sources:",
+    "truncated": "ℹ️ The answer was too long and has been truncated.",
+    "disabled": "🚫 The information system is disabled on this server. An admin can enable it."
+  },
+  "setinformationssystem": {
+    "noPermission": "⛔ You don't have permission to change the endpoint.",
+    "invalidUrl": "⚠️ That is not a valid http(s) URL.",
+    "setSuccess": "✅ Information system endpoint set to {url}.",
+    "showCustom": "🔧 Current endpoint: {url} (timeout {timeout} ms).",
+    "showDefault": "🔧 No custom endpoint set. Using the default: {url} (timeout {timeout} ms).",
+    "resetSuccess": "♻️ Endpoint reset to the default.",
+    "resetNothing": "ℹ️ No custom endpoint was set.",
+    "enableSuccess": "✅ The information system (/ask) has been enabled.",
+    "disableSuccess": "🚫 The information system (/ask) has been disabled.",
+    "statusEnabled": "Status: enabled.",
+    "statusDisabled": "Status: disabled."
+  },
   "scamKeywords": {
     "high": [
       "claim now",

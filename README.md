@@ -79,6 +79,7 @@ The entire system runs in Docker containers for easy deployment and scaling, wit
 - **Interactive Analytics** – Charts for user growth trends and warning activity patterns
 - **Secure Admin UI** – JWT-authenticated web dashboard with HTTPS/SSL support and CORS protection
 - **AI-Powered Scam Detection** – Multi-provider AI support (OpenAI, Ollama, OpenRouter, Anthropic) with vision model routing for image analysis
+- **Knowledge-Base Q&A** – `/ask` answers questions from a self-hosted RAG backend and cites its sources; can be enabled per server and its API endpoint configured via command or the admin dashboard
 
 ---
 
@@ -288,6 +289,9 @@ You should see all 4 services (bot, web, nginx, mongo) in the **Up** status. Dis
 | `METRICS_BASIC_USER` | Metrics API basic auth username | ✅ Required | `grafana` |
 | `METRICS_BASIC_PASS` | Metrics API basic auth password | ✅ Required | `changeMe!` |
 | `SERVER_TIMEZONE` | Default timezone for analytics/metrics | Optional | `UTC` |
+| `INFORMATIONSSYSTEM_BASE_URL` | Default RAG backend URL for `/ask` (overridable per server) | Optional | `http://localhost:8000` |
+| `INFORMATIONSSYSTEM_TIMEOUT_MS` | Default `/ask` request timeout in milliseconds | Optional | `150000` |
+| `ASK_COOLDOWN_MS` | Per-user cooldown between `/ask` questions in milliseconds | Optional | `10000` |
 
 ### Generating Secure Secrets
 
@@ -417,6 +421,32 @@ Change the server's language (affects all bot responses and messages instantly).
 - **Permissions:** Administrator, Server Owner, Team Role
 - **Options:** `en` (English), `de` (German), `es` (Spanish), `fr` (French), `it` (Italian), `tr` (Turkish), `zh` (Chinese Simplified)
 - **Effect:** Updates all localized messages in real-time
+
+### Information System (Knowledge Base)
+
+#### `/ask <question>`
+Ask the information system a question. **Only questions about the information system are answered** — unrelated topics are refused. The bot forwards the question to a RAG backend and replies with a grounded answer plus its cited sources, or a short refusal when the sources don't cover it.
+- **Permissions:** Everyone (the feature must be enabled for the server first)
+- **Behavior:** Per-user cooldown (default 10s), long answers are split across messages and capped, and replies never ping the channel or expand links.
+
+#### `/setinformationssystem set <url> [timeout]`
+Configure, per server, the API endpoint that `/ask` sends questions to.
+- **Permissions:** Server Owner, Administrator, Team Role
+- **Options:** `url` (base URL), `timeout` (optional request timeout in ms, 1000–600000)
+- **Validation:** Must be an `http(s)` URL without embedded credentials; the `/api/v1/query` path is appended automatically.
+- **Also configurable in:** Admin Dashboard → Settings → *Information System* tab
+
+#### `/setinformationssystem show`
+Show the endpoint currently in use (a custom one, or the server default) and whether `/ask` is enabled.
+- **Permissions:** Server Owner, Administrator, Team Role
+
+#### `/setinformationssystem reset`
+Reset the endpoint back to the server default (`INFORMATIONSSYSTEM_BASE_URL`).
+- **Permissions:** Server Owner, Administrator, Team Role
+
+#### `/setinformationssystem enable` / `/setinformationssystem disable`
+Turn the `/ask` command on or off for this server (also available as a toggle in the dashboard's *Information System* tab). Disabled by default.
+- **Permissions:** Server Owner, Administrator, Team Role
 
 ### Ticket System
 

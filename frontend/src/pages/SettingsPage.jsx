@@ -84,6 +84,7 @@ const SettingsPage = () => {
             'language-localization': true,
             'discord-roles': true,
             'notification-channels': true,
+            'information-system': true,
             'detection-status': true,
             'detection-mode-sensitivity': true,
             'alert-channel': true,
@@ -196,6 +197,30 @@ const SettingsPage = () => {
             setTimeout(() => setSuccess(null), 3000)
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to save anti-scam settings')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleSaveInformationssystem = async (e) => {
+        e.preventDefault()
+        setSaving(true)
+        setError(null)
+        setSuccess(null)
+        try {
+            const updates = {
+                informationssystemConfig: {
+                    enabled: settings.informationssystemConfig?.enabled || false,
+                    baseUrl: settings.informationssystemConfig?.baseUrl || '',
+                    timeout: settings.informationssystemConfig?.timeout ?? null,
+                },
+            }
+            const res = await settingsApi.updateServerSettings(updates)
+            setSettings(res.data)
+            setSuccess('Information system settings saved successfully')
+            setTimeout(() => setSuccess(null), 3000)
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to save information system settings')
         } finally {
             setSaving(false)
         }
@@ -367,6 +392,19 @@ const SettingsPage = () => {
                             <span className="flex items-center justify-center gap-2">
                                 <Icon name="ban" className="w-5 h-5" />
                                 Banned Words
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('infosystem')}
+                            type="button"
+                            className={`flex-1 px-4 py-3 font-medium rounded-md transition-all ${activeTab === 'infosystem'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800'
+                                }`}
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <Icon name="chip" className="w-5 h-5" />
+                                Information System
                             </span>
                         </button>
                     </nav>
@@ -1380,6 +1418,107 @@ const SettingsPage = () => {
                             )}
                         </CollapsibleSection>
                     </div>
+                )}
+
+                {/* Information System Tab */}
+                {activeTab === 'infosystem' && (
+                    <form onSubmit={handleSaveInformationssystem} className="space-y-4">
+                        <CollapsibleSection title="Information System" icon="chip" isOpen={sectionsOpen['information-system']} onToggle={() => toggleSection('information-system')}>
+                            <div className="space-y-4">
+                                <label className="flex items-center gap-3 p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.informationssystemConfig?.enabled || false}
+                                        onChange={(e) =>
+                                            setSettings({
+                                                ...settings,
+                                                informationssystemConfig: {
+                                                    ...settings.informationssystemConfig,
+                                                    enabled: e.target.checked,
+                                                },
+                                            })
+                                        }
+                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded"
+                                    />
+                                    <div>
+                                        <span className="text-lg font-semibold text-slate-100 block">
+                                            Enable /ask Command
+                                        </span>
+                                        <span className="text-sm text-slate-400">
+                                            Allow members to ask the information system questions
+                                        </span>
+                                    </div>
+                                </label>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                        API Base URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={settings.informationssystemConfig?.baseUrl || ''}
+                                        onChange={(e) =>
+                                            setSettings({
+                                                ...settings,
+                                                informationssystemConfig: {
+                                                    ...settings.informationssystemConfig,
+                                                    baseUrl: e.target.value,
+                                                },
+                                            })
+                                        }
+                                        placeholder="https://informationssystem.example.org"
+                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <p className="mt-1 text-sm text-slate-400">
+                                        Endpoint that /ask sends questions to. Leave empty to use the server default. The path /api/v1/query is appended automatically.
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                        Request Timeout (ms)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1000"
+                                        max="600000"
+                                        value={settings.informationssystemConfig?.timeout ?? ''}
+                                        onChange={(e) =>
+                                            setSettings({
+                                                ...settings,
+                                                informationssystemConfig: {
+                                                    ...settings.informationssystemConfig,
+                                                    timeout: e.target.value === '' ? null : parseInt(e.target.value, 10),
+                                                },
+                                            })
+                                        }
+                                        placeholder="150000"
+                                        className="w-40 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <p className="mt-1 text-sm text-slate-400">
+                                        Optional. Between 1000 and 600000 ms. Leave empty for the default.
+                                    </p>
+                                </div>
+                            </div>
+                        </CollapsibleSection>
+
+                        <div className="flex justify-end">
+                            <Button type="submit" disabled={saving}>
+                                {saving ? (
+                                    <span className="flex items-center gap-2">
+                                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                        </svg>
+                                        Saving...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Icon name="save" className="w-4 h-4" />
+                                        Save Information System Settings
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
+                    </form>
                 )}
             </div>
         </Layout>

@@ -7,7 +7,13 @@ const serverSettingsSchema = new mongoose.Schema({
   verifiedRoleId: { type: String, required: false },
   onJoinRoleId: { type: String },
   language: {type: String, enum: ["de", "en", "es", "fr", "it", "tr", "zh"], default: "en"},
-  
+
+  informationssystemConfig: {
+    enabled: { type: Boolean, default: false },
+    baseUrl: { type: String },
+    timeout: { type: Number }
+  },
+
   scamDetectionConfig: {
     enabled: { type: Boolean, default: false },
     mode: { type: String, enum: ['default', 'ai'], default: 'default' },

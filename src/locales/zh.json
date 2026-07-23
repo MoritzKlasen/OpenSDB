@@ -110,6 +110,33 @@
     "warn": "警告",
     "comment": "评论"
   },
+  "ask": {
+    "emptyQuestion": "⚠️ 请输入一个问题。",
+    "alreadyRunning": "⏳ 你已有一个正在处理的请求。",
+    "cooldown": "⏳ 请再等待 {seconds} 秒后再提问。",
+    "unreachable": "❌ 目前无法连接到信息系统。",
+    "timeout": "⌛ 向信息系统发出的请求耗时过长。",
+    "serviceUnavailable": "❌ 信息系统暂时不可用，请稍后再试。",
+    "invalidResponse": "❌ 信息系统未返回有效答复。",
+    "unexpectedError": "⚠️ 处理你的问题时发生了意外错误。",
+    "refused": "ℹ️ 现有资料中没有相关信息。",
+    "sourcesLabel": "📚 来源：",
+    "truncated": "ℹ️ 回答过长，已被截断。",
+    "disabled": "🚫 信息系统在此服务器上已停用。管理员可以启用它。"
+  },
+  "setinformationssystem": {
+    "noPermission": "⛔ 你没有权限更改接口地址。",
+    "invalidUrl": "⚠️ 这不是有效的 http(s) 网址。",
+    "setSuccess": "✅ 信息系统接口已设置为 {url}。",
+    "showCustom": "🔧 当前接口：{url}（超时 {timeout} 毫秒）。",
+    "showDefault": "🔧 未设置自定义接口，使用默认：{url}（超时 {timeout} 毫秒）。",
+    "resetSuccess": "♻️ 接口已重置为默认。",
+    "resetNothing": "ℹ️ 未设置自定义接口。",
+    "enableSuccess": "✅ 信息系统（/ask）已启用。",
+    "disableSuccess": "🚫 信息系统（/ask）已停用。",
+    "statusEnabled": "状态：已启用。",
+    "statusDisabled": "状态：已停用。"
+  },
   "scamKeywords": {
     "high": [
       "立即领取",

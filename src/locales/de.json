@@ -110,6 +110,33 @@
     "warn": "Verwarnen",
     "comment": "Kommentar"
   },
+  "ask": {
+    "emptyQuestion": "⚠️ Bitte gib eine Frage ein.",
+    "alreadyRunning": "⏳ Du hast bereits eine laufende Anfrage.",
+    "cooldown": "⏳ Bitte warte noch {seconds} Sekunden, bevor du erneut fragst.",
+    "unreachable": "❌ Das Informationssystem ist derzeit nicht erreichbar.",
+    "timeout": "⌛ Die Anfrage an das Informationssystem hat zu lange gedauert.",
+    "serviceUnavailable": "❌ Das Informationssystem ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.",
+    "invalidResponse": "❌ Das Informationssystem hat keine gültige Antwort geliefert.",
+    "unexpectedError": "⚠️ Beim Verarbeiten deiner Frage ist ein unerwarteter Fehler aufgetreten.",
+    "refused": "ℹ️ Die verfügbaren Quellen enthalten dazu keine Information.",
+    "sourcesLabel": "📚 Quellen:",
+    "truncated": "ℹ️ Die Antwort war zu lang und wurde gekürzt.",
+    "disabled": "🚫 Das Informationssystem ist auf diesem Server deaktiviert. Ein Admin kann es aktivieren."
+  },
+  "setinformationssystem": {
+    "noPermission": "⛔ Du hast keine Berechtigung, den Endpunkt zu ändern.",
+    "invalidUrl": "⚠️ Das ist keine gültige http(s)-URL.",
+    "setSuccess": "✅ Endpunkt des Informationssystems auf {url} gesetzt.",
+    "showCustom": "🔧 Aktueller Endpunkt: {url} (Timeout {timeout} ms).",
+    "showDefault": "🔧 Kein eigener Endpunkt gesetzt. Standard wird verwendet: {url} (Timeout {timeout} ms).",
+    "resetSuccess": "♻️ Endpunkt auf den Standard zurückgesetzt.",
+    "resetNothing": "ℹ️ Es war kein eigener Endpunkt gesetzt.",
+    "enableSuccess": "✅ Das Informationssystem (/ask) wurde aktiviert.",
+    "disableSuccess": "🚫 Das Informationssystem (/ask) wurde deaktiviert.",
+    "statusEnabled": "Status: aktiviert.",
+    "statusDisabled": "Status: deaktiviert."
+  },
   "scamKeywords": {
     "high": [
       "jetzt einfordern",

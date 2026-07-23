@@ -110,6 +110,33 @@
     "warn": "Avvertimento",
     "comment": "Commento"
   },
+  "ask": {
+    "emptyQuestion": "⚠️ Inserisci una domanda.",
+    "alreadyRunning": "⏳ Hai già una richiesta in corso.",
+    "cooldown": "⏳ Attendi ancora {seconds} secondi prima di chiedere di nuovo.",
+    "unreachable": "❌ Il sistema informativo non è al momento raggiungibile.",
+    "timeout": "⌛ La richiesta al sistema informativo ha impiegato troppo tempo.",
+    "serviceUnavailable": "❌ Il sistema informativo è temporaneamente non disponibile. Riprova più tardi.",
+    "invalidResponse": "❌ Il sistema informativo non ha restituito una risposta valida.",
+    "unexpectedError": "⚠️ Si è verificato un errore imprevisto durante l'elaborazione della domanda.",
+    "refused": "ℹ️ Le fonti disponibili non contengono informazioni al riguardo.",
+    "sourcesLabel": "📚 Fonti:",
+    "truncated": "ℹ️ La risposta era troppo lunga ed è stata troncata.",
+    "disabled": "🚫 Il sistema informativo è disattivato su questo server. Un amministratore può attivarlo."
+  },
+  "setinformationssystem": {
+    "noPermission": "⛔ Non hai il permesso di modificare l'endpoint.",
+    "invalidUrl": "⚠️ Non è un URL http(s) valido.",
+    "setSuccess": "✅ Endpoint del sistema informativo impostato su {url}.",
+    "showCustom": "🔧 Endpoint attuale: {url} (timeout {timeout} ms).",
+    "showDefault": "🔧 Nessun endpoint personalizzato. Uso quello predefinito: {url} (timeout {timeout} ms).",
+    "resetSuccess": "♻️ Endpoint ripristinato a quello predefinito.",
+    "resetNothing": "ℹ️ Non era impostato alcun endpoint personalizzato.",
+    "enableSuccess": "✅ Il sistema informativo (/ask) è stato attivato.",
+    "disableSuccess": "🚫 Il sistema informativo (/ask) è stato disattivato.",
+    "statusEnabled": "Stato: attivato.",
+    "statusDisabled": "Stato: disattivato."
+  },
   "scamKeywords": {
     "high": [
       "reclama ora",

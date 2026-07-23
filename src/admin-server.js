@@ -19,6 +19,7 @@ const {
 const { logger, requestLogger, getSecurityEvents, getErrorLogs } = require('./utils/logger');
 const { validateEnvironment } = require('./utils/envValidator');
 const { SUPPORTED: SUPPORTED_LANGUAGES } = require('./utils/i18n');
+const { normalizeBaseUrl, normalizeTimeout } = require('./utils/informationssystemConfig');
 
 validateEnvironment();
 
@@ -749,6 +750,11 @@ app.get('/api/settings/server', authMiddleware, async (req, res) => {
         verifiedRoleId: '',
         onJoinRoleId: '',
         language: 'en',
+        informationssystemConfig: {
+          enabled: false,
+          baseUrl: '',
+          timeout: null
+        },
         scamDetectionConfig: {
           enabled: false,
           mode: 'default',
@@ -859,6 +865,29 @@ app.put('/api/settings/server', authMiddleware, async (req, res) => {
       }
     }
     
+    // Validate and normalize the information system endpoint config
+    if (updates.informationssystemConfig !== undefined) {
+      const isc = updates.informationssystemConfig || {};
+      if (isc.baseUrl !== undefined && isc.baseUrl !== '') {
+        const normalized = normalizeBaseUrl(isc.baseUrl);
+        if (!normalized) {
+          return res.status(400).json({ error: 'Invalid informationssystem baseUrl - must be an http(s) URL without credentials' });
+        }
+        isc.baseUrl = normalized;
+      }
+      if (isc.timeout !== undefined && isc.timeout !== null && isc.timeout !== '') {
+        const timeout = normalizeTimeout(isc.timeout);
+        if (timeout === null) {
+          return res.status(400).json({ error: 'informationssystem timeout must be between 1000 and 600000 ms' });
+        }
+        isc.timeout = timeout;
+      }
+      if (isc.enabled !== undefined) {
+        isc.enabled = Boolean(isc.enabled);
+      }
+      updates.informationssystemConfig = isc;
+    }
+
     // Get existing settings or create new one
     const query = GUILD_ID ? { guildId: GUILD_ID } : {};
     let settings = await ServerSettings.findOne(query);
@@ -952,8 +981,20 @@ app.put('/api/settings/server', authMiddleware, async (req, res) => {
         // Mark the nested object as modified for Mongoose
         settings.markModified('scamDetectionConfig');
       }
+
+      // Handle informationssystemConfig updates
+      if (updates.informationssystemConfig && typeof updates.informationssystemConfig === 'object') {
+        if (!settings.informationssystemConfig) {
+          settings.informationssystemConfig = {};
+        }
+        const isc = updates.informationssystemConfig;
+        if (isc.enabled !== undefined) settings.informationssystemConfig.enabled = isc.enabled;
+        if (isc.baseUrl !== undefined) settings.informationssystemConfig.baseUrl = isc.baseUrl;
+        if (isc.timeout !== undefined) settings.informationssystemConfig.timeout = isc.timeout;
+        settings.markModified('informationssystemConfig');
+      }
     }
-    
+
     await settings.save();
     
     logger.security('Server settings updated', {
