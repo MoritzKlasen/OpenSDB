@@ -1,9 +1,11 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
 const ScamDetectionEvent = require('../database/models/ScamDetectionEvent');
-const { t } = require('../utils/i18n');
+const { t, getTranslator } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
+const { recordAIHealth } = require('../utils/scamDetection/aiHealth');
 
 async function notifyAdminServerSafely(guildId, changedBy, operation) {
   try {
@@ -291,51 +293,53 @@ module.exports = {
       return interaction.reply({ content: await t(guildId, 'antiscam.noPermission'), flags: 64 });
     }
 
+    const tr = await getTranslator(guildId);
+
     try {
       await interaction.deferReply({ flags: 64 });
 
       switch (subcommand) {
         case 'enable':
-          await handleEnable(interaction, guildId);
+          await handleEnable(interaction, guildId, tr);
           break;
         case 'disable':
-          await handleDisable(interaction, guildId);
+          await handleDisable(interaction, guildId, tr);
           break;
         case 'mode':
-          await handleMode(interaction, guildId);
+          await handleMode(interaction, guildId, tr);
           break;
         case 'sensitivity':
-          await handleSensitivity(interaction, guildId);
+          await handleSensitivity(interaction, guildId, tr);
           break;
         case 'alert-channel':
-          await handleAlertChannel(interaction, guildId);
+          await handleAlertChannel(interaction, guildId, tr);
           break;
         case 'auto-delete':
-          await handleAutoDelete(interaction, guildId);
+          await handleAutoDelete(interaction, guildId, tr);
           break;
         case 'auto-timeout':
-          await handleAutoTimeout(interaction, guildId);
+          await handleAutoTimeout(interaction, guildId, tr);
           break;
         case 'whitelist-user':
-          await handleWhitelistUser(interaction, guildId);
+          await handleWhitelistUser(interaction, guildId, tr);
           break;
         case 'whitelist-domain':
-          await handleWhitelistDomain(interaction, guildId);
+          await handleWhitelistDomain(interaction, guildId, tr);
           break;
         case 'ai-configure':
-          await handleAIConfigure(interaction, guildId);
+          await handleAIConfigure(interaction, guildId, tr);
           break;
         case 'ai-configure-multimodel':
-          await handleAIConfigureMultiModel(interaction, guildId);
+          await handleAIConfigureMultiModel(interaction, guildId, tr);
           break;
         case 'ai-test':
-          await handleAITest(interaction, guildId);
+          await handleAITest(interaction, guildId, tr);
           break;
         case 'stats':
-          await handleStats(interaction, guildId);
+          await handleStats(interaction, guildId, tr);
           break;
         case 'status':
-          await handleStatus(interaction, guildId);
+          await handleStatus(interaction, guildId, tr);
           break;
       }
     } catch (error) {
@@ -345,13 +349,13 @@ module.exports = {
         error: error.message,
       });
       await interaction.editReply({
-        content: '❌ An error occurred while processing your request.',
-      });
+        content: tr('antiscam.error'),
+      }).catch(() => {});
     }
   },
 };
 
-async function handleEnable(interaction, guildId) {
+async function handleEnable(interaction, guildId, tr) {
   await ServerSettings.findOneAndUpdate(
     { guildId },
     { 'scamDetectionConfig.enabled': true },
@@ -361,11 +365,11 @@ async function handleEnable(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'enable');
 
   await interaction.editReply({
-    content: '✅ Anti-scam detection is now **enabled**.',
+    content: tr('antiscam.enabled'),
   });
 }
 
-async function handleDisable(interaction, guildId) {
+async function handleDisable(interaction, guildId, tr) {
   await ServerSettings.findOneAndUpdate(
     { guildId },
     { 'scamDetectionConfig.enabled': false },
@@ -375,11 +379,11 @@ async function handleDisable(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'disable');
 
   await interaction.editReply({
-    content: '❌ Anti-scam detection is now **disabled**.',
+    content: tr('antiscam.disabled'),
   });
 }
 
-async function handleMode(interaction, guildId) {
+async function handleMode(interaction, guildId, tr) {
   const mode = interaction.options.getString('type');
 
   await ServerSettings.findOneAndUpdate(
@@ -390,9 +394,9 @@ async function handleMode(interaction, guildId) {
 
   await notifyAdminServerSafely(guildId, interaction.user.id, 'mode');
 
-  const modeLabel = mode === 'ai' ? '🤖 AI Detection' : '📋 Default Detection';
+  const modeLabel = tr(mode === 'ai' ? 'antiscam.modeAi' : 'antiscam.modeDefault');
   await interaction.editReply({
-    content: `✅ Detection mode changed to **${modeLabel}**.`,
+    content: tr('antiscam.modeChanged', { mode: modeLabel }),
   });
 
   logger.security('Detection mode changed', {
@@ -402,7 +406,12 @@ async function handleMode(interaction, guildId) {
   });
 }
 
-async function handleSensitivity(interaction, guildId) {
+function sensitivityLabel(level, tr) {
+  const keys = { low: 'antiscam.sensitivityLow', medium: 'antiscam.sensitivityMedium', high: 'antiscam.sensitivityHigh' };
+  return tr(keys[level] || keys.medium);
+}
+
+async function handleSensitivity(interaction, guildId, tr) {
   const level = interaction.options.getString('level');
 
   await ServerSettings.findOneAndUpdate(
@@ -413,24 +422,17 @@ async function handleSensitivity(interaction, guildId) {
 
   await notifyAdminServerSafely(guildId, interaction.user.id, 'sensitivity');
 
-  const levelLabel =
-    level === 'low'
-      ? 'Low (fewer false positives)'
-      : level === 'medium'
-        ? 'Medium (balanced)'
-        : 'High (more detections)';
-
   await interaction.editReply({
-    content: `✅ Sensitivity set to **${levelLabel}**.`,
+    content: tr('antiscam.sensitivitySet', { level: sensitivityLabel(level, tr) }),
   });
 }
 
-async function handleAlertChannel(interaction, guildId) {
+async function handleAlertChannel(interaction, guildId, tr) {
   const channel = interaction.options.getChannel('channel');
 
   if (!channel.isTextBased()) {
     return await interaction.editReply({
-      content: '❌ Please select a text channel.',
+      content: tr('antiscam.textChannelRequired'),
     });
   }
 
@@ -443,11 +445,11 @@ async function handleAlertChannel(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'alert-channel');
 
   await interaction.editReply({
-    content: `✅ Alert channel set to ${channel.toString()}.`,
+    content: tr('antiscam.alertChannelSet', { channel: channel.toString() }),
   });
 }
 
-async function handleAutoDelete(interaction, guildId) {
+async function handleAutoDelete(interaction, guildId, tr) {
   const enabled = interaction.options.getBoolean('enabled');
 
   await ServerSettings.findOneAndUpdate(
@@ -459,7 +461,7 @@ async function handleAutoDelete(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'auto-delete');
 
   await interaction.editReply({
-    content: `✅ Auto-delete is now **${enabled ? 'enabled' : 'disabled'}**.`,
+    content: tr('antiscam.autoDeleteSet', { state: tr(enabled ? 'antiscam.stateEnabled' : 'antiscam.stateDisabled') }),
   });
 
   if (enabled) {
@@ -467,7 +469,7 @@ async function handleAutoDelete(interaction, guildId) {
   }
 }
 
-async function handleAutoTimeout(interaction, guildId) {
+async function handleAutoTimeout(interaction, guildId, tr) {
   const enabled = interaction.options.getBoolean('enabled');
   const duration = interaction.options.getInteger('duration') || 60;
 
@@ -483,7 +485,7 @@ async function handleAutoTimeout(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'auto-timeout');
 
   await interaction.editReply({
-    content: `✅ Auto-timeout is now **${enabled ? 'enabled' : 'disabled'}** (${duration} minutes).`,
+    content: tr('antiscam.autoTimeoutSet', { state: tr(enabled ? 'antiscam.stateEnabled' : 'antiscam.stateDisabled'), duration }),
   });
 
   if (enabled) {
@@ -495,7 +497,7 @@ async function handleAutoTimeout(interaction, guildId) {
   }
 }
 
-async function handleWhitelistUser(interaction, guildId) {
+async function handleWhitelistUser(interaction, guildId, tr) {
   const user = interaction.options.getUser('user');
 
   const settings = await ServerSettings.findOne({ guildId });
@@ -503,7 +505,7 @@ async function handleWhitelistUser(interaction, guildId) {
 
   if (trustedIds.includes(user.id)) {
     return await interaction.editReply({
-      content: '⚠️ This user is already whitelisted.',
+      content: tr('antiscam.userAlreadyWhitelisted'),
     });
   }
 
@@ -518,7 +520,7 @@ async function handleWhitelistUser(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'whitelist-user');
 
   await interaction.editReply({
-    content: `✅ ${user.tag} has been added to the whitelist.`,
+    content: tr('antiscam.userWhitelisted', { user: user.tag }),
   });
 
   logger.security('User whitelisted', {
@@ -528,7 +530,7 @@ async function handleWhitelistUser(interaction, guildId) {
   });
 }
 
-async function handleWhitelistDomain(interaction, guildId) {
+async function handleWhitelistDomain(interaction, guildId, tr) {
   const domain = interaction.options
     .getString('domain')
     .toLowerCase()
@@ -536,7 +538,7 @@ async function handleWhitelistDomain(interaction, guildId) {
 
   if (!domain.includes('.')) {
     return await interaction.editReply({
-      content: '❌ Invalid domain format.',
+      content: tr('antiscam.invalidDomain'),
     });
   }
 
@@ -545,7 +547,7 @@ async function handleWhitelistDomain(interaction, guildId) {
 
   if (trustedDomains.includes(domain)) {
     return await interaction.editReply({
-      content: '⚠️ This domain is already whitelisted.',
+      content: tr('antiscam.domainAlreadyWhitelisted'),
     });
   }
 
@@ -560,11 +562,11 @@ async function handleWhitelistDomain(interaction, guildId) {
   await notifyAdminServerSafely(guildId, interaction.user.id, 'whitelist-domain');
 
   await interaction.editReply({
-    content: `✅ \`${domain}\` has been added to the domain whitelist.`,
+    content: tr('antiscam.domainWhitelisted', { domain }),
   });
 }
 
-async function handleAIConfigure(interaction, guildId) {
+async function handleAIConfigure(interaction, guildId, tr) {
   const provider = interaction.options.getString('provider');
   const model = interaction.options.getString('model');
   const baseUrl = interaction.options.getString('baseurl');
@@ -575,13 +577,13 @@ async function handleAIConfigure(interaction, guildId) {
 
   if (requiresApiKey && !apiKey) {
     return await interaction.editReply({
-      content: `❌ API key is required for **${provider}**.\n\nProviders that don't require an API key:\n• Ollama (self-hosted)\n\n⚠️ **Security Note:** API keys are stored in the database. Use this command in a private channel or DM.`,
+      content: `${tr('antiscam.apiKeyRequired', { provider })}\n\n${tr('antiscam.apiKeySecurityNote')}`,
     });
   }
 
   if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
     return await interaction.editReply({
-      content: `❌ Base URL must start with http:// or https://\n\n**Example Base URLs:**\n• OpenAI: \`https://api.openai.com/v1\`\n• OpenRouter: \`https://openrouter.ai/api/v1\`\n• Anthropic: \`https://api.anthropic.com\`\n• Ollama: \`http://localhost:11434\``,
+      content: `${tr('antiscam.baseUrlInvalid')}\n\n${tr('antiscam.baseUrlExamples')}\n• OpenAI: \`https://api.openai.com/v1\`\n• OpenRouter: \`https://openrouter.ai/api/v1\`\n• Anthropic: \`https://api.anthropic.com\`\n• Ollama: \`http://localhost:11434\``,
     });
   }
 
@@ -610,16 +612,16 @@ async function handleAIConfigure(interaction, guildId) {
 
   const apiKeyInfo = apiKey 
     ? `\nAPI Key: ••••••••${apiKey.slice(-4)}`
-    : '\n⚠️ No API key configured (self-hosted provider)';
+    : `\n⚠️ ${tr('antiscam.noApiKey')}`;
 
   const timeoutInfo = timeout ? `\nTimeout: ${timeout}ms` : '';
 
   await interaction.editReply({
-    content: `✅ AI Detection configured:\n\`\`\`
+    content: `${tr('antiscam.aiConfigured')}\n\`\`\`
 Provider: ${provider}
 Model: ${model}
 Base URL: ${baseUrl}${apiKeyInfo}${timeoutInfo}
-\`\`\`\n✅ Configuration saved to database.`,
+\`\`\`\n${tr('antiscam.configSaved')}`,
   });
 
   logger.security('AI detection configured', {
@@ -633,7 +635,7 @@ Base URL: ${baseUrl}${apiKeyInfo}${timeoutInfo}
   });
 }
 
-async function handleAIConfigureMultiModel(interaction, guildId) {
+async function handleAIConfigureMultiModel(interaction, guildId, tr) {
   const textProvider = interaction.options.getString('text-provider');
   const textModel = interaction.options.getString('text-model');
   const textBaseUrl = interaction.options.getString('text-baseurl');
@@ -649,26 +651,26 @@ async function handleAIConfigureMultiModel(interaction, guildId) {
   const textRequiresApiKey = !['ollama'].includes(textProvider.toLowerCase());
   if (textRequiresApiKey && !textApiKey) {
     return await interaction.editReply({
-      content: `❌ API key is required for text model provider **${textProvider}**.\n\n⚠️ **Security Note:** API keys are stored in the database. Use this command in a private channel or DM.`,
+      content: `${tr('antiscam.textApiKeyRequired', { provider: textProvider })}\n\n${tr('antiscam.apiKeySecurityNote')}`,
     });
   }
 
   if (!textBaseUrl.startsWith('http://') && !textBaseUrl.startsWith('https://')) {
     return await interaction.editReply({
-      content: `❌ Text model base URL must start with http:// or https://`,
+      content: tr('antiscam.textBaseUrlInvalid'),
     });
   }
 
   const visionRequiresApiKey = !['ollama'].includes(visionProvider.toLowerCase());
   if (visionRequiresApiKey && !visionApiKey) {
     return await interaction.editReply({
-      content: `❌ API key is required for vision model provider **${visionProvider}**.\n\n⚠️ **Security Note:** API keys are stored in the database. Use this command in a private channel or DM.`,
+      content: `${tr('antiscam.visionApiKeyRequired', { provider: visionProvider })}\n\n${tr('antiscam.apiKeySecurityNote')}`,
     });
   }
 
   if (!visionBaseUrl.startsWith('http://') && !visionBaseUrl.startsWith('https://')) {
     return await interaction.editReply({
-      content: `❌ Vision model base URL must start with http:// or https://`,
+      content: tr('antiscam.visionBaseUrlInvalid'),
     });
   }
 
@@ -728,26 +730,26 @@ async function handleAIConfigureMultiModel(interaction, guildId) {
 
   const textApiKeyInfo = textApiKey 
     ? `API Key: ••••••••${textApiKey.slice(-4)}`
-    : 'No API key (self-hosted)';
+    : tr('antiscam.noApiKey');
 
   const visionApiKeyInfo = visionApiKey 
     ? `API Key: ••••••••${visionApiKey.slice(-4)}`
-    : 'No API key (self-hosted)';
+    : tr('antiscam.noApiKey');
 
   await interaction.editReply({
-    content: `✅ **Multi-Model AI Detection Configured**\n\n**Text Model (for text-only messages):**\n\`\`\`
+    content: `${tr('antiscam.multiConfigured')}\n\n${tr('antiscam.multiTextModel')}\n\`\`\`
 Provider: ${textProvider}
 Model: ${textModel}
 Base URL: ${textBaseUrl}
 ${textApiKeyInfo}
 Timeout: ${textModelConfig.timeout}ms
-\`\`\`\n**Vision Model (for messages with images):**\n\`\`\`
+\`\`\`\n${tr('antiscam.multiVisionModel')}\n\`\`\`
 Provider: ${visionProvider}
 Model: ${visionModel}
 Base URL: ${visionBaseUrl}
 ${visionApiKeyInfo}
 Timeout: ${visionModelConfig.timeout}ms
-\`\`\`\n✅ Configuration saved. The bot will automatically route:\n• Text-only messages → Text model (faster, cheaper)\n• Messages with images → Vision model (full analysis)`,
+\`\`\`\n${tr('antiscam.multiRouting')}`,
   });
 
   logger.security('Multi-model AI detection configured', {
@@ -760,58 +762,55 @@ Timeout: ${visionModelConfig.timeout}ms
   });
 }
 
-async function handleAITest(interaction, guildId) {
+async function handleAITest(interaction, guildId, tr) {
   const settings = await ServerSettings.findOne({ guildId });
   const config = settings?.scamDetectionConfig;
   const aiSettings = config?.aiSettings;
 
   if (config?.mode !== 'ai' || !aiSettings) {
     return await interaction.editReply({
-      content: '❌ AI detection is not enabled. Set detection mode to "AI (Machine Learning)" first.',
+      content: tr('antiscam.aiNotEnabled'),
     });
   }
 
-  const isMultiModel = aiSettings.textModel && aiSettings.visionModel;
+  const isMultiModel = AIDetectionEngine.isModelConfigured(aiSettings.textModel) &&
+    AIDetectionEngine.isModelConfigured(aiSettings.visionModel);
 
   await interaction.editReply({
-    content: isMultiModel 
-      ? '🔄 Testing both AI providers (text & vision)...' 
-      : '🔄 Testing AI provider connection...',
+    content: tr(isMultiModel ? 'antiscam.aiTestingBoth' : 'antiscam.aiTesting'),
   });
 
   try {
-    const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
     const aiEngine = new AIDetectionEngine();
 
     if (isMultiModel) {
       const textResult = await aiEngine.performHealthCheck(aiSettings.textModel);
       const visionResult = await aiEngine.performHealthCheck(aiSettings.visionModel);
 
-      let responseText = '**Multi-Model AI Test Results:**\n\n';
-      
-      responseText += `**Text Model** (${aiSettings.textModel.provider}/${aiSettings.textModel.model}):\n`;
-      if (textResult.healthy) {
-        responseText += `✅ Healthy and responding\n\n`;
-      } else {
-        responseText += `❌ Failed: \`${textResult.reason}\`\n\n`;
-      }
-      
-      responseText += `**Vision Model** (${aiSettings.visionModel.provider}/${aiSettings.visionModel.model}):\n`;
-      if (visionResult.healthy) {
-        responseText += `✅ Healthy and responding\n\n`;
-      } else {
-        responseText += `❌ Failed: \`${visionResult.reason}\`\n\n`;
-      }
+      const resultLine = (result) => result.healthy
+        ? tr('antiscam.aiModelHealthy')
+        : tr('antiscam.aiModelFailed', { reason: result.reason });
+
+      let responseText = `${tr('antiscam.aiMultiResults')}\n\n`;
+      responseText += `${tr('antiscam.aiTextModel', { model: `${aiSettings.textModel.provider}/${aiSettings.textModel.model}` })}\n`;
+      responseText += `${resultLine(textResult)}\n\n`;
+      responseText += `${tr('antiscam.aiVisionModel', { model: `${aiSettings.visionModel.provider}/${aiSettings.visionModel.model}` })}\n`;
+      responseText += `${resultLine(visionResult)}\n\n`;
+
+      const failures = [['text', textResult], ['vision', visionResult]]
+        .filter(([, r]) => !r.healthy)
+        .map(([type, r]) => `${type}: ${r.reason}`);
+      await recordAIHealth(interaction.client, guildId, failures.length === 0, failures.join('; '));
 
       if (textResult.healthy && visionResult.healthy) {
-        responseText += '✅ **Overall:** Both models are healthy!';
+        responseText += tr('antiscam.aiAllHealthy');
         logger.security('Multi-model AI health check passed', {
           guildId,
           textProvider: aiSettings.textModel.provider,
           visionProvider: aiSettings.visionModel.provider,
         });
       } else {
-        responseText += '⚠️ **Overall:** One or more models failed';
+        responseText += tr('antiscam.aiSomeFailed');
         logger.warn('Multi-model AI health check partially failed', {
           guildId,
           textHealthy: textResult.healthy,
@@ -822,10 +821,11 @@ async function handleAITest(interaction, guildId) {
       await interaction.editReply({ content: responseText });
     } else {
       const result = await aiEngine.performHealthCheck(aiSettings);
+      await recordAIHealth(interaction.client, guildId, result.healthy, result.reason);
 
       if (result.healthy) {
         await interaction.editReply({
-          content: `✅ AI provider is **healthy** and responding correctly.\n\nProvider: ${aiSettings.provider}/${aiSettings.model}`,
+          content: tr('antiscam.aiHealthy', { model: `${aiSettings.provider}/${aiSettings.model}` }),
         });
 
         logger.security('AI health check passed', {
@@ -834,7 +834,7 @@ async function handleAITest(interaction, guildId) {
         });
       } else {
         await interaction.editReply({
-          content: `❌ AI provider check failed:\n\`${result.reason}\``,
+          content: tr('antiscam.aiCheckFailed', { reason: result.reason }),
         });
 
         logger.warn('AI health check failed', {
@@ -851,12 +851,12 @@ async function handleAITest(interaction, guildId) {
       error: error.message,
     });
     await interaction.editReply({
-      content: `❌ Error testing AI provider:\n\`${error.message}\``,
+      content: tr('antiscam.aiTestError', { reason: error.message }),
     });
   }
 }
 
-async function handleStats(interaction, guildId) {
+async function handleStats(interaction, guildId, tr) {
   const period = interaction.options.getString('period') || '24h';
 
   let since;
@@ -898,19 +898,20 @@ async function handleStats(interaction, guildId) {
 
   const total = (data.byMode || []).reduce((sum, m) => sum + m.count, 0);
 
-  let statsText = `📊 **Anti-Scam Statistics (${period})**\n\n`;
-  statsText += `**Total Detections:** ${total}\n`;
+  const periodKeys = { '24h': 'antiscam.period24h', '7d': 'antiscam.period7d', '30d': 'antiscam.period30d' };
+  let statsText = `${tr('antiscam.statsTitle', { period: tr(periodKeys[period] || 'antiscam.periodAll') })}\n\n`;
+  statsText += `${tr('antiscam.statsTotal', { count: total })}\n`;
 
   if (data.byMode?.length > 0) {
-    statsText += `**By Mode:**\n`;
+    statsText += `${tr('antiscam.statsByMode')}\n`;
     data.byMode.forEach(m => {
-      const mode = m._id === 'ai' ? '🤖 AI' : '📋 Default';
+      const mode = tr(m._id === 'ai' ? 'antiscam.statsModeAi' : 'antiscam.statsModeDefault');
       statsText += `  ${mode}: ${m.count}\n`;
     });
   }
 
   if (data.byRiskLevel?.length > 0) {
-    statsText += `**By Risk Level:**\n`;
+    statsText += `${tr('antiscam.statsByRisk')}\n`;
     data.byRiskLevel.forEach(r => {
       const emoji = {
         LOW: '🟢',
@@ -923,14 +924,15 @@ async function handleStats(interaction, guildId) {
   }
 
   if (data.fallbackCount[0]?.count > 0) {
-    statsText += `**Fallback Events:** ${data.fallbackCount[0].count}\n`;
+    statsText += `${tr('antiscam.statsFallbacks', { count: data.fallbackCount[0].count })}\n`;
   }
 
   if (data.autoActions?.length > 0) {
-    statsText += `**Auto Actions:**\n`;
+    const actionKeys = { flagged: 'antiscam.actionFlagged', deleted: 'antiscam.actionDeleted', timedout: 'antiscam.actionTimedout' };
+    statsText += `${tr('antiscam.statsAutoActions')}\n`;
     data.autoActions.forEach(a => {
       if (a._id !== 'none') {
-        statsText += `  ${a._id}: ${a.count}\n`;
+        statsText += `  ${actionKeys[a._id] ? tr(actionKeys[a._id]) : a._id}: ${a.count}\n`;
       }
     });
   }
@@ -940,48 +942,61 @@ async function handleStats(interaction, guildId) {
   });
 }
 
-async function handleStatus(interaction, guildId) {
+async function handleStatus(interaction, guildId, tr) {
   const settings = await ServerSettings.findOne({ guildId });
   const config = settings?.scamDetectionConfig;
 
   if (!config || !config.enabled) {
     return await interaction.editReply({
-      content: '❌ Anti-scam detection is **disabled**.',
+      content: tr('antiscam.statusDisabled'),
     });
   }
 
-  let status = '✅ **Anti-Scam Detection Status**\n\n';
-  status += `**Enabled:** Yes\n`;
-  status += `**Mode:** ${config.mode === 'ai' ? '🤖 AI Detection' : '📋 Default Detection'}\n`;
-  status += `**Sensitivity:** ${config.sensitivity || 'medium'}\n`;
-  status += `**Alert Channel:** ${config.alertChannelId ? `<#${config.alertChannelId}>` : 'Not set'}\n\n`;
+  const state = (on) => (on ? '✅' : '❌');
+  const healthKeys = { healthy: 'antiscam.healthHealthy', unhealthy: 'antiscam.healthUnhealthy' };
 
-  status += `**Auto-Actions:**\n`;
-  status += `  Delete Messages: ${config.autoDelete ? '✅' : '❌'}\n`;
-  status += `  Timeout Users: ${config.autoTimeout ? `✅ (${config.autoTimeoutDuration} min)` : '❌'}\n\n`;
+  let status = `${tr('antiscam.statusTitle')}\n\n`;
+  status += `${tr('antiscam.statusEnabled')}\n`;
+  status += `${tr('antiscam.statusMode', { mode: tr(config.mode === 'ai' ? 'antiscam.modeAi' : 'antiscam.modeDefault') })}\n`;
+  status += `${tr('antiscam.statusSensitivity', { level: sensitivityLabel(config.sensitivity, tr) })}\n`;
+  status += `${tr('antiscam.statusAlertChannel', { channel: config.alertChannelId ? `<#${config.alertChannelId}>` : tr('antiscam.notSet') })}\n\n`;
 
-  status += `**Thresholds:**\n`;
-  status += `  Alert Threshold: ${config.minRiskScoreForAlert}/100\n`;
-  status += `  Auto-Action Threshold: ${config.minRiskScoreForAutoAction}/100\n`;
-  status += `  Duplicate Threshold: ${config.duplicateMessageThreshold} channels\n\n`;
+  status += `${tr('antiscam.statusAutoActions')}\n`;
+  status += `  ${tr('antiscam.statusDelete', { state: state(config.autoDelete) })}\n`;
+  status += `  ${tr('antiscam.statusTimeout', { state: config.autoTimeout ? tr('antiscam.statusTimeoutOn', { duration: config.autoTimeoutDuration }) : state(false) })}\n\n`;
 
-  status += `**Whitelisted Users:** ${config.trustedUserIds?.length || 0}\n`;
-  status += `**Whitelisted Domains:** ${config.trustedDomains?.length || 0}\n`;
+  status += `${tr('antiscam.statusThresholds')}\n`;
+  status += `  ${tr('antiscam.statusAlertThreshold', { value: config.minRiskScoreForAlert })}\n`;
+  status += `  ${tr('antiscam.statusAutoActionThreshold', { value: config.minRiskScoreForAutoAction })}\n`;
+  status += `  ${tr('antiscam.statusDuplicateThreshold', { value: config.duplicateMessageThreshold })}\n\n`;
+
+  status += `${tr('antiscam.statusWhitelistedUsers', { count: config.trustedUserIds?.length || 0 })}\n`;
+  status += `${tr('antiscam.statusWhitelistedDomains', { count: config.trustedDomains?.length || 0 })}\n`;
 
   if (config.mode === 'ai' && config.aiSettings) {
-    status += `\n**AI Settings:**\n`;
-    
-    if (config.aiSettings.textModel && config.aiSettings.visionModel) {
-      status += `  Mode: 🔀 Multi-Model (auto-routing)\n`;
-      status += `  Text Model: ${config.aiSettings.textModel.provider}/${config.aiSettings.textModel.model}\n`;
-      status += `  Vision Model: ${config.aiSettings.visionModel.provider}/${config.aiSettings.visionModel.model}\n`;
+    const ai = config.aiSettings;
+    status += `\n${tr('antiscam.statusAiSettings')}\n`;
+
+    if (AIDetectionEngine.isModelConfigured(ai.textModel) &&
+        AIDetectionEngine.isModelConfigured(ai.visionModel)) {
+      status += `  ${tr('antiscam.statusAiMulti')}\n`;
+      status += `  ${tr('antiscam.statusAiTextModel', { model: `${ai.textModel.provider}/${ai.textModel.model}` })}\n`;
+      status += `  ${tr('antiscam.statusAiVisionModel', { model: `${ai.visionModel.provider}/${ai.visionModel.model}` })}\n`;
     } else {
-      status += `  Mode: Single Model\n`;
-      status += `  Provider: ${config.aiSettings.provider}\n`;
-      status += `  Model: ${config.aiSettings.model}\n`;
+      status += `  ${tr('antiscam.statusAiSingle')}\n`;
+      status += `  ${tr('antiscam.statusAiProvider', { provider: ai.provider })}\n`;
+      status += `  ${tr('antiscam.statusAiModel', { model: ai.model })}\n`;
     }
-    
-    status += `  Status: ${config.aiHealthStatus || 'Unknown'}\n`;
+
+    const healthLabel = tr(healthKeys[config.aiHealthStatus] || 'antiscam.healthUnknown');
+    const healthReason = config.aiHealthStatus === 'unhealthy' && config.aiHealthCheckReason
+      ? ` – ${config.aiHealthCheckReason}`
+      : '';
+    status += `  ${tr('antiscam.statusAiHealth', { status: healthLabel + healthReason })}\n`;
+    if (config.lastHealthCheckTime) {
+      const lastCheck = Math.floor(new Date(config.lastHealthCheckTime).getTime() / 1000);
+      status += `  ${tr('antiscam.statusAiLastCheck', { time: `<t:${lastCheck}:R>` })}\n`;
+    }
   }
 
   await interaction.editReply({ content: status });

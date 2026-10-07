@@ -9,25 +9,20 @@ const UserActivity = require('../database/models/UserActivity');
 const ScamDetectionEvent = require('../database/models/ScamDetectionEvent');
 const DefaultDetectionEngine = require('../utils/scamDetection/defaultDetectionEngine');
 const AIDetectionEngine = require('../utils/scamDetection/aiDetectionEngine');
-const { t } = require('../utils/i18n');
+const { recordAIHealth } = require('../utils/scamDetection/aiHealth');
+const { getTranslator } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { MAX_MESSAGE_CONTENT_LENGTH } = require('../utils/constants');
 
+// AI mode is usable when at least one configured model passes validation.
+// validateConfig decides per provider whether an API key is needed (Ollama needs none).
 function hasValidAIConfiguration(config) {
-  const hasSingleModel = !!(
-    config.aiSettings?.provider &&
-    config.aiSettings?.model &&
-    config.aiSettings?.apiKey
-  );
-  const hasMultiModel = !!(
-    config.aiSettings?.textModel?.provider &&
-    config.aiSettings?.textModel?.model &&
-    config.aiSettings?.textModel?.apiKey &&
-    config.aiSettings?.visionModel?.provider &&
-    config.aiSettings?.visionModel?.model &&
-    config.aiSettings?.visionModel?.apiKey
-  );
-  return hasSingleModel || hasMultiModel;
+  const ai = config.aiSettings;
+  if (!ai) return false;
+  return [ai, ai.textModel, ai.visionModel]
+    .filter(AIDetectionEngine.isModelConfigured)
+    .some(modelConfig => aiEngine.validateConfig(modelConfig).valid);
 }
 
 const defaultEngine = new DefaultDetectionEngine();
@@ -45,6 +40,12 @@ const SPAM_ALERT_THRESHOLD_REPEAT = 1; // Threshold for content that was already
 const STAGING_CLEANUP_WINDOW = 120000;  // 120 seconds to handle slow AI detection
 const ALERT_UPDATE_WINDOW = 60000;
 const DETECTION_CACHE_TTL = 300000; // 5 minutes cache for detection results
+const ALERT_STORAGE_TTL = 24 * 60 * 60 * 1000; // older alerts fall back to the DB
+const PREVIOUS_ALERT_TTL = 24 * 60 * 60 * 1000; // repeat content needs only 1 message within this window
+const MAINTENANCE_INTERVAL = 10 * 60 * 1000;
+// Defaults match the ServerSettings schema
+const DEFAULT_ALERT_THRESHOLD = 45;
+const DEFAULT_AUTO_ACTION_THRESHOLD = 80;
 
 async function handleAntiScam(client, message) {
   if (!message.author || message.author.bot) return;
@@ -75,7 +76,7 @@ async function handleAntiScam(client, message) {
 
     await updateUserActivity(message.guildId, message.author, message);
 
-    const looksSuspicious = defaultEngine.quickSuspiciousCheck(message.content, message);
+    const looksSuspicious = defaultEngine.quickSuspiciousCheck(message.content, message, settings.language);
     
     if (!looksSuspicious) {
       return;
@@ -96,7 +97,8 @@ async function handleAntiScam(client, message) {
       client,
       alertChannelId,
       message,
-      config
+      config,
+      settings.language
     );
   } catch (error) {
     logger.error('Error in anti-scam handler', {
@@ -106,45 +108,53 @@ async function handleAntiScam(client, message) {
   }
 }
 
+// Message content is only needed for duplicate detection (max. duplicateTimeWindow = 60 min);
+// older entries keep just timestamp/channel/hash for the 24h behavioral checks.
+const MESSAGE_CONTENT_RETENTION = 60 * 60 * 1000;
+const RECENT_MESSAGES_RETENTION = 24 * 60 * 60 * 1000;
+const RECENT_MESSAGES_LIMIT = 20;
+
+// Unreachable or misconfigured AI marks the provider unhealthy right away (a single
+// unparsable answer does not); a successful AI verdict marks it healthy again
+function reportAIHealthFromDetection(client, guildId, result) {
+  let update = null;
+  if (result.modeUsed === 'ai') {
+    update = recordAIHealth(client, guildId, true);
+  } else if (result.fallbackTriggered && ['config', 'request'].includes(result.fallbackType)) {
+    update = recordAIHealth(client, guildId, false, result.fallbackReason);
+  }
+  update?.catch(err => logger.error('Failed to record AI health', { guildId, error: err.message }));
+}
+
 async function updateUserActivity(guildId, author, message) {
   try {
-    const userData = await UserActivity.findOne({
-      guildId,
-      userId: author.id,
-    });
-
     const now = new Date();
     const contentHash = defaultEngine.hashContent(message.content);
-
-    const recentMessages = (userData?.recentMessages || [])
-      .filter(msg => now - new Date(msg.timestamp) < 24 * 60 * 60 * 1000)
-      .slice(-20);
-
-    recentMessages.push({
-      content: message.content,
-      channelId: message.channelId,
-      timestamp: now,
-      contentHash,
-    });
-
-    const channelsPostIn = new Set(userData?.channelsPostIn || []);
-    channelsPostIn.add(message.channelId);
-
     const accountAgeDays = Math.floor(
       (Date.now() - author.createdTimestamp) / (1000 * 60 * 60 * 24)
     );
 
-    await UserActivity.findOneAndUpdate(
+    // Single atomic update – a read-modify-write here loses messages when a user posts quickly
+    await UserActivity.updateOne(
       { guildId, userId: author.id },
       {
-        lastMessageTime: now,
-        messageCount: (userData?.messageCount || 0) + 1,
-        channelsPostIn: Array.from(channelsPostIn),
-        recentMessages,
-        accountAge: accountAgeDays,
-        updatedAt: now,
+        $set: { lastMessageTime: now, accountAge: accountAgeDays, updatedAt: now },
+        $inc: { messageCount: 1 },
+        $addToSet: { channelsPostIn: message.channelId },
+        $push: {
+          recentMessages: {
+            $each: [{
+              content: (message.content || '').slice(0, MAX_MESSAGE_CONTENT_LENGTH),
+              channelId: message.channelId,
+              timestamp: now,
+              contentHash,
+            }],
+            $slice: -RECENT_MESSAGES_LIMIT,
+          },
+        },
+        $setOnInsert: { createdAt: now },
       },
-      { upsert: true }
+      { upsert: true, setDefaultsOnInsert: false }
     );
   } catch (error) {
     logger.error('Failed to update user activity', {
@@ -155,7 +165,23 @@ async function updateUserActivity(guildId, author, message) {
   }
 }
 
-async function sendAdminAlert(client, alertChannelId, message, config) {
+async function pruneUserActivity() {
+  const now = Date.now();
+  const messagesCutoff = new Date(now - RECENT_MESSAGES_RETENTION);
+  const contentCutoff = new Date(now - MESSAGE_CONTENT_RETENTION);
+
+  await UserActivity.updateMany(
+    { 'recentMessages.timestamp': { $lt: messagesCutoff } },
+    { $pull: { recentMessages: { timestamp: { $lt: messagesCutoff } } } }
+  );
+  await UserActivity.updateMany(
+    { recentMessages: { $elemMatch: { timestamp: { $lt: contentCutoff }, content: { $exists: true } } } },
+    { $unset: { 'recentMessages.$[old].content': '' } },
+    { arrayFilters: [{ 'old.timestamp': { $lt: contentCutoff } }] }
+  );
+}
+
+async function sendAdminAlert(client, alertChannelId, message, config, serverLanguage = 'en') {
   try {
     logger.info('sendAdminAlert called', {
       guildId: message.guildId,
@@ -188,17 +214,24 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         if (storage) {
           storage.messages.push({ messageId: message.id, channelId: message.channelId });
         }
+        await ScamDetectionEvent.updateOne(
+          { alertMessageId: existingAlert.alertMessageId },
+          { $push: { relatedMessages: { messageId: message.id, channelId: message.channelId } } }
+        ).catch(err => logger.warn('Failed to persist related spam message', { error: err.message }));
         
         const alertMessage = await alertChannel.messages.fetch(existingAlert.alertMessageId);
+        const tr = await getTranslator(message.guildId);
         const updatedEmbed = buildSpamAlertEmbed(
           existingAlert.firstMessage,
           existingAlert.detectionResult,
-          existingAlert.count
+          existingAlert.count,
+          tr
         );
         const updatedButtons = buildSpamAlertButtons(
           existingAlert.firstMessage,
           existingAlert.messages.length,
-          existingAlert.alertMessageId
+          existingAlert.alertMessageId,
+          tr
         );
 
         await alertMessage.edit({
@@ -317,6 +350,17 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           riskScore: finalDetectionResult.riskScore,
         });
       } else {
+        const detectionOptions = {
+          sensitivity: config.sensitivity,
+          serverLanguage,
+          trustedDomains: config.trustedDomains,
+          duplicateThreshold: config.duplicateMessageThreshold,
+          duplicateTimeWindow: config.duplicateTimeWindow,
+          accountAgeRequirement: config.accountAgeRequirement,
+          firstMessageSuspicion: config.firstMessageSuspicion,
+          spamCount: staging.count,  // Pass spam count from staging
+        };
+
         if (config.mode === 'ai' && hasValidAIConfiguration(config)) {
           try {
             logger.info('Running AI detection for spam analysis', {
@@ -331,14 +375,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
               staging.firstMessage.author,
               staging.firstMessage,
               config.aiSettings,
-              {
-                sensitivity: config.sensitivity,
-                serverLanguage: config.language || 'en',
-                trustedDomains: config.trustedDomains,
-                duplicateThreshold: config.duplicateMessageThreshold,
-                duplicateTimeWindow: config.duplicateTimeWindow,
-                spamCount: staging.count,  // Pass spam count from staging
-              }
+              detectionOptions
             );
             
             if (finalDetectionResult.fallbackTriggered) {
@@ -347,10 +384,16 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
                 reason: finalDetectionResult.fallbackReason,
               });
             }
+            reportAIHealthFromDetection(client, message.guildId, finalDetectionResult);
           } catch (aiError) {
             logger.error('AI detection failed, using default', {
               guildId: message.guildId,
               error: aiError.message,
+            });
+            reportAIHealthFromDetection(client, message.guildId, {
+              fallbackTriggered: true,
+              fallbackType: 'request',
+              fallbackReason: aiError.message,
             });
             
             finalDetectionResult = await defaultEngine.detectScam(
@@ -358,14 +401,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
               staging.firstMessage.author.id,
               staging.firstMessage.author,
               staging.firstMessage,
-              {
-                sensitivity: config.sensitivity,
-                serverLanguage: config.language || 'en',
-                trustedDomains: config.trustedDomains,
-                duplicateThreshold: config.duplicateMessageThreshold,
-                duplicateTimeWindow: config.duplicateTimeWindow,
-                spamCount: staging.count,  // Pass spam count from staging
-              }
+              detectionOptions
             );
             
             finalDetectionResult.modeUsed = 'default';
@@ -378,14 +414,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
             staging.firstMessage.author.id,
             staging.firstMessage.author,
             staging.firstMessage,
-            {
-              sensitivity: config.sensitivity,
-              serverLanguage: config.language || 'en',
-              trustedDomains: config.trustedDomains,
-              duplicateThreshold: config.duplicateMessageThreshold,
-              duplicateTimeWindow: config.duplicateTimeWindow,
-              spamCount: staging.count,  // Pass spam count from staging
-            }
+            detectionOptions
           );
           
           finalDetectionResult.modeUsed = 'default';
@@ -412,13 +441,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         reasons: finalDetectionResult.reasons,
       });
       
-      const thresholdMap = {
-        low: 60,
-        medium: 40,
-        high: 20
-      };
-      
-      const alertThreshold = thresholdMap[config.sensitivity] || 50;
+      const { alertThreshold } = getRiskThresholds(config);
       
       if (finalDetectionResult.riskScore < alertThreshold) {
         logger.info('Risk score below threshold after full detection, not alerting', {
@@ -433,9 +456,10 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         return;
       }
       
-      const embed = buildSpamAlertEmbed(staging.firstMessage, finalDetectionResult, staging.count);
+      const tr = await getTranslator(message.guildId);
+      const embed = buildSpamAlertEmbed(staging.firstMessage, finalDetectionResult, staging.count, tr);
       
-      const buttons = buildSpamAlertButtons(staging.firstMessage, staging.messages.length, 'temp');
+      const buttons = buildSpamAlertButtons(staging.firstMessage, staging.messages.length, 'temp', tr);
 
       logger.info('Sending Discord alert message now', {
         guildId: message.guildId,
@@ -461,7 +485,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           userId: staging.firstMessage.author.id,
           messageId: staging.firstMessage.id,
           channelId: staging.firstMessage.channelId,
-          messageContent: staging.firstMessage.content?.substring(0, 500),
+          messageContent: staging.firstMessage.content?.substring(0, MAX_MESSAGE_CONTENT_LENGTH),
           
           modeUsed: finalDetectionResult.modeUsed || 'default',
           fallbackTriggered: finalDetectionResult.fallbackTriggered || false,
@@ -482,6 +506,7 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
           actionTaken: 'flagged',
           alertSent: true,
           alertMessageId: alertMessage.id,
+          relatedMessages: staging.messages.map(m => ({ messageId: m.messageId, channelId: m.channelId })),
           
           detectedAt: new Date(),
         });
@@ -513,9 +538,10 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
         userId: staging.firstMessage.author.id,
         guildId: staging.firstMessage.guildId,
         groupKey: groupKey, // Store groupKey for cleanup when messages are deleted
+        createdAt: now,
       });
       
-      const correctButtons = buildSpamAlertButtons(staging.firstMessage, staging.messages.length, alertMessage.id);
+      const correctButtons = buildSpamAlertButtons(staging.firstMessage, staging.messages.length, alertMessage.id, tr);
       await alertMessage.edit({ components: correctButtons }).catch(() => {});
 
       activeSpamAlerts.set(groupKey, {
@@ -571,14 +597,16 @@ async function sendAdminAlert(client, alertChannelId, message, config) {
   }
 }
 
-async function processAutoActions(message, detectionResult, config, alertMessageId) {
-  const thresholdMap = {
-    low: 60,
-    medium: 40,
-    high: 20
+// Thresholds come from the admin settings (sensitivity only affects the scoring itself)
+function getRiskThresholds(config) {
+  return {
+    alertThreshold: config.minRiskScoreForAlert ?? DEFAULT_ALERT_THRESHOLD,
+    autoActionThreshold: config.minRiskScoreForAutoAction ?? DEFAULT_AUTO_ACTION_THRESHOLD,
   };
-  const alertThreshold = thresholdMap[config.sensitivity] || 40;
-  const autoActionThreshold = alertThreshold + 10;
+}
+
+async function processAutoActions(message, detectionResult, config, alertMessageId) {
+  const { autoActionThreshold } = getRiskThresholds(config);
   
   const shouldTakeAutoAction = detectionResult.riskScore >= autoActionThreshold;
   let actionTaken = 'flagged';
@@ -650,23 +678,35 @@ async function processAutoActions(message, detectionResult, config, alertMessage
   }
 }
 
-function buildSpamAlertEmbed(message, result, count) {
-  let description = `**User:** ${message.author.tag} (<@${message.author.id}>)\n`;
-  description += `**Channel:** <#${message.channelId}>\n`;
+// The AI answers with fixed English labels (the scoring relies on them); only the display is translated
+function classificationLabel(classification, a) {
+  const value = String(classification || '').toLowerCase();
+  if (value.includes('scam')) return a('classificationScam');
+  if (value.includes('suspicious')) return a('classificationSuspicious');
+  if (value.includes('safe')) return a('classificationSafe');
+  return classification;
+}
+
+// tr: synchronous translator from getTranslator(guildId)
+function buildSpamAlertEmbed(message, result, count, tr) {
+  const a = (key, vars) => tr(`scamAlert.${key}`, vars);
+
+  let description = `**${a('user')}:** ${message.author.tag} (<@${message.author.id}>)\n`;
+  description += `**${a('channel')}:** <#${message.channelId}>\n`;
   
   if (count > 1) {
-    description += `**Spam Count:** 🔁 ${count} messages detected\n`;
+    description += `**${a('spamCount')}:** 🔁 ${a('messagesDetected', { count })}\n`;
   }
   
-  description += `**Detection Mode:** ${result.modeUsed === 'ai' ? '🤖 AI' : '📋 Default'}\n`;
-  description += `**Risk Level:** ${getRiskLevelEmoji(result.riskLevel)} ${result.riskLevel}\n`;
+  description += `**${a('detectionMode')}:** ${a(result.modeUsed === 'ai' ? 'modeAi' : 'modeDefault')}\n`;
+  description += `**${a('riskLevel')}:** ${getRiskLevelEmoji(result.riskLevel)} ${result.riskLevel}\n`;
 
   if (result.fallbackTriggered) {
-    description += `⚠️ **Fallback Active:** ${result.fallbackReason}\n`;
+    description += `⚠️ **${a('fallbackActive')}:** ${result.fallbackReason}\n`;
   }
 
   const embed = new EmbedBuilder()
-    .setTitle(count > 1 ? '⚠️ Spam Attack Detected' : 'Potential Scam Detected')
+    .setTitle(a(count > 1 ? 'titleSpam' : 'titleSingle'))
     .setDescription(description)
     .setColor(getRiskLevelColor(result.riskLevel))
     .setTimestamp();
@@ -677,25 +717,25 @@ function buildSpamAlertEmbed(message, result, count) {
       .map(r => `• ${r}`)
       .join('\n');
     embed.addFields({
-      name: 'Detection Reasons',
-      value: reasonsText || 'No specific reasons',
+      name: a('reasons'),
+      value: reasonsText || a('noReasons'),
       inline: false,
     });
   }
 
   if (result.modeUsed === 'ai' && result.aiClassification) {
     embed.addFields({
-      name: 'AI Analysis',
+      name: a('aiAnalysis'),
       value:
-        `**Classification:** ${result.aiClassification}\n` +
-        `**Confidence:** ${result.aiConfidence}%\n` +
-        `**Reason:** ${result.aiReason}`,
+        `**${a('classification')}:** ${classificationLabel(result.aiClassification, a)}\n` +
+        `**${a('confidence')}:** ${result.aiConfidence}%\n` +
+        `**${a('reason')}:** ${result.aiReason}`,
       inline: false,
     });
   }
 
   embed.addFields({
-    name: 'Risk Score',
+    name: a('riskScore'),
     value: `${result.riskScore}/100`,
     inline: true,
   });
@@ -705,15 +745,15 @@ function buildSpamAlertEmbed(message, result, count) {
       .slice(0, 3)
       .join('\n');
     embed.addFields({
-      name: 'Extracted Links',
-      value: `\`\`\`${linksText}\`\`\`` || 'None',
+      name: a('links'),
+      value: `\`\`\`${linksText}\`\`\``,
       inline: false,
     });
   }
 
   if (result.extractedImages?.length > 0 || result.hasImages) {
     const imageCount = result.extractedImages?.length || 0;
-    let imageText = `📷 ${imageCount} image(s) attached and analyzed by AI\n`;
+    let imageText = `${a('imagesAnalyzed', { count: imageCount })}\n`;
     
     if (result.extractedImages && result.extractedImages.length > 0) {
       imageText += result.extractedImages
@@ -723,18 +763,18 @@ function buildSpamAlertEmbed(message, result, count) {
     }
     
     embed.addFields({
-      name: '🖼️ Images Detected',
+      name: a('imagesDetected'),
       value: imageText,
       inline: false,
     });
   }
 
   const messageText = message.content 
-    ? message.content.substring(0, 500)
-    : '(no text content - image only)';
+    ? message.content.substring(0, MAX_MESSAGE_CONTENT_LENGTH)
+    : a('noText');
 
   embed.addFields({
-    name: count > 1 ? 'First Message Content' : 'Message',
+    name: a(count > 1 ? 'firstMessage' : 'message'),
     value: `\`\`\`${messageText}\`\`\``,
     inline: false,
   });
@@ -751,33 +791,33 @@ function buildSpamAlertEmbed(message, result, count) {
   return embed;
 }
 
-function buildSpamAlertButtons(firstMessage, messageCount, alertMessageId) {
+function buildSpamAlertButtons(firstMessage, messageCount, alertMessageId, tr) {
   const buttons = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setURL(`https://discord.com/channels/${firstMessage.guildId}/${firstMessage.channelId}/${firstMessage.id}`)
-      .setLabel('View Message')
+      .setLabel(tr('scamAlert.buttonView'))
       .setStyle(ButtonStyle.Link),
 
     new ButtonBuilder()
       .setCustomId(`scam_delete_${alertMessageId}`)
-      .setLabel(messageCount > 1 ? `Delete All (${messageCount})` : 'Delete')
+      .setLabel(messageCount > 1 ? tr('scamAlert.buttonDeleteAll', { count: messageCount }) : tr('scamAlert.buttonDelete'))
       .setStyle(ButtonStyle.Danger),
 
     new ButtonBuilder()
       .setCustomId(`scam_timeout_${firstMessage.author.id}_60`)
-      .setLabel('Timeout 1h')
+      .setLabel(tr('scamAlert.buttonTimeout1h'))
       .setStyle(ButtonStyle.Secondary)
   );
 
   const buttons2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`scam_timeout_${firstMessage.author.id}_1440`)
-      .setLabel('Timeout 24h')
+      .setLabel(tr('scamAlert.buttonTimeout24h'))
       .setStyle(ButtonStyle.Secondary),
 
     new ButtonBuilder()
       .setCustomId(`scam_dismiss_${firstMessage.id}`)
-      .setLabel('Dismiss')
+      .setLabel(tr('scamAlert.buttonDismiss'))
       .setStyle(ButtonStyle.Success)
   );
 
@@ -804,9 +844,42 @@ function getRiskLevelColor(riskLevel) {
   return colors[riskLevel] || 0x808080;
 }
 
-function getAlertMessageData(alertMessageId) {
-  return alertMessageStorage.get(alertMessageId);
+async function getAlertMessageData(alertMessageId) {
+  const cached = alertMessageStorage.get(alertMessageId);
+  if (cached) return cached;
+
+  // In-memory data is gone after a restart or TTL sweep – fall back to the persisted event
+  const event = await ScamDetectionEvent.findOne({ alertMessageId }).lean().catch(() => null);
+  if (!event) return null;
+  const messages = event.relatedMessages?.length
+    ? event.relatedMessages
+    : (event.messageId ? [{ messageId: event.messageId, channelId: event.channelId }] : []);
+  if (messages.length === 0) return null;
+  return { messages, userId: event.userId, guildId: event.guildId, groupKey: null };
 }
+
+function forgetAlert(alertMessageId) {
+  cleanupDeletedAlert(alertMessageId);
+  alertMessageStorage.delete(alertMessageId);
+}
+
+function runMaintenance() {
+  const now = Date.now();
+  for (const [id, data] of alertMessageStorage) {
+    if (now - (data.createdAt || 0) > ALERT_STORAGE_TTL) alertMessageStorage.delete(id);
+  }
+  for (const [key, data] of previouslyAlertedContent) {
+    if (now - data.timestamp > PREVIOUS_ALERT_TTL) previouslyAlertedContent.delete(key);
+  }
+  for (const [key, data] of detectionResultCache) {
+    if (now - data.timestamp > DETECTION_CACHE_TTL) detectionResultCache.delete(key);
+  }
+  pruneUserActivity().catch(err => {
+    logger.error('Failed to prune user activity', { error: err.message });
+  });
+}
+
+setInterval(runMaintenance, MAINTENANCE_INTERVAL).unref();
 
 function cleanupDeletedAlert(alertMessageId) {
   const alertData = alertMessageStorage.get(alertMessageId);
@@ -823,3 +896,4 @@ function cleanupDeletedAlert(alertMessageId) {
 module.exports = handleAntiScam;
 module.exports.getAlertMessageData = getAlertMessageData;
 module.exports.cleanupDeletedAlert = cleanupDeletedAlert;
+module.exports.forgetAlert = forgetAlert;

@@ -18,6 +18,7 @@ const ServerSettings = require('../database/models/ServerSettings');
 const VerifiedUser   = require('../database/models/VerifiedUser');
 const { notifyAdminServer } = require('../utils/botNotifier');
 const { logger } = require('../utils/logger');
+const { MAX_COMMENT_LENGTH } = require('../utils/constants');
 require('dotenv').config();
 
 if (!process.env.INTERNAL_SECRET) {
@@ -66,6 +67,16 @@ function topicGetFlag(topic, key) {
   return null;
 }
 
+// The banned word lives in the alert embed's field; older alerts still carry it in the customId
+function getBannedWordFromAlert(interaction) {
+  const fieldValue = interaction.message?.embeds?.[0]?.fields?.[0]?.value;
+  if (fieldValue) return fieldValue.replace(/^`|`$/g, '');
+  return interaction.customId.split('_').slice(2).join('_');
+}
+
+// Guards against double-clicks creating two tickets before the first channel exists
+const ticketCreationLocks = new Set();
+
 async function resolveOpenerIdFromOverwrites(channel, teamRoleId) {
   const overwrites = channel.permissionOverwrites.cache;
   for (const po of overwrites.values()) {
@@ -83,6 +94,95 @@ async function resolveOpenerIdFromOverwrites(channel, teamRoleId) {
   return null;
 }
 
+async function createTicket(interaction, ticketType, parentId) {
+  const settings = await ServerSettings.findOne({ guildId: interaction.guildId }).lean() || {};
+  const roleId = settings.teamRoleId;
+
+  const channelName = `${ticketType}-${interaction.user.username}`.toLowerCase();
+
+  const meta1 = topicSetFlag('', 'status', 'open');
+  const meta2 = topicSetFlag(meta1, 'type', ticketType);
+  const meta3 = topicSetFlag(meta2, 'opener', interaction.user.id);
+
+  let channel;
+  try {
+    channel = await interaction.guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: parentId ?? undefined,
+      // Set topic on creation so the open-ticket check sees it immediately
+      topic: meta3,
+      permissionOverwrites: [
+        { id: interaction.guild.roles.everyone.id, deny: ['ViewChannel'] },
+        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+        ...(roleId
+          ? [{ id: roleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }]
+          : [])
+      ]
+    });
+  } catch (err) {
+    logger.error('Failed to create ticket channel', {
+      guildId: interaction.guildId,
+      userId: interaction.user.id,
+      error: err.message,
+    });
+    return interaction.editReply({ content: await t(interaction.guildId, "errors.generic") });
+  }
+
+  const guildId = interaction.guildId;
+
+  const titleKey = ticketType === "support"
+    ? "tickets.openedTitleSupport"
+    : "tickets.openedTitleVerify";
+
+  const askKey = ticketType === "support"
+    ? "tickets.supportAsk"
+    : "tickets.verifyAsk";
+
+  const ticketMsg = await channel.send({
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(await t(guildId, titleKey))
+        .setDescription(
+          `${await t(guildId, "tickets.welcome", { user: `${interaction.user}` })}\n\n` +
+          `${await t(guildId, "tickets.accessInfo")}\n` +
+          `${await t(guildId, askKey)}\n\n` +
+          `${await t(guildId, "tickets.privacy")}`
+        )
+        .setColor(ticketType === "support" ? Colors.Blurple : Colors.Green)
+    ],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("close_ticket")
+          .setLabel(await t(guildId, "tickets.close"))
+          .setStyle(ButtonStyle.Danger)
+      )
+    ]
+  });
+
+  await LocalizedMessage.updateOne(
+    { guildId: interaction.guildId, messageId: ticketMsg.id },
+    {
+      $set: {
+        guildId: interaction.guildId,
+        channelId: channel.id,
+        messageId: ticketMsg.id,
+        key: "ticket.opened",
+        vars: {
+          type: ticketType,
+          userMention: `${interaction.user}` 
+        }
+      }
+    },
+    { upsert: true }
+  );
+
+  return interaction.editReply({
+    content: await t(interaction.guildId, "tickets.created", { channel: `${channel}` })
+  });
+}
+
 module.exports = async (client, interaction) => {
   if (interaction.isChatInputCommand()) {
     const command = client.commands.get(interaction.commandName);
@@ -95,99 +195,49 @@ module.exports = async (client, interaction) => {
         command: interaction.commandName,
         error: err.message,
       });
-      await interaction.reply({ content: await t(interaction.guildId, "errors.executionError"), flags: 64 });
+      const payload = { content: await t(interaction.guildId, "errors.executionError"), flags: 64 };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
     }
+    return;
   }
 
   if (interaction.isButton()) {
     const [action, userId, extra] = interaction.customId.split('_');
-    const bannedWord = extra?.replace(/-/g, ' ') || '';
 
     if (action === 'ticket') {
       const ticketType = userId;
       const parentId   = extra || null;
 
-      const settings = await ServerSettings.findOne({ guildId: interaction.guildId }).lean() || {};
-      const { teamRoleId, supportRoleId, verifyRoleId } = settings;
+      // Channel creation + several DB/i18n lookups can exceed Discord's 3s reply window
+      await interaction.deferReply({ flags: 64 });
 
-      const roleId = ticketType === 'support'
-        ? (supportRoleId || teamRoleId)
-        : (verifyRoleId  || teamRoleId);
-
-      const channelName = `${ticketType}-${interaction.user.username}`.toLowerCase();
-
-      const channel = await interaction.guild.channels.create({
-        name: channelName,
-        type: ChannelType.GuildText,
-        parent: parentId ?? undefined,
-        permissionOverwrites: [
-          { id: interaction.guild.roles.everyone.id, deny: ['ViewChannel'] },
-          { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
-          ...(roleId
-            ? [{ id: roleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }]
-            : [])
-        ]
-      });
-
-      const meta1 = topicSetFlag('', 'status', 'open');
-      const meta2 = topicSetFlag(meta1, 'type', ticketType);
-      const meta3 = topicSetFlag(meta2, 'opener', interaction.user.id);
-      await channel.setTopic(meta3).catch(() => {});
-
-      const guildId = interaction.guildId;
-
-      const titleKey = ticketType === "support"
-        ? "tickets.openedTitleSupport"
-        : "tickets.openedTitleVerify";
-
-      const askKey = ticketType === "support"
-        ? "tickets.supportAsk"
-        : "tickets.verifyAsk";
-
-      const ticketMsg = await channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle(await t(guildId, titleKey))
-            .setDescription(
-              `${await t(guildId, "tickets.welcome", { user: `${interaction.user}` })}\n\n` +
-              `${await t(guildId, "tickets.accessInfo")}\n` +
-              `${await t(guildId, askKey)}\n\n` +
-              `${await t(guildId, "tickets.privacy")}`
-            )
-            .setColor(ticketType === "support" ? Colors.Blurple : Colors.Green)
-        ],
-        components: [
-          new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId("close_ticket")
-              .setLabel(await t(guildId, "tickets.close"))
-              .setStyle(ButtonStyle.Danger)
-          )
-        ]
-      });
-
-      await LocalizedMessage.updateOne(
-        { guildId: interaction.guildId, messageId: ticketMsg.id },
-        {
-          $set: {
-            guildId: interaction.guildId,
-            channelId: channel.id,
-            messageId: ticketMsg.id,
-            key: "ticket.opened",
-            vars: {
-              type: ticketType,
-              userMention: `${interaction.user}` 
-            }
-          }
-        },
-        { upsert: true }
+      // Only one open ticket per user and ticket type
+      const existing = interaction.guild.channels.cache.find(ch =>
+        ch.type === ChannelType.GuildText &&
+        topicGetFlag(ch.topic, 'opener') === interaction.user.id &&
+        topicGetFlag(ch.topic, 'type') === ticketType &&
+        (topicGetFlag(ch.topic, 'status') || '').toLowerCase() === 'open'
       );
+      if (existing) {
+        return interaction.editReply({
+          content: await t(interaction.guildId, "tickets.alreadyOpen", { channel: `${existing}` })
+        });
+      }
 
-
-      return interaction.reply({
-        content: await t(interaction.guildId, "tickets.created", { channel: `${channel}` }),
-        flags: 64
-      });
+      const lockKey = `${interaction.guildId}_${interaction.user.id}_${ticketType}`;
+      if (ticketCreationLocks.has(lockKey)) {
+        return interaction.deleteReply().catch(() => {});
+      }
+      ticketCreationLocks.add(lockKey);
+      try {
+        return await createTicket(interaction, ticketType, parentId);
+      } finally {
+        ticketCreationLocks.delete(lockKey);
+      }
     }
 
     if (interaction.customId === 'close_ticket') {
@@ -272,12 +322,15 @@ module.exports = async (client, interaction) => {
     }
 
     if (action === 'warn') {
+      const bannedWord = getBannedWordFromAlert(interaction);
       try {
-        const target   = await client.users.fetch(userId);
         const verified = await VerifiedUser.findOne({ discordId: userId });
         if (!verified) {
           return interaction.reply({ content: await t(interaction.guildId, "warnings.notVerified"), flags: 64 });
         }
+        // Notifying the admin server and DMing the user can exceed Discord's 3s reply window
+        await interaction.deferReply();
+        const target = await client.users.fetch(userId);
         verified.warnings.push({
           reason:   `Warning for prohibited word: "${bannedWord}"`,
           issuedBy: interaction.user.id,
@@ -288,7 +341,7 @@ module.exports = async (client, interaction) => {
         await notifyAdminServerHelper('warning');
         
         try { await target.send(await t(interaction.guildId, "warnings.dmMessage", { word: bannedWord })); } catch {}
-        return interaction.reply({ content: await t(interaction.guildId, "warnings.issued", { user: `${target.tag}` }), flags: 0 });
+        return interaction.editReply({ content: await t(interaction.guildId, "warnings.issued", { user: `${target.tag}` }) });
       } catch (err) {
         logger.error('Error issuing warning', {
           guildId: interaction.guildId,
@@ -297,7 +350,10 @@ module.exports = async (client, interaction) => {
           bannedWord,
           error: err.message,
         });
-        return interaction.reply({ content: await t(interaction.guildId, "warnings.error"), flags: 64 });
+        const content = await t(interaction.guildId, "warnings.error");
+        return interaction.deferred
+          ? interaction.editReply({ content })
+          : interaction.reply({ content, flags: 64 });
       }
     }
 
@@ -311,6 +367,7 @@ module.exports = async (client, interaction) => {
               .setCustomId('comment')
               .setLabel(await t(interaction.guildId, 'comments.modalLabel'))
               .setStyle(TextInputStyle.Paragraph)
+              .setMaxLength(MAX_COMMENT_LENGTH)
               .setRequired(true)
           )
         );
@@ -319,19 +376,20 @@ module.exports = async (client, interaction) => {
 
     if (interaction.customId.startsWith('scam_')) {
       const parts = interaction.customId.split('_');
-      const [scamPrefix, action, ...params] = parts;
+      const [, action, ...params] = parts;
       
       try {
         if (action === 'delete') {
           const alertMessageId = params[0];
+          // Deleting several messages one by one easily exceeds the 3s reply window
+          await interaction.deferReply({ flags: 64 });
           
           const { getAlertMessageData, cleanupDeletedAlert } = require('./handleAntiScam');
-          const alertData = getAlertMessageData(alertMessageId);
+          const alertData = await getAlertMessageData(alertMessageId);
           
           if (!alertData) {
-            return await interaction.reply({
-              content: '❌ Alert data not found. Messages may have already been deleted or alert expired.',
-              flags: 64
+            return await interaction.editReply({
+              content: await t(interaction.guildId, 'scamAlert.alertNotFound')
             });
           }
           
@@ -365,14 +423,12 @@ module.exports = async (client, interaction) => {
             }
           }
           
-          const resultMessage = deletedCount > 0 
-            ? `✅ Deleted ${deletedCount} message${deletedCount > 1 ? 's' : ''}.${failedCount > 0 ? ` (${failedCount} already deleted)` : ''}`
-            : '❌ All messages were already deleted or not found.';
+          const resultMessage = deletedCount > 0
+            ? await t(interaction.guildId, 'scamAlert.deleted', { count: deletedCount }) +
+              (failedCount > 0 ? ` ${await t(interaction.guildId, 'scamAlert.alreadyDeleted', { count: failedCount })}` : '')
+            : await t(interaction.guildId, 'scamAlert.noneDeleted');
           
-          await interaction.reply({
-            content: resultMessage,
-            flags: 64
-          });
+          await interaction.editReply({ content: resultMessage });
           
           logger.security('Messages deleted via scam alert', {
             guildId: interaction.guildId,
@@ -390,13 +446,14 @@ module.exports = async (client, interaction) => {
               const row1Components = interaction.message.components[0].components;
               const row2Components = interaction.message.components[1].components;
               
+              const viewLabel = await t(interaction.guildId, 'scamAlert.buttonView');
               const newRow1 = new ActionRowBuilder();
               row1Components.forEach(c => {
                 if (c.style === ButtonStyle.Link) {
                   newRow1.addComponents(
                     new ButtonBuilder()
                       .setCustomId('scam_view_disabled')
-                      .setLabel('View Message')
+                      .setLabel(viewLabel)
                       .setStyle(ButtonStyle.Secondary)
                       .setDisabled(true)
                   );
@@ -453,7 +510,7 @@ module.exports = async (client, interaction) => {
             const member = await interaction.guild.members.fetch(userId).catch(() => null);
             if (!member) {
               return await interaction.reply({
-                content: '❌ User not found or no longer in server.',
+                content: await t(interaction.guildId, 'scamAlert.userNotFound'),
                 flags: 64
               });
             }
@@ -464,7 +521,7 @@ module.exports = async (client, interaction) => {
             );
             
             await interaction.reply({
-              content: `✅ User timed out for ${duration} minutes.`,
+              content: await t(interaction.guildId, 'scamAlert.timedOut', { duration }),
               flags: 64
             });
             
@@ -480,7 +537,7 @@ module.exports = async (client, interaction) => {
               error: error.message
             });
             await interaction.reply({
-              content: '❌ Failed to timeout user. They may have higher permissions.',
+              content: await t(interaction.guildId, 'scamAlert.timeoutFailed'),
               flags: 64
             });
           }
@@ -490,6 +547,8 @@ module.exports = async (client, interaction) => {
         if (action === 'dismiss') {
           const messageId = params[0];
           
+          const { forgetAlert } = require('./handleAntiScam');
+          forgetAlert(interaction.message.id);
           await interaction.message.delete().catch(() => null);
           
           await ScamDetectionEvent.findOneAndUpdate(
@@ -510,11 +569,12 @@ module.exports = async (client, interaction) => {
           error: error.message
         });
         
-        if (!interaction.replied && !interaction.deferred) {
-          return await interaction.reply({
-            content: '❌ An error occurred while performing this action.',
-            flags: 64
-          });
+        const content = await t(interaction.guildId, 'scamAlert.actionError');
+        if (interaction.deferred) {
+          return await interaction.editReply({ content }).catch(() => {});
+        }
+        if (!interaction.replied) {
+          return await interaction.reply({ content, flags: 64 });
         }
       }
     }

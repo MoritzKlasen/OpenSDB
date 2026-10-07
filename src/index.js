@@ -2,12 +2,12 @@ const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord
 require('dotenv').config();
 const connectDB = require('./database/connect');
 const loadCommands = require('./loadCommands');
-const ServerSettings = require('./database/models/ServerSettings');
 const { logger } = require('./utils/logger');
 const handleBannedWords = require('./events/handleBannedWords');
 const handleInteractions = require('./events/handleInteractions');
 const handleAntiScam = require('./events/handleAntiScam');
 const guildMemberAdd = require('./events/guildMemberAdd');
+const { startAIHealthMonitor } = require('./utils/scamDetection/aiHealth');
 
 const client = new Client({
   intents: [
@@ -25,6 +25,7 @@ loadCommands(client);
 
 client.once('ready', async () => {
   logger.info(`Bot is online as ${client.user.tag}`);
+  startAIHealthMonitor(client);
   
   const commands = Array.from(client.commands.values()).map(cmd => cmd.data.toJSON());
   
@@ -76,7 +77,17 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  await handleInteractions(client, interaction);
+  try {
+    await handleInteractions(client, interaction);
+  } catch (err) {
+    logger.error('Interaction handler error', {
+      interactionId: interaction?.id,
+      customId: interaction?.customId,
+      command: interaction?.commandName,
+      error: err.message,
+      stack: err.stack,
+    });
+  }
 });
 
 client.on('messageCreate', async (message) => {
@@ -89,7 +100,26 @@ client.on('messageCreate', async (message) => {
 });
 
 client.on('guildMemberAdd', async (member) => {
-  await guildMemberAdd.execute(member);
+  try {
+    await guildMemberAdd.execute(member);
+  } catch (err) {
+    logger.error('guildMemberAdd handler error', { memberId: member?.id, error: err.message });
+  }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.on('error', (err) => {
+  logger.error('Discord client error', { error: err.message });
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', {
+    error: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
+
+client.login(process.env.DISCORD_TOKEN).catch((err) => {
+  // Without a gateway connection the bot is useless; exit so the container restarts visibly
+  logger.error('Discord login failed', { error: err.message });
+  process.exit(1);
+});

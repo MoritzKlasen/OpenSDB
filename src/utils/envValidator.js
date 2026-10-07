@@ -1,6 +1,16 @@
 const { z } = require('zod');
 const { logger } = require('./logger');
 
+// An origin is scheme + host (+ port), exactly as browsers send it in the Origin header
+function isValidOrigin(value) {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && url.origin === value;
+  } catch {
+    return false;
+  }
+}
+
 const envSchema = z.object({
   DISCORD_TOKEN: z.string().min(50, 'DISCORD_TOKEN must be provided'),
   CLIENT_ID: z.string().min(15, 'CLIENT_ID must be provided'),
@@ -15,12 +25,16 @@ const envSchema = z.object({
   INTERNAL_SECRET: z.string().min(16, 'INTERNAL_SECRET must be at least 16 chars'),
   ADMIN_UI_PORT: z.string().min(1, 'ADMIN_UI_PORT must be provided'),
 
-  CORS_ORIGINS: z.string().min(1, 'CORS_ORIGINS must be provided'),
+  CORS_ORIGINS: z.string().min(1, 'CORS_ORIGINS must be provided').refine(
+    value => value.split(',').map(o => o.trim()).every(isValidOrigin),
+    'CORS_ORIGINS must be a comma-separated list of origins like https://example.com (no paths, no wildcards)'
+  ),
   NODE_ENV: z.enum(['development', 'production', 'test']),
 
   METRICS_BASIC_USER: z.string().min(1, 'METRICS_BASIC_USER must be provided'),
   METRICS_BASIC_PASS: z.string().min(8, 'METRICS_BASIC_PASS must be at least 8 chars'),
 
+  ADMIN_SERVER_URL: z.string().url('ADMIN_SERVER_URL must be a valid URL').optional(),
   DEBUG: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (!data.ADMIN_PASSWORD && !data.ADMIN_PASSWORD_HASH) {

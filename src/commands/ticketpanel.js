@@ -2,7 +2,6 @@ const {
   SlashCommandBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
   ChannelType,
   PermissionFlagsBits
@@ -131,10 +130,12 @@ module.exports = {
         userId: interaction.user.id,
         error: error.message,
       });
-      await interaction.reply({
-        content: await t(guildId, 'errors.commandError'),
-        flags: 64
-      });
+      const payload = { content: await t(interaction.guildId, 'errors.commandError'), flags: 64 };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
     }
   }
 };

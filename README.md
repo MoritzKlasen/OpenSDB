@@ -288,6 +288,7 @@ You should see all 4 services (bot, web, nginx, mongo) in the **Up** status. Dis
 | `METRICS_BASIC_USER` | Metrics API basic auth username | ✅ Required | `grafana` |
 | `METRICS_BASIC_PASS` | Metrics API basic auth password | ✅ Required | `changeMe!` |
 | `SERVER_TIMEZONE` | Default timezone for analytics/metrics | Optional | `UTC` |
+| `ADMIN_SERVER_URL` | URL the bot uses to notify the admin server (needed outside Docker) | Optional | `http://web:8001` |
 
 ### Generating Secure Secrets
 
@@ -621,8 +622,10 @@ For advanced use cases, configure separate models for text and image analysis:
 
 **Single Model Setup** (uses same model for all content):
 ```bash
-/antiscam ai-configure provider:ollama model:llama3 baseurl:http://localhost:11434
+/antiscam ai-configure provider:ollama model:qwen2.5:7b baseurl:http://host.docker.internal:11434
 ```
+
+> **Ollama on the Docker host:** inside the bot container `localhost` is the container itself. Use `http://host.docker.internal:11434` (mapped in `docker-compose.yml`) and make sure Ollama listens on all interfaces (`OLLAMA_HOST=0.0.0.0`). Ollama needs no API key. Tested with `qwen2.5:7b` (text) and `qwen2.5vl:7b` (vision).
 
 **Multi-Model Setup** (optimized for different content types):
 ```bash
@@ -688,7 +691,7 @@ User behavioral data is tracked in the `UserActivity` collection for anomaly det
 
 # Optional: Enable AI mode with Ollama (self-hosted)
 /antiscam mode ai
-/antiscam ai-configure provider:ollama model:llama3 baseurl:http://localhost:11434
+/antiscam ai-configure provider:ollama model:qwen2.5:7b baseurl:http://host.docker.internal:11434
 /antiscam ai-test
 
 # Optional: Enable auto-actions
@@ -704,17 +707,17 @@ The anti-scam system has many configurable thresholds and behaviors accessible v
 |---------|-------------|---------|----------------|
 | `enabled` | Enable/disable scam detection | `false` | `/antiscam enable/disable` |
 | `mode` | Detection engine (`default` or `ai`) | `default` | `/antiscam mode` |
-| `sensitivity` | Alert threshold (low/medium/high) | `medium` | `/antiscam sensitivity` |
+| `sensitivity` | How strictly the rule-based engine scores (low/medium/high) | `medium` | `/antiscam sensitivity` |
 | `alertChannelId` | Where alerts are posted | `null` | `/antiscam alert-channel` |
 | `autoDelete` | Auto-delete detected scam messages | `false` | `/antiscam auto-delete` |
 | `autoTimeout` | Auto-timeout users posting scams | `false` | `/antiscam auto-timeout` |
 | `autoTimeoutDuration` | Timeout duration in minutes (1-40320) | `60` | `/antiscam auto-timeout` |
-| `minRiskScoreForAlert` | Minimum score to trigger alert | `45` | Database only |
-| `minRiskScoreForAutoAction` | Minimum score for auto-delete/timeout | `80` | Database only |
-| `duplicateMessageThreshold` | Spam threshold (duplicate messages) | `3` | Database only |
-| `duplicateTimeWindow` | Time window for spam detection (minutes) | `2` | Database only |
-| `accountAgeRequirement` | Flag new accounts (days) | `7` | Database only |
-| `firstMessageSuspicion` | Flag first messages with links | `true` | Database only |
+| `minRiskScoreForAlert` | Minimum score to trigger alert | `45` | Admin dashboard (Anti-Scam → Advanced) |
+| `minRiskScoreForAutoAction` | Minimum score for auto-delete/timeout | `80` | Admin dashboard (Anti-Scam → Advanced) |
+| `duplicateMessageThreshold` | Spam threshold (duplicate messages) | `3` | Admin dashboard (Anti-Scam → Advanced) |
+| `duplicateTimeWindow` | Time window for spam detection (minutes) | `2` | Admin dashboard (Anti-Scam → Advanced) |
+| `accountAgeRequirement` | Flag new accounts (days) | `7` | Admin dashboard (Anti-Scam → Advanced) |
+| `firstMessageSuspicion` | Flag first messages with links | `true` | Admin dashboard (Anti-Scam → Advanced) |
 | `trustedUserIds` | User IDs exempt from detection | `[]` | `/antiscam whitelist-user` |
 | `trustedDomains` | Whitelisted domains | `[]` | `/antiscam whitelist-domain` |
 
@@ -734,12 +737,18 @@ The anti-scam system has many configurable thresholds and behaviors accessible v
 | `aiSettings.healthCheckEnabled` | Monitor AI provider health | `true` | Database only |
 | `aiSettings.healthCheckInterval` | Health check frequency (ms) | `3600000` | Database only |
 
-**Sensitivity Mappings:**
-- **low**: Alerts when risk score ≥ 60 (fewer false positives)
-- **medium**: Alerts when risk score ≥ 40 (balanced, recommended)
-- **high**: Alerts when risk score ≥ 20 (more sensitive, more alerts)
+**AI health monitoring:**
+- The bot checks the configured AI model(s) every `healthCheckInterval` (default 1 h) and on every AI detection; `/antiscam ai-test` also records its result.
+- When the provider becomes unreachable (or recovers), one message is posted to the alert channel – not one per fallback. Disable with `notifyAdminsOnFallback: false`.
+- `/antiscam status` shows the current status and the time of the last check.
 
-**Note:** Settings marked "Database only" require direct MongoDB updates or API calls to `/api/settings/server` (PUT). Most users should only need the slash commands.
+**Thresholds and sensitivity:**
+- An alert is sent when the risk score reaches `minRiskScoreForAlert`; auto-delete/auto-timeout (if enabled) trigger at `minRiskScoreForAutoAction`.
+- `sensitivity` changes how the rule-based engine scores keywords and links (high = more points per match); it does not change the thresholds.
+- AI verdicts are mapped onto the same 0–100 scale: *likely scam* 50–100, *suspicious* 30–60, *likely safe* 0–20 (scaled by the model's confidence), so a confident scam verdict reaches CRITICAL and the default auto-action threshold of 80.
+- Detection reasons in alerts are shown in the server language (rule-based reasons via `scamReasons` in the locale files; AI models are asked to answer in that language).
+- Links whose domain imitates Discord, Steam, Roblox or Epic Games (including misspellings like `dlscord`) are flagged unless they are an official domain of that brand (e.g. `discord.gift`, `steampowered.com`). Brands and official domains are listed in `impersonatedBrands` in `defaultDetectionEngine.js`.
+- Messages are pre-filtered with English phrases plus the scam phrases of the server language (`scamKeywords` in `src/locales/<lang>.json`), so non-English scams also reach full detection.
 
 ---
 

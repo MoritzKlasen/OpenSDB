@@ -17,6 +17,9 @@ import { Card, Loading, Error, Empty } from '../components/UI'
 import { useWebSocket } from '../hooks/useWebSocket'
 import Icon from '../components/Icon'
 
+// Show roughly 12 x-axis labels regardless of the selected range (interval = labels skipped between ticks)
+const getTickInterval = (data) => (data?.length > 0 ? Math.max(1, Math.floor(data.length / 12)) : 0)
+
 const AnalyticsPage = () => {
   const [userGrowthData, setUserGrowthData] = useState(null)
   const [warningActivityData, setWarningActivityData] = useState(null)
@@ -307,7 +310,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={!filteredUserGrowth || filteredUserGrowth.length === 0 ? 0 : Math.max(1, Math.floor(filteredUserGrowth.length / 12))}
+                    interval={getTickInterval(filteredUserGrowth)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -358,11 +361,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={
-                      !filteredWarningActivity || filteredWarningActivity.length === 0
-                        ? 1
-                        : Math.max(1, Math.floor(filteredWarningActivity.length / 12))
-                    }
+                    interval={getTickInterval(filteredWarningActivity)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -410,11 +409,7 @@ const AnalyticsPage = () => {
                     stroke="#94a3b8"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatDate}
-                    interval={
-                      filteredAlertsActivity?.length > 0
-                        ? Math.max(1, Math.floor(filteredAlertsActivity.length / 12))
-                        : 1
-                    }
+                    interval={getTickInterval(filteredAlertsActivity)}
                   />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
                   <Tooltip

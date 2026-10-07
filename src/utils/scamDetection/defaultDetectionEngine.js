@@ -1,6 +1,12 @@
 const crypto = require('crypto');
 const UserActivity = require('../../database/models/UserActivity');
-const { getCombinedKeywords } = require('./scamKeywords');
+const { getCombinedKeywords, getKeywordsForLanguage } = require('./scamKeywords');
+const { translate } = require('../i18n');
+
+// Detection reasons are shown in the alert embed, so they use the server language
+function reasonText(lang, key, vars) {
+  return translate(lang, `scamReasons.${key}`, vars);
+}
 
 /**
  * Default Detection Engine - Rule-based scam detection
@@ -14,7 +20,37 @@ class DefaultDetectionEngine {
       'casino', 'crypto', 'bitcoin', 'ethereum', 'nft', 'token',
       'shortlink', 'free-nitro', 'free-crypto',
       'work', 'click', 'download', 'online', 'cloud', 'stream',
+      'gift', 'giveaway', 'airdrop', 'robux', 'vbucks', 'v-bucks', 'skins',
+      'geschenk', 'gratis', 'gewinn', 'verify', 'verification', 'login-', '-login',
     ];
+
+    // Brands that scams impersonate: a domain that mentions the brand (or a common
+    // misspelling of it) but is not one of its official domains is suspicious
+    this.impersonatedBrands = [
+      {
+        name: 'Discord',
+        tokens: ['discord', 'dlscord', 'disc0rd', 'discorcl', 'dicsord', 'discrod', 'dsicord', 'diskord', 'discorde'],
+        official: ['discord.com', 'discord.gg', 'discord.gift', 'discord.media', 'discordapp.com', 'discordapp.net', 'discordstatus.com'],
+      },
+      {
+        name: 'Steam',
+        tokens: ['steam', 'stearn', 'steamcommunlty', 'steancommunity', 'steamcomunity', 'stemcommunity'],
+        official: ['steampowered.com', 'steamcommunity.com', 'steamstatic.com', 'steamgames.com', 'steamdeck.com'],
+      },
+      {
+        name: 'Roblox',
+        tokens: ['roblox', 'rob1ox', 'robl0x', 'rblx'],
+        official: ['roblox.com', 'rbxcdn.com'],
+      },
+      {
+        name: 'Epic Games',
+        tokens: ['epicgames', 'epic-games', 'fortnite'],
+        official: ['epicgames.com', 'fortnite.com', 'unrealengine.com'],
+      },
+    ];
+
+    // Official brand domains are never flagged by the generic patterns (e.g. "gift" in discord.gift)
+    this.officialDomains = this.impersonatedBrands.flatMap(brand => brand.official);
 
     this.urlShorteners = [
       'bit.ly', 'tinyurl.com', 'short.link', 'ow.ly', 'goo.gl',
@@ -42,37 +78,50 @@ class DefaultDetectionEngine {
     }
   }
 
-  isSuspiciousDomain(domain) {
+  isSuspiciousDomain(domain, lang = 'en') {
     if (!domain) return false;
 
     if (this.punycodePattern.test(domain)) {
-      return { suspicious: true, reason: 'Punycode obfuscation detected' };
+      return { suspicious: true, reason: reasonText(lang, 'punycode') };
     }
 
     if (this.urlShorteners.some(shortener => domain.includes(shortener))) {
-      return { suspicious: true, reason: 'URL shortener detected' };
+      return { suspicious: true, reason: reasonText(lang, 'urlShortener') };
+    }
+
+    const isDomainOrSubdomain = (official) => domain === official || domain.endsWith(`.${official}`);
+    if (this.officialDomains.some(isDomainOrSubdomain)) {
+      return { suspicious: false };
+    }
+
+    const impersonated = this.impersonatedBrands.find(brand => brand.tokens.some(token => domain.includes(token)));
+    if (impersonated) {
+      return { suspicious: true, reason: reasonText(lang, 'brandImpersonation', { brand: impersonated.name }) };
     }
 
     for (const suspiciousPattern of this.suspiciousDomains) {
       if (domain.toLowerCase().includes(suspiciousPattern.toLowerCase())) {
-        return { suspicious: true, reason: `Suspicious pattern: ${suspiciousPattern}` };
+        return { suspicious: true, reason: reasonText(lang, 'suspiciousPattern', { pattern: suspiciousPattern }) };
       }
     }
 
     const parts = domain.split('.');
     if (parts.length > 3) {
-      return { suspicious: true, reason: 'Unusual subdomain structure' };
+      return { suspicious: true, reason: reasonText(lang, 'unusualSubdomain') };
     }
 
     return { suspicious: false };
   }
 
-  detectSuspiciousPatterns(content, keywords = {}) {
+  // Returns the localized reasons plus the number of high-risk phrase hits,
+  // which the scoring needs independently of the reason language
+  detectSuspiciousPatterns(content, keywords = {}, lang = 'en') {
     if (!content || typeof content !== 'string') {
-      return [];
+      return { reasons: [], highRiskCount: 0 };
     }
     
     const reasons = [];
+    let highRiskCount = 0;
     const contentLower = content.toLowerCase();
     const keywordData = keywords || {};
     const highRiskKeywords = keywordData.high || [];
@@ -81,33 +130,34 @@ class DefaultDetectionEngine {
 
     for (const keyword of highRiskKeywords) {
       if (contentLower.includes(keyword.toLowerCase())) {
-        reasons.push(`Contains high-risk phrase: "${keyword}"`);
+        reasons.push(reasonText(lang, 'highRiskPhrase', { keyword }));
+        highRiskCount++;
       }
     }
 
     for (const keyword of mediumRiskKeywords) {
       if (contentLower.includes(keyword.toLowerCase())) {
-        reasons.push(`Contains medium-risk phrase: "${keyword}"`);
+        reasons.push(reasonText(lang, 'mediumRiskPhrase', { keyword }));
       }
     }
     
     for (const keyword of singleWordKeywords) {
       if (contentLower.includes(keyword.toLowerCase())) {
-        reasons.push(`Contains keyword: "${keyword}"`);
+        reasons.push(reasonText(lang, 'keyword', { keyword }));
       }
     }
 
     const capsWords = (content.match(/\b[A-Z]{3,}\b/g) || []).length;
     if (capsWords >= 2) {
-      reasons.push('Excessive capitalization detected');
+      reasons.push(reasonText(lang, 'excessiveCaps'));
     }
 
     const specialChars = (content.match(/[!@#$%^&*()_+=\[\]{};:'",.<>?/\\|`~-]/g) || []).length;
     if (specialChars > content.length * 0.08) {
-      reasons.push('Excessive special characters');
+      reasons.push(reasonText(lang, 'excessiveSpecialChars'));
     }
 
-    return reasons;
+    return { reasons, highRiskCount };
   }
 
   hashContent(content) {
@@ -256,7 +306,8 @@ class DefaultDetectionEngine {
     }
   }
 
-  async checkBehavioralAnomalies(guildId, userId, author, message) {
+  async checkBehavioralAnomalies(guildId, userId, author, message, options = {}) {
+    const { accountAgeRequirement = 7, firstMessageSuspicion = true, lang = 'en' } = options;
     const reasons = [];
     const scores = [];
 
@@ -266,14 +317,15 @@ class DefaultDetectionEngine {
       const accountAgeMs = Date.now() - author.createdTimestamp;
       const accountAgeDays = accountAgeMs / (1000 * 60 * 60 * 24);
 
-      if (accountAgeDays < 7) {
-        reasons.push(`New account (${Math.floor(accountAgeDays)} days old)`);
+      if (accountAgeDays < accountAgeRequirement) {
+        reasons.push(reasonText(lang, 'newAccount', { days: Math.floor(accountAgeDays) }));
         scores.push(20);
       }
 
-      if (!userActivity || userActivity.messageCount === 0) {
+      // Activity is recorded before detection runs, so the current message is already counted
+      if (firstMessageSuspicion && (!userActivity || userActivity.messageCount <= 1)) {
         if (message.attachments.size > 0 || this.extractLinks(message.content).length > 0) {
-          reasons.push('First message contains links/attachments');
+          reasons.push(reasonText(lang, 'firstMessageLinks'));
           scores.push(15);
         }
       }
@@ -285,7 +337,7 @@ class DefaultDetectionEngine {
         ).length;
 
         if (last5MinMessages >= 3) {
-          reasons.push('Unusual posting spike detected');
+          reasons.push(reasonText(lang, 'postingSpike'));
           scores.push(15);
         }
       }
@@ -298,7 +350,7 @@ class DefaultDetectionEngine {
         if (last24hMessages.length >= 5) {
           const uniqueChannels = new Set(last24hMessages.map(m => m.channelId)).size;
           if (uniqueChannels >= 4) {
-            reasons.push(`Cross-channel spam (${uniqueChannels} channels in 24h)`);
+            reasons.push(reasonText(lang, 'crossChannelSpam', { channels: uniqueChannels }));
             scores.push(20);
           }
         }
@@ -314,7 +366,7 @@ class DefaultDetectionEngine {
     }
   }
 
-  quickSuspiciousCheck(messageContent, messageObj = null) {
+  quickSuspiciousCheck(messageContent, messageObj = null, serverLanguage = 'en') {
     let hasImages = false;
     let hasSuspiciousImageContext = false;
     
@@ -356,19 +408,38 @@ class DefaultDetectionEngine {
         return true;
       }
     }
+
+    // Phrases in the server language (e.g. German), otherwise non-English scams
+    // never reach the full detection
+    if (serverLanguage && !serverLanguage.toLowerCase().startsWith('en')) {
+      const localized = getKeywordsForLanguage(serverLanguage);
+      if ([...localized.high, ...localized.medium].some(phrase => contentLower.includes(phrase))) {
+        return true;
+      }
+    }
     
     const hasLinks = /https?:\/\//.test(messageContent);
     const hasPlainDomains = /\w+\.(com|org|net|io|gg|xyz|tk|ml|ga|cf|gq|link|click|download|work|online)/i.test(messageContent);
+
+    if (hasLinks) {
+      const linkDomains = this.extractLinks(messageContent).map(link => this.extractDomain(link)).filter(Boolean);
+      if (linkDomains.some(domain => this.isSuspiciousDomain(domain).suspicious)) {
+        return true;
+      }
+    }
     
-    if (hasLinks || hasPlainDomains) {
+    if (hasPlainDomains) {
+      // Links were already checked by their domain above; only look for bare domains
+      // in the remaining text (otherwise "gift" in discord.gift would match)
+      const textWithoutLinks = contentLower.replace(/https?:\/\/[^\s]+/g, ' ');
       for (const domain of this.suspiciousDomains) {
-        if (contentLower.includes(domain)) {
+        if (textWithoutLinks.includes(domain)) {
           return true;
         }
       }
       
       for (const shortener of this.urlShorteners) {
-        if (contentLower.includes(shortener)) {
+        if (textWithoutLinks.includes(shortener)) {
           return true;
         }
       }
@@ -393,6 +464,7 @@ class DefaultDetectionEngine {
       trustedDomains = [],
       duplicateThreshold = 3,
       duplicateTimeWindow = 2,
+      accountAgeRequirement = 7,
       firstMessageSuspicion = true,
       spamCount = 0,  // Number of identical messages from staging (same or cross-channel)
     } = config;
@@ -423,7 +495,7 @@ class DefaultDetectionEngine {
         }
 
         if (domain && !trustedDomains.includes(domain)) {
-          const suspicious = this.isSuspiciousDomain(domain);
+          const suspicious = this.isSuspiciousDomain(domain, serverLanguage);
           if (suspicious.suspicious) {
             detectionResults.reasons.push(`${link}: ${suspicious.reason}`);
             detectionResults.linkScore += sensitivity === 'high' ? 25 : 15;
@@ -432,7 +504,8 @@ class DefaultDetectionEngine {
       }
     }
 
-    const patterns = this.detectSuspiciousPatterns(message.content, keywords);
+    const { reasons: patterns, highRiskCount: highRiskPatternCount } =
+      this.detectSuspiciousPatterns(message.content, keywords, serverLanguage);
     if (patterns.length > 0) {
       detectionResults.reasons.push(...patterns);
       const pointsPerKeyword = sensitivity === 'high' ? 15 : 10;
@@ -451,19 +524,23 @@ class DefaultDetectionEngine {
 
     if (duplicates.isDuplicate) {
       detectionResults.reasons.push(
-        `Spam detected: Similar message posted in ${duplicates.channels} channels`
+        reasonText(serverLanguage, 'similarMessages', { channels: duplicates.channels })
       );
       detectionResults.spamScore = Math.min(75, duplicates.channels * 25);
     } else if (spamCount && spamCount >= duplicateThreshold) {
       detectionResults.reasons.push(
-        `Repetitive message detected: Posted ${spamCount} identical times`
+        reasonText(serverLanguage, 'repetitive', { count: spamCount })
       );
       detectionResults.spamScore = Math.min(40, 25 + (spamCount - duplicateThreshold) * 5);
     } else {
       detectionResults.spamScore = 0;
     }
 
-    const anomalies = await this.checkBehavioralAnomalies(guildId, userId, author, message);
+    const anomalies = await this.checkBehavioralAnomalies(guildId, userId, author, message, {
+      accountAgeRequirement,
+      firstMessageSuspicion,
+      lang: serverLanguage,
+    });
     
     if (anomalies.anomaliesDetected) {
       detectionResults.reasons.push(...anomalies.reasons);
@@ -472,9 +549,6 @@ class DefaultDetectionEngine {
 
     let riskScore = 0;
     
-    const highRiskPatternCount = detectionResults.reasons.filter(r => 
-      r.includes('high-risk phrase')
-    ).length;
     const hasHighRiskPhrase = highRiskPatternCount >= 1;
     const hasMultipleHighRisk = highRiskPatternCount >= 2;
     const hasSuspiciousLink = detectionResults.linkScore > 0;

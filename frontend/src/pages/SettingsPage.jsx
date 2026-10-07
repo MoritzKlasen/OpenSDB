@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { settingsApi } from '../utils/api'
 import { useWebSocket } from '../hooks/useWebSocket'
 import Layout from '../components/Layout'
@@ -60,6 +60,13 @@ const CollapsibleSection = ({ title, icon, children, isOpen, onToggle }) => {
 const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('general')
     const [settings, setSettings] = useState(null)
+    const hasUnsavedChanges = useRef(false)
+
+    // User edits mark the form dirty so background refreshes don't discard them
+    const updateSettings = (next) => {
+        hasUnsavedChanges.current = true
+        setSettings(next)
+    }
     const [bannedWords, setBannedWords] = useState([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -115,6 +122,7 @@ const SettingsPage = () => {
                 settingsApi.getServerSettings(),
                 settingsApi.getBannedWords(),
             ])
+            hasUnsavedChanges.current = false
             setSettings(settingsRes.data)
             setBannedWords(wordsRes.data)
             setError(null)
@@ -131,7 +139,9 @@ const SettingsPage = () => {
                 settingsApi.getServerSettings(),
                 settingsApi.getBannedWords(),
             ])
-            setSettings(settingsRes.data)
+            if (!hasUnsavedChanges.current) {
+                setSettings(settingsRes.data)
+            }
             setBannedWords(wordsRes.data)
             setError(null)
         } catch (err) {
@@ -171,11 +181,12 @@ const SettingsPage = () => {
                 onJoinRoleId: settings.onJoinRoleId,
             }
             const res = await settingsApi.updateServerSettings(updates)
+            hasUnsavedChanges.current = false
             setSettings(res.data)
             setSuccess('General settings saved successfully')
             setTimeout(() => setSuccess(null), 3000)
         } catch (err) {
-            setError('Failed to save general settings')
+            setError(err.response?.data?.error || 'Failed to save general settings')
         } finally {
             setSaving(false)
         }
@@ -191,6 +202,7 @@ const SettingsPage = () => {
                 scamDetectionConfig: settings.scamDetectionConfig,
             }
             const res = await settingsApi.updateServerSettings(updates)
+            hasUnsavedChanges.current = false
             setSettings(res.data)
             setSuccess('Anti-scam settings saved successfully')
             setTimeout(() => setSuccess(null), 3000)
@@ -235,7 +247,7 @@ const SettingsPage = () => {
             setTimeout(() => setError(null), 3000)
             return
         }
-        setSettings({
+        updateSettings({
             ...settings,
             scamDetectionConfig: {
                 ...settings.scamDetectionConfig,
@@ -247,7 +259,7 @@ const SettingsPage = () => {
 
     const handleRemoveDomain = (domain) => {
         const currentDomains = settings.scamDetectionConfig?.trustedDomains || []
-        setSettings({
+        updateSettings({
             ...settings,
             scamDetectionConfig: {
                 ...settings.scamDetectionConfig,
@@ -264,7 +276,7 @@ const SettingsPage = () => {
             setTimeout(() => setError(null), 3000)
             return
         }
-        setSettings({
+        updateSettings({
             ...settings,
             scamDetectionConfig: {
                 ...settings.scamDetectionConfig,
@@ -276,7 +288,7 @@ const SettingsPage = () => {
 
     const handleRemoveUserId = (userId) => {
         const currentUsers = settings.scamDetectionConfig?.trustedUserIds || []
-        setSettings({
+        updateSettings({
             ...settings,
             scamDetectionConfig: {
                 ...settings.scamDetectionConfig,
@@ -382,7 +394,7 @@ const SettingsPage = () => {
                                 </label>
                                 <select
                                     value={settings.language}
-                                    onChange={(e) => setSettings({ ...settings, language: e.target.value })}
+                                    onChange={(e) => updateSettings({ ...settings, language: e.target.value })}
                                     className="w-full max-w-md px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {LANGUAGES.map((lang) => (
@@ -406,7 +418,7 @@ const SettingsPage = () => {
                                     <input
                                         type="text"
                                         value={settings.teamRoleId || ''}
-                                        onChange={(e) => setSettings({ ...settings, teamRoleId: e.target.value })}
+                                        onChange={(e) => updateSettings({ ...settings, teamRoleId: e.target.value })}
                                         placeholder="123456789012345678"
                                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
@@ -421,7 +433,7 @@ const SettingsPage = () => {
                                     <input
                                         type="text"
                                         value={settings.verifiedRoleId || ''}
-                                        onChange={(e) => setSettings({ ...settings, verifiedRoleId: e.target.value })}
+                                        onChange={(e) => updateSettings({ ...settings, verifiedRoleId: e.target.value })}
                                         placeholder="123456789012345678"
                                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
@@ -436,7 +448,7 @@ const SettingsPage = () => {
                                     <input
                                         type="text"
                                         value={settings.onJoinRoleId || ''}
-                                        onChange={(e) => setSettings({ ...settings, onJoinRoleId: e.target.value })}
+                                        onChange={(e) => updateSettings({ ...settings, onJoinRoleId: e.target.value })}
                                         placeholder="123456789012345678"
                                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
@@ -455,7 +467,7 @@ const SettingsPage = () => {
                                 <input
                                     type="text"
                                     value={settings.adminChannelId || ''}
-                                    onChange={(e) => setSettings({ ...settings, adminChannelId: e.target.value })}
+                                    onChange={(e) => updateSettings({ ...settings, adminChannelId: e.target.value })}
                                     placeholder="123456789012345678"
                                     className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
@@ -496,7 +508,7 @@ const SettingsPage = () => {
                                         type="checkbox"
                                         checked={settings.scamDetectionConfig?.enabled || false}
                                         onChange={(e) =>
-                                            setSettings({
+                                            updateSettings({
                                                 ...settings,
                                                 scamDetectionConfig: {
                                                     ...settings.scamDetectionConfig,
@@ -534,7 +546,7 @@ const SettingsPage = () => {
                                                     value={mode.value}
                                                     checked={settings.scamDetectionConfig?.mode === mode.value}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -567,7 +579,7 @@ const SettingsPage = () => {
                                                     value={level.value}
                                                     checked={settings.scamDetectionConfig?.sensitivity === level.value}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -597,7 +609,7 @@ const SettingsPage = () => {
                                     type="text"
                                     value={settings.scamDetectionConfig?.alertChannelId || ''}
                                     onChange={(e) =>
-                                        setSettings({
+                                        updateSettings({
                                             ...settings,
                                             scamDetectionConfig: {
                                                 ...settings.scamDetectionConfig,
@@ -621,7 +633,7 @@ const SettingsPage = () => {
                                         type="checkbox"
                                         checked={settings.scamDetectionConfig?.autoDelete || false}
                                         onChange={(e) =>
-                                            setSettings({
+                                            updateSettings({
                                                 ...settings,
                                                 scamDetectionConfig: {
                                                     ...settings.scamDetectionConfig,
@@ -644,7 +656,7 @@ const SettingsPage = () => {
                                         type="checkbox"
                                         checked={settings.scamDetectionConfig?.autoTimeout || false}
                                         onChange={(e) =>
-                                            setSettings({
+                                            updateSettings({
                                                 ...settings,
                                                 scamDetectionConfig: {
                                                     ...settings.scamDetectionConfig,
@@ -670,7 +682,7 @@ const SettingsPage = () => {
                                                     max="40320"
                                                     value={settings.scamDetectionConfig?.autoTimeoutDuration || 60}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -799,7 +811,7 @@ const SettingsPage = () => {
                                                 max="100"
                                                 value={settings.scamDetectionConfig?.minRiskScoreForAlert || 45}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -827,7 +839,7 @@ const SettingsPage = () => {
                                                 max="100"
                                                 value={settings.scamDetectionConfig?.minRiskScoreForAutoAction || 80}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -858,7 +870,7 @@ const SettingsPage = () => {
                                                 max="50"
                                                 value={settings.scamDetectionConfig?.duplicateMessageThreshold || 3}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -883,7 +895,7 @@ const SettingsPage = () => {
                                                 max="60"
                                                 value={settings.scamDetectionConfig?.duplicateTimeWindow || 2}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -912,7 +924,7 @@ const SettingsPage = () => {
                                             max="365"
                                             value={settings.scamDetectionConfig?.accountAgeRequirement || 7}
                                             onChange={(e) =>
-                                                setSettings({
+                                                updateSettings({
                                                     ...settings,
                                                     scamDetectionConfig: {
                                                         ...settings.scamDetectionConfig,
@@ -932,7 +944,7 @@ const SettingsPage = () => {
                                             type="checkbox"
                                             checked={settings.scamDetectionConfig?.firstMessageSuspicion !== false}
                                             onChange={(e) =>
-                                                setSettings({
+                                                updateSettings({
                                                     ...settings,
                                                     scamDetectionConfig: {
                                                         ...settings.scamDetectionConfig,
@@ -992,7 +1004,7 @@ const SettingsPage = () => {
                                                 type="text"
                                                 value={settings.scamDetectionConfig?.aiSettings?.provider || ''}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -1015,7 +1027,7 @@ const SettingsPage = () => {
                                                 type="text"
                                                 value={settings.scamDetectionConfig?.aiSettings?.model || ''}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -1038,7 +1050,7 @@ const SettingsPage = () => {
                                                 type="text"
                                                 value={settings.scamDetectionConfig?.aiSettings?.baseUrl || ''}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -1061,7 +1073,7 @@ const SettingsPage = () => {
                                                 type="password"
                                                 value={settings.scamDetectionConfig?.aiSettings?.apiKey === '***HIDDEN***' ? '' : (settings.scamDetectionConfig?.aiSettings?.apiKey || '')}
                                                 onChange={(e) =>
-                                                    setSettings({
+                                                    updateSettings({
                                                         ...settings,
                                                         scamDetectionConfig: {
                                                             ...settings.scamDetectionConfig,
@@ -1092,7 +1104,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.textModel?.provider || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1118,7 +1130,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.textModel?.model || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1144,7 +1156,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.textModel?.baseUrl || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1170,7 +1182,7 @@ const SettingsPage = () => {
                                                     type="password"
                                                     value={settings.scamDetectionConfig?.aiSettings?.textModel?.apiKey === '***HIDDEN***' ? '' : (settings.scamDetectionConfig?.aiSettings?.textModel?.apiKey || '')}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1203,7 +1215,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.visionModel?.provider || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1229,7 +1241,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.visionModel?.model || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1255,7 +1267,7 @@ const SettingsPage = () => {
                                                     type="text"
                                                     value={settings.scamDetectionConfig?.aiSettings?.visionModel?.baseUrl || ''}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,
@@ -1281,7 +1293,7 @@ const SettingsPage = () => {
                                                     type="password"
                                                     value={settings.scamDetectionConfig?.aiSettings?.visionModel?.apiKey === '***HIDDEN***' ? '' : (settings.scamDetectionConfig?.aiSettings?.visionModel?.apiKey || '')}
                                                     onChange={(e) =>
-                                                        setSettings({
+                                                        updateSettings({
                                                             ...settings,
                                                             scamDetectionConfig: {
                                                                 ...settings.scamDetectionConfig,

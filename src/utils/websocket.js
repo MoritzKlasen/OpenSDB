@@ -1,15 +1,9 @@
 const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
 const { logger } = require('./logger');
-
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
+const { verifyToken } = require('./authTokens');
 
 let wss = null;
 const clients = new Set();
-
-const JWT_SECRET = process.env.JWT_SECRET;
 
 function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: '/ws' });
@@ -18,7 +12,7 @@ function initWebSocket(server) {
     // Verify origin
     const origin = req.headers.origin;
     if (origin && process.env.CORS_ORIGINS) {
-      const allowedOrigins = process.env.CORS_ORIGINS.split(',').filter(o => o !== '*');
+      const allowedOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(o => o !== '*');
       if (!allowedOrigins.includes(origin)) {
         logger.security('websocket_origin_rejected', { origin });
         ws.close(4003, 'Invalid origin');
@@ -32,27 +26,35 @@ function initWebSocket(server) {
     if (!token) {
       logger.security('websocket_auth_rejected', {
         reason: 'no token in cookies',
-        headers: req.headers
+        origin,
+        ip: req.socket?.remoteAddress,
       });
       ws.close(4001, 'Unauthorized - no token');
       return;
     }
 
     try {
-      jwt.verify(token, JWT_SECRET);
+      const payload = verifyToken(token);
       ws.isAlive = true;
+      ws.jti = payload.jti;
       clients.add(ws);
-      logger.ws('client_authenticated', { total: clients.size });
+      logger.ws('connected', { total: clients.size });
+
+      // Disconnect when the session token expires instead of streaming events indefinitely
+      const expiresInMs = Math.max(0, payload.exp * 1000 - Date.now());
+      ws.expiryTimer = setTimeout(() => ws.close(4001, 'Session expired'), expiresInMs);
 
       ws.on('pong', () => { ws.isAlive = true; });
 
       ws.on('close', () => {
+        clearTimeout(ws.expiryTimer);
         clients.delete(ws);
-        logger.ws('client_disconnected', { total: clients.size });
+        logger.ws('disconnected', { total: clients.size });
       });
 
       ws.on('error', (error) => {
         logger.error('WebSocket error', { error: error.message });
+        clearTimeout(ws.expiryTimer);
         clients.delete(ws);
       });
     } catch (err) {
@@ -105,6 +107,13 @@ function broadcast(event, data) {
   logger.ws('broadcast_sent', { event, clients_total: clients.size, clients_sent: sent });
 }
 
+// Closes all connections opened with the given (now revoked) session token
+function closeSessionsForToken(jti) {
+  for (const ws of clients) {
+    if (ws.jti === jti) ws.close(4001, 'Logged out');
+  }
+}
+
 function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
@@ -126,4 +135,4 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
-module.exports = { initWebSocket, broadcast };
+module.exports = { initWebSocket, broadcast, closeSessionsForToken };

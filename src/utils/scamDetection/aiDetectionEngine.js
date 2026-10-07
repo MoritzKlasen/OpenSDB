@@ -1,6 +1,17 @@
 const DefaultDetectionEngine = require('./defaultDetectionEngine');
 const { logger } = require('../logger');
 
+// Used to ask the model for the "reason" in the server language
+const LANGUAGE_NAMES = {
+  en: 'English',
+  de: 'German',
+  es: 'Spanish',
+  fr: 'French',
+  it: 'Italian',
+  tr: 'Turkish',
+  zh: 'Simplified Chinese',
+};
+
 /**
  * AI Detection Engine - Supports multiple providers with fallback
  * Providers supported: OpenAI, Ollama, OpenRouter, Anthropic, custom endpoints
@@ -29,6 +40,12 @@ class AIDetectionEngine {
     logger.debug('Registered default AI providers', {
       providers: Array.from(this.providers.keys()),
     });
+  }
+
+  // Mongoose materialises nested paths (textModel, visionModel) as empty objects,
+  // so a model block only counts as configured once it names a provider and a model
+  static isModelConfigured(config) {
+    return Boolean(config?.provider && config?.model);
   }
 
   registerProvider(name, callFunction) {
@@ -76,7 +93,8 @@ class AIDetectionEngine {
     };
   }
 
-  buildPrompt(message, extractedLinks, extractedDomains, userMetadata, images = []) {
+  buildPrompt(message, extractedLinks, extractedDomains, userMetadata, images = [], language = 'en') {
+    const languageName = LANGUAGE_NAMES[language] || LANGUAGE_NAMES.en;
     const metadata = userMetadata
       ? `\nUser Account Age: ${userMetadata.accountAgeDays} days\nMessage History: ${userMetadata.messageCount} messages\n`
       : '';
@@ -108,6 +126,7 @@ ${images.length > 0 ? 'IMPORTANT: Analyze the attached image(s) carefully for:\n
   "suggestedAction": "delete" | "timeout" | "flag" | "none"
 }
 
+Write the "reason" in ${languageName}. Keep "classification" and "suggestedAction" exactly as listed above (in English).
 Keep the reason under 100 characters. Be accurate and balanced - only flag content with clear scam indicators. Regular images should be classified as "likely safe".`;
   }
 
@@ -456,7 +475,7 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
     let selectedConfig = aiConfig;
     let modelType = 'default';
     
-    if (hasImages && aiConfig.visionModel) {
+    if (hasImages && AIDetectionEngine.isModelConfigured(aiConfig.visionModel)) {
       selectedConfig = aiConfig.visionModel;
       modelType = 'vision';
       logger.debug('Auto-selected vision model for image analysis', {
@@ -465,7 +484,7 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
         model: selectedConfig.model,
         imageCount: images.length,
       });
-    } else if (!hasImages && aiConfig.textModel) {
+    } else if (!hasImages && AIDetectionEngine.isModelConfigured(aiConfig.textModel)) {
       selectedConfig = aiConfig.textModel;
       modelType = 'text';
       logger.debug('Auto-selected text model for text-only analysis', {
@@ -488,6 +507,7 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
         modeUsed: 'default',
         fallbackTriggered: true,
         fallbackReason: validation.errors[0],
+        fallbackType: 'config',
         ...(await this.defaultEngine.detectScam(
           guildId,
           userId,
@@ -515,7 +535,8 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
         links,
         domains,
         userMetadata,
-        images
+        images,
+        defaultConfig.serverLanguage
       );
 
       logger.info('Calling AI provider for detection', {
@@ -542,6 +563,7 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
           modeUsed: 'default',
           fallbackTriggered: true,
           fallbackReason: parseResult.error,
+          fallbackType: 'parse',
           ...(await this.defaultEngine.detectScam(
             guildId,
             userId,
@@ -585,6 +607,7 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
         modeUsed: 'default',
         fallbackTriggered: true,
         fallbackReason: error.message,
+        fallbackType: 'request',
         ...(await this.defaultEngine.detectScam(
           guildId,
           userId,
@@ -596,16 +619,22 @@ Keep the reason under 100 characters. Be accurate and balanced - only flag conte
     }
   }
 
+  // Spreads AI verdicts over the full 0-100 scale so the configured thresholds
+  // (e.g. 80 for auto-actions) and the CRITICAL level are reachable:
+  // likely scam 50-100, suspicious 30-60, likely safe 0-20
   classificationToRiskScore(classification, confidence) {
     const classLower = classification.toLowerCase();
+    const certainty = confidence / 100;
 
+    let score;
     if (classLower.includes('scam')) {
-      return Math.min(100, 40 + (confidence / 100) * 35);
+      score = 50 + certainty * 50;
     } else if (classLower.includes('suspicious')) {
-      return Math.min(100, 30 + (confidence / 100) * 25);
+      score = 30 + certainty * 30;
     } else {
-      return Math.max(0, 10 - (confidence / 100) * 10);
+      score = 20 - certainty * 20;
     }
+    return Math.round(Math.min(100, Math.max(0, score)));
   }
 
   calculateRiskLevel(score) {

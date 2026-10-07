@@ -88,6 +88,24 @@ module.exports = {
 
     await VerifiedUser.deleteOne({ _id: record._id });
 
+    // Restore the on-join role so the user is back in the "unverified" state
+    let onJoinRoleName = null;
+    if (onJoinRoleId) {
+      try {
+        const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+        const onJoinRole = interaction.guild.roles.cache.get(onJoinRoleId)
+          ?? await interaction.guild.roles.fetch(onJoinRoleId).catch(() => null);
+        if (member && onJoinRole) {
+          if (!member.roles.cache.has(onJoinRoleId)) {
+            await member.roles.add(onJoinRole);
+          }
+          onJoinRoleName = onJoinRole.name;
+        }
+      } catch (err) {
+        logger.warn(`Could not restore onJoinRole for ${user.tag}`, { error: err.message });
+      }
+    }
+
     await notifyAdminServer('unverify', INTERNAL_SECRET);
 
     const messageKey = onJoinRoleName ? 'unverify.success' : 'unverify.successNoRole';

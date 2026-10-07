@@ -44,7 +44,17 @@ const DashboardPage = () => {
     try {
       const response = await userApi.importCsv(file)
       setError(null)
-      alert(`Successfully imported ${response.data.imported} users`)
+      const { imported, skipped = [] } = response.data
+      let message = `Successfully imported ${imported} users`
+      if (skipped.length > 0) {
+        const details = skipped
+          .slice(0, 10)
+          .map(s => `Row ${s.row}${s.discordId ? ` (${s.discordId})` : ''}: ${s.reason}`)
+          .join('\n')
+        const more = skipped.length > 10 ? `\n…and ${skipped.length - 10} more` : ''
+        message += `\n\nSkipped ${skipped.length} rows:\n${details}${more}`
+      }
+      alert(message)
     } catch (err) {
       setError('Failed to import CSV')
     } finally {

@@ -4,6 +4,7 @@ const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { logger } = require('../utils/logger');
 const { notifyAdminServer } = require('../utils/botNotifier');
+const { invalidateBannedWordsCache } = require('../events/handleBannedWords');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -49,6 +50,7 @@ module.exports = {
 
       if (sub === 'add') {
         await BannedWord.updateOne({ word }, { word }, { upsert: true });
+        invalidateBannedWordsCache();
         logger.security('Banned word added', {
           guildId: interaction.guildId,
           userId: interaction.user.id,
@@ -64,6 +66,7 @@ module.exports = {
 
       if (sub === 'remove') {
         await BannedWord.deleteOne({ word });
+        invalidateBannedWordsCache();
         logger.security('Banned word removed', {
           guildId: interaction.guildId,
           userId: interaction.user.id,

@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const { logger } = require('./logger');
 const { generateRequestSignature: _genSig } = require('./security');
 
@@ -10,12 +9,18 @@ function generateRequestSignature(payload, secret) {
   return { signature, timestamp };
 }
 
+// Defaults to the docker-compose service name; override ADMIN_SERVER_URL when running outside Docker
+function getNotifyUrl() {
+  const base = process.env.ADMIN_SERVER_URL || `http://web:${process.env.ADMIN_UI_PORT || 8001}`;
+  return `${base.replace(/\/+$/, '')}/api/internal/notify-change`;
+}
+
 async function notifyAdminServer(type, secret) {
   try {
     const payload = { type };
     const { signature, timestamp } = generateRequestSignature(payload, secret);
 
-    const response = await fetch('http://web:8001/api/internal/notify-change', {
+    const response = await fetch(getNotifyUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

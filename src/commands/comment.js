@@ -4,6 +4,7 @@ const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
 const { notifyAdminServer } = require('../utils/botNotifier');
 const { logger } = require('../utils/logger');
+const { MAX_COMMENT_LENGTH } = require('../utils/constants');
 require('dotenv').config();
 
 if (!process.env.INTERNAL_SECRET) {
@@ -41,8 +42,8 @@ module.exports = {
       const user = interaction.options.getUser('user');
       const text = interaction.options.getString('text');
 
-      if (text.length > 500) {
-        return interaction.reply({ content: await t(interaction.guildId, 'comments.tooLong') || 'Comment too long (max 500 characters)', flags: 64 });
+      if (text.length > MAX_COMMENT_LENGTH) {
+        return interaction.reply({ content: await t(interaction.guildId, 'comments.tooLong') || `Comment too long (max ${MAX_COMMENT_LENGTH} characters)`, flags: 64 });
       }
 
       const verified = await VerifiedUser.findOne({ discordId: user.id });

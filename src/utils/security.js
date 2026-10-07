@@ -1,7 +1,6 @@
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
-const { z } = require('zod');
 
 function getHelmetMiddleware() {
   return (req, res, next) => {
@@ -58,7 +57,7 @@ function corsMiddleware(req, res, next) {
     throw new Error('CORS_ORIGINS environment variable is required');
   }
   
-  const allowedOrigins = process.env.CORS_ORIGINS.split(',').filter(o => o !== '*');
+  const allowedOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(o => o !== '*');
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {

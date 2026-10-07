@@ -40,7 +40,9 @@ const scamDetectionEventSchema = new mongoose.Schema({
   timeoutDuration: Number,
   
   alertSent: { type: Boolean, default: false },
-  alertMessageId: String,
+  alertMessageId: { type: String, index: true },
+  // All spam messages grouped under this alert, so "Delete" still works after a bot restart
+  relatedMessages: [{ messageId: String, channelId: String, _id: false }],
   dismissed: { type: Boolean, default: false },
   dismissedAt: Date,
   dismissedBy: String,
