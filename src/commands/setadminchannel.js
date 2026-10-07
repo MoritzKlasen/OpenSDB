@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { logger } = require('../utils/logger');
+const { notifyAdminServer } = require('../utils/botNotifier');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,31 +14,60 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
-    const settings = await ServerSettings.findOne() || {};
-    const teamRoleId = settings.teamRoleId;
+    try {
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId }) || {};
+      const teamRoleId = settings.teamRoleId;
 
-    const isOwner = interaction.user.id === interaction.guild.ownerId;
-    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
-    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+      const isOwner = interaction.user.id === interaction.guild.ownerId;
+      const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
+      const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isAdmin && !isTeam) {
-      return interaction.reply({ content: await t(interaction.guildId, 'setadminchannel.noPermission'), flags: 64 });
+      if (!isOwner && !isAdmin && !isTeam) {
+        return interaction.reply({ content: await t(interaction.guildId, 'setadminchannel.noPermission'), flags: 64 });
+      }
+
+      const channel = interaction.options.getChannel('channel');
+      if (channel.guild.id !== interaction.guild.id) {
+        return interaction.reply({ content: await t(interaction.guildId, 'setadminchannel.wrongServer'), flags: 64 });
+      }
+
+      await ServerSettings.findOneAndUpdate(
+        { guildId: interaction.guildId },
+        { adminChannelId: channel.id },
+        { upsert: true }
+      );
+
+      logger.security('Admin channel configured', {
+        guildId: interaction.guildId,
+        userId: interaction.user.id,
+        channelId: channel.id,
+      });
+
+      try {
+        await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+      } catch (error) {
+        logger.error('Failed to notify admin server after admin channel update', {
+          guildId: interaction.guildId,
+          userId: interaction.user.id,
+          channelId: channel.id,
+          error: error.message,
+        });
+      }
+
+      await interaction.reply({
+        content: await t(interaction.guildId, 'setadminchannel.success', { channel: channel.toString() }),
+        flags: 64
+      });
+    } catch (error) {
+      logger.error('Error setting admin channel', {
+        guildId: interaction.guildId,
+        userId: interaction.user.id,
+        error: error.message,
+      });
+      await interaction.reply({
+        content: await t(interaction.guildId, 'errors.commandError'),
+        flags: 64
+      });
     }
-
-    const channel = interaction.options.getChannel('channel');
-    if (channel.guild.id !== interaction.guild.id) {
-      return interaction.reply({ content: await t(interaction.guildId, 'setadminchannel.wrongServer'), flags: 64 });
-    }
-
-    await ServerSettings.findOneAndUpdate(
-      {},
-      { adminChannelId: channel.id },
-      { upsert: true }
-    );
-
-    await interaction.reply({
-      content: await t(interaction.guildId, 'setadminchannel.success', { channel: channel.toString() }),
-      flags: 64
-    });
   }
 };

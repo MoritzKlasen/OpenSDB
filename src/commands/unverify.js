@@ -1,7 +1,15 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const VerifiedUser = require('../database/models/VerifiedUser');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { notifyAdminServer } = require('../utils/botNotifier');
+const { logger } = require('../utils/logger');
+require('dotenv').config();
+
+if (!process.env.INTERNAL_SECRET) {
+  throw new Error('INTERNAL_SECRET environment variable is required');
+}
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,14 +24,16 @@ module.exports = {
     const guildOwnerId = interaction.guild.ownerId;
     const userId = interaction.user.id;
 
-    const settings = await ServerSettings.findOne();
+    const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
     const teamRoleId = settings?.teamRoleId;
     const verifiedRoleId = settings?.verifiedRoleId;
+    const onJoinRoleId = settings?.onJoinRoleId;
 
     const isOwner = userId === guildOwnerId;
+    const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
     const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
+    if (!isOwner && !isAdmin && !isTeam) {
       return interaction.reply({
         content: await t(interaction.guildId, 'unverify.noPermission'),
         flags: 64
@@ -31,26 +41,76 @@ module.exports = {
     }
 
     const user = interaction.options.getUser('user');
-    const result = await VerifiedUser.findOneAndDelete({ discordId: user.id });
 
-    if (!result) {
+    const record = await VerifiedUser.findOne({ discordId: user.id });
+    if (!record) {
       return interaction.reply({
         content: await t(interaction.guildId, 'unverify.notVerified', { user: user.tag }),
         flags: 64
       });
     }
 
-    try {
-      const member = await interaction.guild.members.fetch(user.id);
-      if (verifiedRoleId && member.roles.cache.has(verifiedRoleId)) {
-        await member.roles.remove(verifiedRoleId);
+    // Pre-flight: check role hierarchy before touching the DB
+    if (verifiedRoleId) {
+      let member;
+      try {
+        member = await interaction.guild.members.fetch(user.id);
+      } catch {
+        member = null;
       }
-    } catch (err) {
-      console.warn(`⚠️ Could not remove verified role from ${user.tag}:`, err.message);
+
+      if (member?.roles.cache.has(verifiedRoleId)) {
+        const verifiedRole = interaction.guild.roles.cache.get(verifiedRoleId)
+          ?? await interaction.guild.roles.fetch(verifiedRoleId).catch(() => null);
+
+        const me = interaction.guild.members.me
+          ?? await interaction.guild.members.fetchMe().catch(() => null);
+
+        if (verifiedRole && me && verifiedRole.position >= me.roles.highest.position) {
+          return interaction.reply({
+            content: `❌ Cannot remove role **${verifiedRole.name}** – it is above the bot's highest role in the hierarchy. Move the bot's role above **${verifiedRole.name}** in Server Settings › Roles, then try again.`,
+            flags: 64,
+          });
+        }
+
+        // Role check passed – remove from Discord
+        try {
+          await member.roles.remove(verifiedRoleId);
+        } catch (err) {
+          logger.warn(`Could not remove verified role from ${user.tag}`, { error: err.message });
+          return interaction.reply({
+            content: `❌ Could not remove role **${verifiedRole?.name ?? verifiedRoleId}**: ${err.message}`,
+            flags: 64,
+          });
+        }
+      }
     }
 
+    await VerifiedUser.deleteOne({ _id: record._id });
+
+    // Restore the on-join role so the user is back in the "unverified" state
+    let onJoinRoleName = null;
+    if (onJoinRoleId) {
+      try {
+        const member = await interaction.guild.members.fetch(user.id).catch(() => null);
+        const onJoinRole = interaction.guild.roles.cache.get(onJoinRoleId)
+          ?? await interaction.guild.roles.fetch(onJoinRoleId).catch(() => null);
+        if (member && onJoinRole) {
+          if (!member.roles.cache.has(onJoinRoleId)) {
+            await member.roles.add(onJoinRole);
+          }
+          onJoinRoleName = onJoinRole.name;
+        }
+      } catch (err) {
+        logger.warn(`Could not restore onJoinRole for ${user.tag}`, { error: err.message });
+      }
+    }
+
+    await notifyAdminServer('unverify', INTERNAL_SECRET);
+
+    const messageKey = onJoinRoleName ? 'unverify.success' : 'unverify.successNoRole';
     await interaction.reply({
-      content: await t(interaction.guildId, 'unverify.success', { user: user.tag }),
+      content: await t(interaction.guildId, messageKey, { user: user.tag, role: onJoinRoleName }),
       flags: 64
     });
   }

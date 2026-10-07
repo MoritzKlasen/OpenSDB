@@ -1,0 +1,68 @@
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',
+  },
+})
+
+export const authApi = {
+  login: (username, password) => api.post('/api/login', { username, password }),
+  logout: () => api.get('/logout'),
+}
+
+export const userApi = {
+  getAll: () => api.get('/api/verified-users'),
+  updateComment: (discordId, comment) =>
+    api.put(`/api/update-comment/${discordId}`, { comment }),
+  removeWarning: (discordId, index) =>
+    api.delete(`/api/remove-warning/${discordId}/${index}`),
+  exportCsv: () =>
+    api.get('/api/export-users', { responseType: 'blob' }),
+  importCsv: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/import-users', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+}
+
+export const analyticsApi = {
+  getUsersGrowth: (from, to) =>
+    api.get('/api/dashboard/users-growth', {
+      params: { from, to },
+    }),
+  getWarningsActivity: (from, to) =>
+    api.get('/api/dashboard/warnings-activity', {
+      params: { from, to },
+    }),
+  getAlertsActivity: (from, to) =>
+    api.get('/api/dashboard/alerts-activity', {
+      params: { from, to },
+    }),
+}
+
+export const settingsApi = {
+  getServerSettings: () => api.get('/api/settings/server'),
+  updateServerSettings: (updates) => api.put('/api/settings/server', updates),
+  getBannedWords: () => api.get('/api/settings/banned-words'),
+  addBannedWord: (word) => api.post('/api/settings/banned-words', { word }),
+  removeBannedWord: (word) => api.delete(`/api/settings/banned-words/${encodeURIComponent(word)}`),
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+export default api

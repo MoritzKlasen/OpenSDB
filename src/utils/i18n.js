@@ -16,7 +16,10 @@ const LOCALES = {
   zh: JSON.parse(fs.readFileSync(path.join(__dirname, "..", "locales", "zh.json"), "utf8"))
 };
 
-const guildLangCache = new Map();
+// Cache TTL: re-read from DB after 5 s so WebUI language changes propagate
+// quickly to the bot without requiring a bot restart.
+const CACHE_TTL_MS = 5_000;
+const guildLangCache = new Map(); // Map<guildId, { lang: string, cachedAt: number }>
 
 function getByPath(obj, dottedKey) {
   return dottedKey.split(".").reduce((acc, k) => (acc && acc[k] != null ? acc[k] : undefined), obj);
@@ -30,8 +33,8 @@ function applyPlaceholders(str, vars) {
 async function getGuildLanguage(guildId) {
   if (!guildId) return DEFAULT_LANG;
 
-  const cached = guildLangCache.get(guildId);
-  if (cached) return cached;
+  const entry = guildLangCache.get(guildId);
+  if (entry && Date.now() - entry.cachedAt < CACHE_TTL_MS) return entry.lang;
 
   const settings = await ServerSettings.findOneAndUpdate(
     { guildId },
@@ -40,19 +43,17 @@ async function getGuildLanguage(guildId) {
   ).lean();
 
   const lang = SUPPORTED.has(settings.language) ? settings.language : DEFAULT_LANG;
-  guildLangCache.set(guildId, lang);
+  guildLangCache.set(guildId, { lang, cachedAt: Date.now() });
   return lang;
 }
 
 function setGuildLanguageCache(guildId, lang) {
   if (!guildId) return;
   if (!SUPPORTED.has(lang)) return;
-  guildLangCache.set(guildId, lang);
+  guildLangCache.set(guildId, { lang, cachedAt: Date.now() });
 }
 
-async function t(guildId, key, vars) {
-  const lang = await getGuildLanguage(guildId);
-
+function translate(lang, key, vars) {
   let template = getByPath(LOCALES[lang], key);
 
   if (template == null) template = getByPath(LOCALES[DEFAULT_LANG], key);
@@ -62,8 +63,21 @@ async function t(guildId, key, vars) {
   return applyPlaceholders(template, vars);
 }
 
+async function t(guildId, key, vars) {
+  return translate(await getGuildLanguage(guildId), key, vars);
+}
+
+// Resolves the guild language once and returns a synchronous t(key, vars),
+// for builders that produce many strings at once
+async function getTranslator(guildId) {
+  const lang = await getGuildLanguage(guildId);
+  return (key, vars) => translate(lang, key, vars);
+}
+
 module.exports = {
   t,
+  translate,
+  getTranslator,
   getGuildLanguage,
   setGuildLanguageCache,
   DEFAULT_LANG,

@@ -9,6 +9,9 @@ services:
       - mongo
     networks:
       - internal
+    # Lets the bot reach services on the Docker host, e.g. a local Ollama instance
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -81,6 +84,7 @@ services:
 
 volumes:
   db:
+
 
 networks:
   internal:

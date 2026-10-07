@@ -1,7 +1,10 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const BannedWord = require('../database/models/BannedWord');
 const ServerSettings = require('../database/models/ServerSettings');
 const { t } = require('../utils/i18n');
+const { logger } = require('../utils/logger');
+const { notifyAdminServer } = require('../utils/botNotifier');
+const { invalidateBannedWordsCache } = require('../events/handleBannedWords');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -25,32 +28,67 @@ module.exports = {
             .setRequired(true))),
 
   async execute(interaction) {
-    const guildOwnerId = interaction.guild.ownerId;
-    const userId = interaction.user.id;
-    
-    const settings = await ServerSettings.findOne();
-    const teamRoleId = settings?.teamRoleId;
+    try {
+      const guildOwnerId = interaction.guild.ownerId;
+      const userId = interaction.user.id;
+      
+      const settings = await ServerSettings.findOne({ guildId: interaction.guildId });
+      const teamRoleId = settings?.teamRoleId;
 
-    const isOwner = userId === guildOwnerId;
-    const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
+      const isOwner = userId === guildOwnerId;
+      const isAdmin = interaction.member.permissions?.has(PermissionFlagsBits.Administrator);
+      const isTeam = teamRoleId && interaction.member.roles.cache.has(teamRoleId);
 
-    if (!isOwner && !isTeam) {
-      return interaction.reply({
-        content: await t(interaction.guildId, 'errors.noPermission'),
-        flags: 64      });
-    }
+      if (!isOwner && !isAdmin && !isTeam) {
+        return interaction.reply({
+          content: await t(interaction.guildId, 'errors.noPermission'),
+          flags: 64      });
+      }
 
-    const word = interaction.options.getString('word').toLowerCase();
-    const sub = interaction.options.getSubcommand();
+      const word = interaction.options.getString('word').toLowerCase();
+      const sub = interaction.options.getSubcommand();
 
-    if (sub === 'add') {
-      await BannedWord.updateOne({ word }, { word }, { upsert: true });
-      return interaction.reply(await t(interaction.guildId, 'banned.wordAdded', { word }));
-    }
+      if (sub === 'add') {
+        await BannedWord.updateOne({ word }, { word }, { upsert: true });
+        invalidateBannedWordsCache();
+        logger.security('Banned word added', {
+          guildId: interaction.guildId,
+          userId: interaction.user.id,
+          word,
+        });
+        try {
+          await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+        } catch (notifyErr) {
+          logger.error('Failed to notify admin server', { error: notifyErr.message });
+        }
+        return interaction.reply(await t(interaction.guildId, 'banned.wordAdded', { word }));
+      }
 
-    if (sub === 'remove') {
-      await BannedWord.deleteOne({ word });
-      return interaction.reply(await t(interaction.guildId, 'banned.wordRemoved', { word }));
+      if (sub === 'remove') {
+        await BannedWord.deleteOne({ word });
+        invalidateBannedWordsCache();
+        logger.security('Banned word removed', {
+          guildId: interaction.guildId,
+          userId: interaction.user.id,
+          word,
+        });
+        try {
+          await notifyAdminServer('settings-changed', process.env.INTERNAL_SECRET);
+        } catch (notifyErr) {
+          logger.error('Failed to notify admin server', { error: notifyErr.message });
+        }
+        return interaction.reply(await t(interaction.guildId, 'banned.wordRemoved', { word }));
+      }
+    } catch (error) {
+      logger.error('Error managing banned words', {
+        guildId: interaction.guildId,
+        userId: interaction.user.id,
+        error: error.message,
+      });
+      await interaction.reply({
+        content: await t(interaction.guildId, 'errors.commandError'),
+        flags: 64
+      });
     }
   }
 };
