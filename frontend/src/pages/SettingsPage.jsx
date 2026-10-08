@@ -325,7 +325,7 @@ const SettingsPage = () => {
         <Layout>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg p-6 border border-slate-700">
+                <div className="bg-linear-to-r from-slate-900 to-slate-800 rounded-lg p-6 border border-slate-700">
                     <h2 className="text-3xl font-bold text-slate-100 mb-2">Bot Configuration</h2>
                     <p className="text-slate-400">Manage all bot settings and features from this centralized dashboard</p>
                 </div>
@@ -395,7 +395,7 @@ const SettingsPage = () => {
                                 <select
                                     value={settings.language}
                                     onChange={(e) => updateSettings({ ...settings, language: e.target.value })}
-                                    className="w-full max-w-md px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full max-w-md px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 >
                                     {LANGUAGES.map((lang) => (
                                         <option key={lang.code} value={lang.code}>
@@ -420,7 +420,7 @@ const SettingsPage = () => {
                                         value={settings.teamRoleId || ''}
                                         onChange={(e) => updateSettings({ ...settings, teamRoleId: e.target.value })}
                                         placeholder="123456789012345678"
-                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                     />
                                     <p className="mt-1 text-sm text-slate-400">
                                         Members with this role can manage bot settings
@@ -435,7 +435,7 @@ const SettingsPage = () => {
                                         value={settings.verifiedRoleId || ''}
                                         onChange={(e) => updateSettings({ ...settings, verifiedRoleId: e.target.value })}
                                         placeholder="123456789012345678"
-                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                     />
                                     <p className="mt-1 text-sm text-slate-400">
                                         Role automatically assigned to verified users
@@ -450,7 +450,7 @@ const SettingsPage = () => {
                                         value={settings.onJoinRoleId || ''}
                                         onChange={(e) => updateSettings({ ...settings, onJoinRoleId: e.target.value })}
                                         placeholder="123456789012345678"
-                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                     />
                                     <p className="mt-1 text-sm text-slate-400">
                                         Role automatically assigned when members join the server
@@ -469,7 +469,7 @@ const SettingsPage = () => {
                                     value={settings.adminChannelId || ''}
                                     onChange={(e) => updateSettings({ ...settings, adminChannelId: e.target.value })}
                                     placeholder="123456789012345678"
-                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 />
                                 <p className="mt-1 text-sm text-slate-400">
                                     Channel for admin notifications and moderation alerts
@@ -516,7 +516,7 @@ const SettingsPage = () => {
                                                 },
                                             })
                                         }
-                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded"
+                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded-sm"
                                     />
                                     <div>
                                         <span className="text-lg font-semibold text-slate-100 block">
@@ -618,7 +618,7 @@ const SettingsPage = () => {
                                         })
                                     }
                                     placeholder="123456789012345678"
-                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 />
                                 <p className="mt-1 text-sm text-slate-400">
                                     Channel where scam detection alerts will be sent
@@ -641,7 +641,7 @@ const SettingsPage = () => {
                                                 },
                                             })
                                         }
-                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded mt-0.5"
+                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded-sm mt-0.5"
                                     />
                                     <div>
                                         <span className="text-slate-100 font-medium block">Auto-Delete Scam Messages</span>
@@ -664,7 +664,7 @@ const SettingsPage = () => {
                                                 },
                                             })
                                         }
-                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded mt-0.5"
+                                        className="w-5 h-5 bg-slate-700 border-slate-600 rounded-sm mt-0.5"
                                     />
                                     <div className="flex-1">
                                         <span className="text-slate-100 font-medium block">Auto-Timeout Users</span>
@@ -690,7 +690,7 @@ const SettingsPage = () => {
                                                             },
                                                         })
                                                     }
-                                                    className="w-32 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-32 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                         )}
@@ -714,7 +714,7 @@ const SettingsPage = () => {
                                             onChange={(e) => setNewDomain(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddDomain())}
                                             placeholder="example.com"
-                                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                         />
                                         <Button
                                             type="button"
@@ -761,7 +761,7 @@ const SettingsPage = () => {
                                             onChange={(e) => setNewUserId(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddUserId())}
                                             placeholder="User ID (123456789012345678)"
-                                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                         />
                                         <Button
                                             type="button"
@@ -819,7 +819,7 @@ const SettingsPage = () => {
                                                         },
                                                     })
                                                 }
-                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                             <span className="text-slate-400 text-sm">/ 100</span>
                                         </div>
@@ -847,7 +847,7 @@ const SettingsPage = () => {
                                                         },
                                                     })
                                                 }
-                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                             <span className="text-slate-400 text-sm">/ 100</span>
                                         </div>
@@ -878,7 +878,7 @@ const SettingsPage = () => {
                                                         },
                                                     })
                                                 }
-                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Number of identical messages to flag as spam
@@ -903,7 +903,7 @@ const SettingsPage = () => {
                                                         },
                                                     })
                                                 }
-                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-24 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Time frame to check for duplicates
@@ -932,7 +932,7 @@ const SettingsPage = () => {
                                                     },
                                                 })
                                             }
-                                            className="w-32 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-32 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                         />
                                         <p className="mt-1 text-xs text-slate-500">
                                             New accounts younger than this are flagged as suspicious
@@ -952,7 +952,7 @@ const SettingsPage = () => {
                                                     },
                                                 })
                                             }
-                                            className="w-5 h-5 bg-slate-700 border-slate-600 rounded mt-0.5"
+                                            className="w-5 h-5 bg-slate-700 border-slate-600 rounded-sm mt-0.5"
                                         />
                                         <div>
                                             <span className="text-slate-100 font-medium block">Flag First Messages</span>
@@ -968,7 +968,7 @@ const SettingsPage = () => {
                         <CollapsibleSection title="AI Configuration" icon="chip" isOpen={sectionsOpen['ai-configuration']} onToggle={() => toggleSection('ai-configuration')}>
                             <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4 mb-6">
                                 <p className="text-blue-300 text-sm flex items-start gap-2">
-                                    <Icon name="alert" className="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-400" />
+                                    <Icon name="alert" className="w-5 h-5 shrink-0 mt-0.5 text-yellow-400" />
                                     <span>Advanced users only: Configure AI/LLM engines for enhanced scam detection. These settings are only used when "AI (Machine Learning)" detection mode is selected above. Requires API access to OpenAI, Anthropic, or compatible services.</span>
                                 </p>
                             </div>
@@ -1016,7 +1016,7 @@ const SettingsPage = () => {
                                                     })
                                                 }
                                                 placeholder="openai, anthropic, etc."
-                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
                                         <div>
@@ -1039,7 +1039,7 @@ const SettingsPage = () => {
                                                     })
                                                 }
                                                 placeholder="gpt-4, claude-3-opus, etc."
-                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
                                         <div>
@@ -1062,7 +1062,7 @@ const SettingsPage = () => {
                                                     })
                                                 }
                                                 placeholder="https://api.openai.com/v1"
-                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
                                         <div>
@@ -1085,7 +1085,7 @@ const SettingsPage = () => {
                                                     })
                                                 }
                                                 placeholder={settings.scamDetectionConfig?.aiSettings?.apiKey === '***HIDDEN***' ? 'API key is set (hidden)' : 'sk-...'}
-                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                             />
                                             {settings.scamDetectionConfig?.aiSettings?.apiKey === '***HIDDEN***' && (
                                                 <p className="mt-1 text-xs text-slate-400">API key is set and hidden. Enter a new key only to replace it.</p>
@@ -1119,7 +1119,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="openai, anthropic, etc."
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1145,7 +1145,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="gpt-4-turbo"
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1171,7 +1171,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="https://api.openai.com/v1"
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1197,7 +1197,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder={settings.scamDetectionConfig?.aiSettings?.textModel?.apiKey === '***HIDDEN***' ? 'Text API key is set (hidden)' : 'sk-...'}
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                                 {settings.scamDetectionConfig?.aiSettings?.textModel?.apiKey === '***HIDDEN***' && (
                                                     <p className="mt-1 text-xs text-slate-400">Text API key is set and hidden. Enter a new key only to replace it.</p>
@@ -1230,7 +1230,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="openai, anthropic, etc."
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1256,7 +1256,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="gpt-4-vision"
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1282,7 +1282,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder="https://api.openai.com/v1"
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div>
@@ -1308,7 +1308,7 @@ const SettingsPage = () => {
                                                         })
                                                     }
                                                     placeholder={settings.scamDetectionConfig?.aiSettings?.visionModel?.apiKey === '***HIDDEN***' ? 'Vision API key is set (hidden)' : 'sk-...'}
-                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                                 />
                                                 {settings.scamDetectionConfig?.aiSettings?.visionModel?.apiKey === '***HIDDEN***' && (
                                                     <p className="mt-1 text-xs text-slate-400">Vision API key is set and hidden. Enter a new key only to replace it.</p>
@@ -1351,7 +1351,7 @@ const SettingsPage = () => {
                                     value={newWord}
                                     onChange={(e) => setNewWord(e.target.value)}
                                     placeholder="Enter word to ban..."
-                                    className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 />
                                 <Button type="submit" disabled={!newWord.trim()}>
                                     Add Word

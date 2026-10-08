@@ -169,7 +169,7 @@ const AnalyticsPage = () => {
     <div className="flex gap-2 mb-4 flex-wrap items-center">
       <button
         onClick={() => onTimeRangeChange('overall')}
-        className={`px-3 py-1 text-sm rounded ${timeRange === 'overall'
+        className={`px-3 py-1 text-sm rounded-sm ${timeRange === 'overall'
           ? 'bg-blue-600 text-slate-100'
           : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
           }`}
@@ -178,7 +178,7 @@ const AnalyticsPage = () => {
       </button>
       <button
         onClick={() => onTimeRangeChange('current')}
-        className={`px-3 py-1 text-sm rounded ${timeRange === 'current'
+        className={`px-3 py-1 text-sm rounded-sm ${timeRange === 'current'
           ? 'bg-blue-600 text-slate-100'
           : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
           }`}
@@ -189,7 +189,7 @@ const AnalyticsPage = () => {
         <select
           value={timeRange}
           onChange={(e) => onTimeRangeChange(e.target.value)}
-          className="px-3 py-1 text-sm bg-slate-700 hover:bg-slate-600 rounded text-slate-100 cursor-pointer"
+          className="px-3 py-1 text-sm bg-slate-700 hover:bg-slate-600 rounded-sm text-slate-100 cursor-pointer"
         >
           <option value="overall" disabled>Since month...</option>
           {availableMonths.map((item) => (
