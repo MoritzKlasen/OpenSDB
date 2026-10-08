@@ -1,67 +1,124 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/*
+  Keep the look of the Tailwind v3 build: v4 ships a different default sans font
+  stack and an oklch palette, so the font and every color shade used in the app
+  are pinned to their v3 values.
+*/
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --color-slate-850: #0f172a;
+  --color-slate-950: #020617;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-900: #1e3a8a;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-700: #15803d;
+  --color-green-900: #14532d;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-900: #7f1d1d;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-yellow-200: #fef08a;
+  --color-yellow-400: #facc15;
+  --color-yellow-900: #713f12;
+  --color-gray-200: #e5e7eb;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility card {
+  @apply bg-slate-900 border border-slate-700 rounded-lg p-4;
+}
+
+@utility card-header {
+  @apply border-b border-slate-700 pb-3 mb-3;
+}
+
+@utility btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+@utility btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+@utility btn-secondary {
+  @apply bg-slate-700 hover:bg-slate-600 text-slate-100;
+}
+
+@utility btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white;
+}
+
+@utility btn-small {
+  @apply px-2 py-1 text-sm;
+}
+
+@utility input {
+  @apply bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500;
+}
+
+@utility modal-overlay {
+  @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50;
+}
+
+@utility modal {
+  @apply bg-slate-900 rounded-lg shadow-xl max-w-md w-full mx-4 border border-slate-700;
+}
+
+@utility badge {
+  @apply inline-block px-2.5 py-1 rounded-full text-xs font-medium;
+}
+
+@utility badge-warning {
+  @apply bg-yellow-900 text-yellow-200;
+}
+
+@utility badge-success {
+  @apply bg-green-900 text-green-200;
+}
+
+@utility badge-info {
+  @apply bg-blue-900 text-blue-200;
+}
 
 @layer base {
   body {
     @apply bg-slate-950 text-slate-100 font-sans;
-  }
-}
-
-@layer components {
-  .card {
-    @apply bg-slate-900 border border-slate-700 rounded-lg p-4;
-  }
-  
-  .card-header {
-    @apply border-b border-slate-700 pb-3 mb-3;
-  }
-  
-  .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors;
-  }
-  
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white;
-  }
-  
-  .btn-secondary {
-    @apply bg-slate-700 hover:bg-slate-600 text-slate-100;
-  }
-  
-  .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white;
-  }
-  
-  .btn-small {
-    @apply px-2 py-1 text-sm;
-  }
-  
-  .input {
-    @apply bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500;
-  }
-  
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
-  }
-  
-  .modal {
-    @apply bg-slate-900 rounded-lg shadow-xl max-w-md w-full mx-4 border border-slate-700;
-  }
-  
-  .badge {
-    @apply inline-block px-2.5 py-1 rounded-full text-xs font-medium;
-  }
-  
-  .badge-warning {
-    @apply bg-yellow-900 text-yellow-200;
-  }
-  
-  .badge-success {
-    @apply bg-green-900 text-green-200;
-  }
-  
-  .badge-info {
-    @apply bg-blue-900 text-blue-200;
   }
 }

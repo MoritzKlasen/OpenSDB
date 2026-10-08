@@ -1,6 +1,6 @@
 {
   "name": "opensdb",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
@@ -17,7 +17,7 @@
     "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "csvtojson": "^2.0.14",
-    "discord.js": "^14.25.1",
+    "discord.js": "^14.27.0",
     "dotenv": "^16.6.1",
     "dotenv-extended": "^2.9.0",
     "express": "^5.2.1",
@@ -26,14 +26,14 @@
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.3",
     "jws": "^3.2.3",
-    "mongoose": "^8.21.0",
-    "multer": "^2.1.1",
-    "qs": "^6.15.0",
-    "ws": "^8.14.2",
+    "mongoose": "^8.24.5",
+    "multer": "^2.4.0",
+    "qs": "^6.16.0",
+    "ws": "^8.22.0",
     "zod": "^3.22.4"
   },
   "overrides": {
-    "undici": "6.23.0",
-    "body-parser": "2.2.1"
+    "undici": "6.29.0",
+    "body-parser": "2.3.0"
   }
 }
